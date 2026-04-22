@@ -1213,6 +1213,8 @@ function addFilm(){
   const film={name,dir:v('f-dir').trim(),date:v('f-date'),note:v('f-note').trim()};
   if(editingFilm>=0){db.f[editingFilm]=film;editingFilm=-1;}else{db.f.unshift(film);}
   ['f-name','f-dir','f-date','f-note'].forEach(id=>set(id,''));
+  const dirEl=document.getElementById('f-dir');
+  if(dirEl)dirEl.placeholder='Otomatik doldur →';
   document.getElementById('ff').style.display='none';document.getElementById('ff-save-btn').textContent='Kaydet';save();
 }
 function addBook(){
@@ -1232,7 +1234,14 @@ function addGoal(){
 }
 
 // CANCEL
-function cancelFilmForm(){editingFilm=-1;['f-name','f-dir','f-date','f-note'].forEach(id=>set(id,''));document.getElementById('ff').style.display='none';document.getElementById('ff-save-btn').textContent='Kaydet';}
+function cancelFilmForm(){
+  editingFilm=-1;
+  ['f-name','f-dir','f-date','f-note'].forEach(id=>set(id,''));
+  const dirEl=document.getElementById('f-dir');
+  if(dirEl)dirEl.placeholder='Otomatik doldur →';
+  document.getElementById('ff').style.display='none';
+  document.getElementById('ff-save-btn').textContent='Kaydet';
+}
 
 // Film ve kitap veritabanı (offline)
 // API KEY - Buraya kendi key'inizi yazın
