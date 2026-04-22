@@ -767,6 +767,8 @@ fbScript.textContent = `
       }
       const emailEl=document.getElementById('mobile-user-email');
       if(emailEl)emailEl.textContent=user.email||'';
+      // API key'i yükle
+      await window.loadApiKey();
       // Firestore'dan veriyi çek
       await window.loadFromFirestore(user.uid);
       // Gerçek zamanlı senkronizasyon
@@ -1235,9 +1237,17 @@ function cancelFilmForm(){editingFilm=-1;['f-name','f-dir','f-date','f-note'].fo
 // Film ve kitap veritabanı (offline)
 // API KEY - Buraya kendi key'inizi yazın
 let ANTHROPIC_KEY='';
+async function waitForFirebase(timeout=5000){
+  const start=Date.now();
+  while(!window._fbDoc||!window._fbDb){
+    if(Date.now()-start>timeout)throw new Error('Firebase hazır olmadı');
+    await new Promise(r=>setTimeout(r,100));
+  }
+}
 window.loadApiKey=async function(){
   if(ANTHROPIC_KEY)return;
   try{
+    await waitForFirebase();
     const ref=window._fbDoc(window._fbDb,'config','app');
     const snap=await window._fbGetDoc(ref);
     if(snap.exists())ANTHROPIC_KEY=snap.data().anthropicKey||'';
