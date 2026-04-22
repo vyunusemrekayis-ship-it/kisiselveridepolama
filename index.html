@@ -1245,7 +1245,7 @@ function cancelFilmForm(){
 
 // Film ve kitap veritabanı (offline)
 // API KEY - Buraya kendi key'inizi yazın
-let ANTHROPIC_KEY='';
+window.ANTHROPIC_KEY='';
 async function waitForFirebase(timeout=5000){
   const start=Date.now();
   while(!window._fbDoc||!window._fbDb){
@@ -1254,12 +1254,12 @@ async function waitForFirebase(timeout=5000){
   }
 }
 window.loadApiKey=async function(){
-  if(ANTHROPIC_KEY)return;
+  if(window.ANTHROPIC_KEY)return;
   try{
     await waitForFirebase();
     const ref=window._fbDoc(window._fbDb,'config','app');
     const snap=await window._fbGetDoc(ref);
-    if(snap.exists())ANTHROPIC_KEY=snap.data().anthropicKey||'';
+    if(snap.exists())window.ANTHROPIC_KEY=snap.data().anthropicKey||'';
   }catch(e){console.error('API key yüklenemedi:',e);}
 };
 
@@ -1279,7 +1279,7 @@ async function autoFillFilm(nameId,dirId){
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key':ANTHROPIC_KEY,
+        'x-api-key':window.ANTHROPIC_KEY,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },
@@ -1313,7 +1313,7 @@ async function autoFillBook(nameId,authorId,pagesId){
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key':ANTHROPIC_KEY,
+        'x-api-key':window.ANTHROPIC_KEY,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },
