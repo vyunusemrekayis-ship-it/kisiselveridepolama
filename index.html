@@ -1269,10 +1269,10 @@ async function autoFillFilm(nameId,dirId){
   if(!nameEl||!dirEl)return;
   const name=nameEl.value.trim();
   if(!name)return;
-  if(dirEl.value.trim())return;
   const loadEl=document.getElementById(dirId+'-loading');
   if(loadEl)loadEl.style.display='inline';
   dirEl.placeholder='Aranıyor...';
+  dirEl.value='';
   await window.loadApiKey&&window.loadApiKey();
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
