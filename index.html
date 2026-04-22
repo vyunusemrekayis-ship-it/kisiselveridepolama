@@ -1222,6 +1222,8 @@ function addBook(){
   const book={name,author:v('b-author').trim(),pages:v('b-pages'),start:v('b-start'),end:v('b-end'),note:v('b-note').trim()};
   if(editingBook>=0){db.b[editingBook]=book;editingBook=-1;}else{db.b.unshift(book);}
   ['b-name','b-author','b-pages','b-start','b-end','b-note'].forEach(id=>set(id,''));
+  const authorEl=document.getElementById('b-author');
+  if(authorEl)authorEl.placeholder='Otomatik doldur →';
   document.getElementById('bf').style.display='none';document.getElementById('bf-save-btn').textContent='Kaydet';save();
 }
 function addGoal(){
@@ -1303,10 +1305,10 @@ async function autoFillBook(nameId,authorId,pagesId){
   if(!nameEl||!authorEl)return;
   const name=nameEl.value.trim();
   if(!name)return;
-  if(authorEl.value.trim())return;
   const loadEl=document.getElementById(authorId+'-loading');
   if(loadEl)loadEl.style.display='inline';
   authorEl.placeholder='Aranıyor...';
+  authorEl.value='';
   await window.loadApiKey&&window.loadApiKey();
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
