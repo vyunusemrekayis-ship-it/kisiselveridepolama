@@ -1325,8 +1325,8 @@ async function autoFillBook(nameId,authorId,pagesId){
         model:'claude-haiku-4-5-20251001',
         max_tokens:100,
         messages:[{role:'user',content:pagesId
-          ?`"${name}" adlı kitabın gerçek yazarı ve sayfa sayısı nedir? Kesinlikle doğru yazar adını ver. Sadece JSON ile yanıt ver: {"author":"...","pages":123} Sayfa bilinmiyorsa pages:null yaz.`
-          :`"${name}" adlı kitabın gerçek yazarı kimdir? Kesinlikle doğru yazar adını ver, başka hiçbir şey yazma.`}]
+          ?`"${name}" kitabının en çok bilinen ve en popüler versiyonunun yazarı ve sayfa sayısı nedir? Kesinlikle doğru yazar adını ver. Sadece JSON ile yanıt ver: {"author":"...","pages":123} Sayfa bilinmiyorsa pages:null yaz.`
+          :`"${name}" kitabının en çok bilinen ve en popüler versiyonunun yazarı kimdir? Kesinlikle doğru yazar adını ver, başka hiçbir şey yazma.`}]
       })
     });
     const data=await res.json();
