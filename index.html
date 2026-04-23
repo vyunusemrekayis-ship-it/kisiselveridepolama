@@ -1334,10 +1334,16 @@ async function autoFillBook(nameId,authorId,pagesId){
     if(text){
       if(pagesId){
         try{
-          const obj=JSON.parse(text.replace(/```json|```/g,'').trim());
+          const clean=text.replace(/```json|```/g,'').replace(/[\u201c\u201d]/g,'"').trim();
+          const jsonMatch=clean.match(/\{[\s\S]*?\}/);
+          const obj=JSON.parse(jsonMatch?jsonMatch[0]:clean);
           if(obj.author)authorEl.value=obj.author;
           if(obj.pages){const pEl=document.getElementById(pagesId);if(pEl)pEl.value=obj.pages;}
-        }catch(e){authorEl.value=text;}
+        }catch(e){
+          const authorMatch=text.match(/"author"\s*:\s*"([^"]+)"/);
+          if(authorMatch)authorEl.value=authorMatch[1];
+          else authorEl.value=text.split('\n')[0].replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ\s]/g,'').trim();
+        }
       }else authorEl.value=text;
     }else authorEl.placeholder='Bulunamadı, elle yazın';
   }catch(e){authorEl.placeholder='Bulunamadı, elle yazın';}
