@@ -1336,7 +1336,7 @@ async function autoFillBook(nameId,authorId,pagesId){
         try{
           const obj=JSON.parse(text.replace(/```json|```/g,'').trim());
           if(obj.author)authorEl.value=obj.author;
-          if(obj.pages){const pEl=document.getElementById(pagesId);if(pEl&&!pEl.value)pEl.value=obj.pages;}
+          if(obj.pages){const pEl=document.getElementById(pagesId);if(pEl)pEl.value=obj.pages;}
         }catch(e){authorEl.value=text;}
       }else authorEl.value=text;
     }else authorEl.placeholder='Bulunamadı, elle yazın';
