@@ -1023,8 +1023,16 @@ async function processBookQueue(){
   if(!bookFetchQueue.length){clearInterval(bookFetchTimer);bookFetchTimer=null;return;}
   const {title,author,key,resolve,startIndex}=bookFetchQueue.shift();
   try{
-    const q=encodeURIComponent(title+(author?' inauthor:'+author:''));
+    const q=encodeURIComponent(title);
     const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&startIndex=${startIndex}`);
+    if(res.status===429){
+      // Rate limit — geri koy ve 3 saniye bekle
+      bookFetchQueue.unshift({title,author,key,resolve,startIndex});
+      clearInterval(bookFetchTimer);
+      bookFetchTimer=null;
+      setTimeout(()=>{if(!bookFetchTimer)bookFetchTimer=setInterval(processBookQueue,600);},3000);
+      return;
+    }
     const data=await res.json();
     const items=data?.items||[];
     bookCoverResults[key]=items.map(item=>{
