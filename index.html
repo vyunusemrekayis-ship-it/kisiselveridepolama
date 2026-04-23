@@ -1039,8 +1039,10 @@ async function processBookQueue(){
     if(url){renderBooks();renderReadlist();}
   }catch(e){bookCoverCache[key]=null;resolve(null);}
 }
-function nextBookCover(title,author){
-  const key=title+'|'+(author||'');
+function nextBookCover(dbIndex,type){
+  const b=type==='rl'?getRl()[dbIndex]:db.b[dbIndex];
+  if(!b)return;
+  const key=b.name+'|'+(b.author||'');
   const results=bookCoverResults[key]||[];
   const cur=(bookCoverIndex[key]||0);
   const next=cur+1;
@@ -1049,9 +1051,8 @@ function nextBookCover(title,author){
     bookCoverCache[key]=results[next];
     renderBooks();renderReadlist();
   }else{
-    // Daha fazla sonuç çek
     bookCoverIndex[key]=next;
-    fetchBookCover(title,author,next);
+    fetchBookCover(b.name,b.author,next);
   }
 }
 
@@ -1069,7 +1070,7 @@ function renderBooks(){
     const coverHtml=cover
       ?`<div style="position:relative">
           <img src="${cover}" alt="${esc(b.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">
-          <button onclick="nextBookCover('${esc(b.name)}','${esc(b.author||'')}')" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:6px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer">↻ Farklı kapak</button>
+          <button onclick="nextBookCover(${i},'db')" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:6px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer">↻ Farklı kapak</button>
         </div>`
       :`<div style="width:100%;height:200px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">📚</div>`;
     return `<div class="card" style="padding:0;overflow:hidden">
@@ -1105,7 +1106,7 @@ function renderReadlist(){
     const coverHtml=cover
       ?`<div style="position:relative">
           <img src="${cover}" alt="${esc(b.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">
-          <button onclick="nextBookCover('${esc(b.name)}','${esc(b.author||'')}')" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:6px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer">↻ Farklı kapak</button>
+          <button onclick="nextBookCover(${i},'rl')" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:6px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer">↻ Farklı kapak</button>
         </div>`
       :`<div style="width:100%;height:200px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">📚</div>`;
     return `<div class="card" style="padding:0;overflow:hidden">
