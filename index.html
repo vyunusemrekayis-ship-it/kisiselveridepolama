@@ -617,7 +617,7 @@ select option{background:var(--surface2)}
       </div>
       <div class="form-panel" id="bf" style="display:none">
         <div class="fg c2"><div><label>Kitap Adı *</label><input id="b-name" placeholder="Örn: Suç ve Ceza"></div><div><label>Yazar <span id="b-author-loading" style="font-size:10px;color:var(--muted);display:none">yükleniyor...</span></label><div style="display:flex;gap:5px"><input id="b-author" placeholder="Otomatik doldur →"><button type="button" onclick="autoFillBook('b-name','b-author','b-pages')" style="padding:0 10px;border-radius:7px;border:0.5px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-size:11px;white-space:nowrap;flex-shrink:0">✦ Doldur</button></div></div></div>
-        <div class="fg c2"><div><label>Sayfa Sayısı</label><input type="number" id="b-pages" placeholder="350"></div><div><label>ISBN <span style="font-size:10px;color:var(--muted)">(kapak için)</span></label><input id="b-isbn" placeholder="Örn: 9780743273565"></div></div>
+        <div class="fg c2"><div><label>Sayfa Sayısı</label><input type="number" id="b-pages" placeholder="350"></div><div></div></div>
         <div class="fg c2"><div><label>Başlama Tarihi</label><input type="date" id="b-start"></div><div><label>Bitirme Tarihi</label><input type="date" id="b-end"></div></div>
         <div class="fg c1"><label>Notlarım</label><textarea id="b-note" placeholder="Kitap hakkında izlenimlerim..."></textarea></div>
         <div class="form-actions"><button class="btn-cancel" onclick="cancelBookForm()">İptal</button><button class="btn-save" id="bf-save-btn" onclick="addBook()">Kaydet</button></div>
@@ -1011,16 +1011,9 @@ const bookCoverResults={};  // tüm sonuçlar
 const bookCoverIndex={};    // şu an kaçıncı sonuç
 let bookFetchQueue=[];
 let bookFetchTimer=null;
-async function fetchBookCover(title,author,startIndex=0,isbn=''){
+async function fetchBookCover(title,author,startIndex=0){
   const key=title+'|'+(author||'');
   if(startIndex===0&&bookCoverCache[key]!==undefined)return bookCoverCache[key];
-  if(isbn&&startIndex===0){
-    const url=`https://covers.openlibrary.org/b/isbn/${isbn.replace(/[^0-9X]/gi,'')}-L.jpg`;
-    bookCoverCache[key]=url;
-    bookCoverResults[key]=[url];
-    bookCoverIndex[key]=0;
-    return url;
-  }
   return new Promise(resolve=>{
     bookFetchQueue.push({title,author,key,resolve,startIndex});
     if(!bookFetchTimer)bookFetchTimer=setInterval(processBookQueue,600);
@@ -1031,24 +1024,32 @@ async function processBookQueue(){
   const {title,author,key,resolve,startIndex}=bookFetchQueue.shift();
   try{
     const q=encodeURIComponent('intitle:'+title+(author?' inauthor:'+author:''));
-    const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&startIndex=${startIndex}`);
+    const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
     if(res.status===429){
-      // Rate limit — geri koy ve 3 saniye bekle
       bookFetchQueue.unshift({title,author,key,resolve,startIndex});
-      clearInterval(bookFetchTimer);
-      bookFetchTimer=null;
+      clearInterval(bookFetchTimer);bookFetchTimer=null;
       setTimeout(()=>{if(!bookFetchTimer)bookFetchTimer=setInterval(processBookQueue,600);},3000);
       return;
     }
     const data=await res.json();
     const items=data?.items||[];
-    bookCoverResults[key]=items.map(item=>{
+    // Sadece aynı kitabın farklı baskılarını al (başlık benzerliği kontrolü)
+    const titleLower=title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
+    const covers=items.map(item=>{
+      const itemTitle=(item?.volumeInfo?.title||'').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
+      // Başlık en az %60 benzer olmalı
+      if(!itemTitle.includes(titleLower.substring(0,Math.max(3,titleLower.length*0.6|0))))return null;
       let url=item?.volumeInfo?.imageLinks?.thumbnail||null;
       if(url)url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
       return url;
     }).filter(Boolean);
-    bookCoverIndex[key]=startIndex===0?0:(bookCoverIndex[key]||0);
-    const url=bookCoverResults[key][bookCoverIndex[key]]||null;
+    bookCoverResults[key]=covers.length?covers:(items.map(item=>{
+      let url=item?.volumeInfo?.imageLinks?.thumbnail||null;
+      if(url)url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
+      return url;
+    }).filter(Boolean));
+    bookCoverIndex[key]=0;
+    const url=bookCoverResults[key][0]||null;
     bookCoverCache[key]=url;
     resolve(url);
     if(url){renderBooks();renderReadlist();}
@@ -1060,15 +1061,10 @@ function nextBookCover(dbIndex,type){
   const key=b.name+'|'+(b.author||'');
   const results=bookCoverResults[key]||[];
   const cur=(bookCoverIndex[key]||0);
-  const next=cur+1;
-  if(next<results.length){
-    bookCoverIndex[key]=next;
-    bookCoverCache[key]=results[next];
-    renderBooks();renderReadlist();
-  }else{
-    bookCoverIndex[key]=next;
-    fetchBookCover(b.name,b.author,next);
-  }
+  const next=(cur+1)%Math.max(results.length,1);
+  bookCoverIndex[key]=next;
+  bookCoverCache[key]=results[next]||null;
+  renderBooks();renderReadlist();
 }
 
 function renderBooks(){
@@ -1107,7 +1103,7 @@ function renderBooks(){
 
   sorted.forEach(({b})=>{
     const key=b.name+'|'+(b.author||'');
-    if(bookCoverCache[key]===undefined)fetchBookCover(b.name,b.author,0,b.isbn||'');
+    if(bookCoverCache[key]===undefined)fetchBookCover(b.name,b.author);
   });
 }
 
@@ -1220,7 +1216,7 @@ function renderGoals(){
 // EDIT
 let editingFilm=-1,editingBook=-1,editingGoal=-1;
 function editFilm(i){const f=db.f[i];set('f-name',f.name);set('f-dir',f.dir||'');set('f-date',f.date||'');set('f-note',f.note||'');editingFilm=i;document.getElementById('ff-save-btn').textContent='Güncelle';document.getElementById('ff').style.display='block';document.getElementById('ff').scrollIntoView({behavior:'smooth',block:'start'});}
-function editBook(i){const b=db.b[i];set('b-name',b.name);set('b-author',b.author||'');set('b-pages',b.pages||'');set('b-isbn',b.isbn||'');set('b-start',b.start||'');set('b-end',b.end||'');set('b-note',b.note||'');editingBook=i;document.getElementById('bf-save-btn').textContent='Güncelle';document.getElementById('bf').style.display='block';document.getElementById('bf').scrollIntoView({behavior:'smooth',block:'start'});}
+function editBook(i){const b=db.b[i];set('b-name',b.name);set('b-author',b.author||'');set('b-pages',b.pages||'');set('b-start',b.start||'');set('b-end',b.end||'');set('b-note',b.note||'');editingBook=i;document.getElementById('bf-save-btn').textContent='Güncelle';document.getElementById('bf').style.display='block';document.getElementById('bf').scrollIntoView({behavior:'smooth',block:'start'});}
 function editGoal(i){const g=db.g[i];set('g-name',g.name);set('g-period',g.period);set('g-target',g.target||g.booktarget||'');set('g-unit',g.unit||'');editingGoal=i;document.getElementById('gf-save-btn').textContent='Güncelle';document.getElementById('gf').style.display='block';document.getElementById('gf').scrollIntoView({behavior:'smooth',block:'start'});}
 
 // ADD / SAVE
@@ -1235,9 +1231,9 @@ function addFilm(){
 }
 function addBook(){
   const name=v('b-name').trim();if(!name){alert('Kitap adı zorunludur');return}
-  const book={name,author:v('b-author').trim(),pages:v('b-pages'),isbn:v('b-isbn').trim(),start:v('b-start'),end:v('b-end'),note:v('b-note').trim()};
+  const book={name,author:v('b-author').trim(),pages:v('b-pages'),start:v('b-start'),end:v('b-end'),note:v('b-note').trim()};
   if(editingBook>=0){db.b[editingBook]=book;editingBook=-1;}else{db.b.unshift(book);}
-  ['b-name','b-author','b-pages','b-isbn','b-start','b-end','b-note'].forEach(id=>set(id,''));
+  ['b-name','b-author','b-pages','b-start','b-end','b-note'].forEach(id=>set(id,''));
   const authorEl=document.getElementById('b-author');
   if(authorEl)authorEl.placeholder='Otomatik doldur →';
   document.getElementById('bf').style.display='none';document.getElementById('bf-save-btn').textContent='Kaydet';save();
@@ -1436,7 +1432,7 @@ function renderWatchlist(){
     }
   });
 }
-function cancelBookForm(){editingBook=-1;['b-name','b-author','b-pages','b-isbn','b-start','b-end','b-note'].forEach(id=>set(id,''));document.getElementById('bf').style.display='none';document.getElementById('bf-save-btn').textContent='Kaydet';}
+function cancelBookForm(){editingBook=-1;['b-name','b-author','b-pages','b-start','b-end','b-note'].forEach(id=>set(id,''));document.getElementById('bf').style.display='none';document.getElementById('bf-save-btn').textContent='Kaydet';}
 
 function switchFilmTab(tab,btn){
   document.querySelectorAll('#ftab-watched,#ftab-watchlist').forEach(b=>b.classList.remove('active'));
