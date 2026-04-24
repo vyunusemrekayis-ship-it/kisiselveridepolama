@@ -1021,33 +1021,34 @@ async function fetchBookCover(title,author,startIndex=0){
 }
 async function processBookQueue(){
   if(!bookFetchQueue.length){clearInterval(bookFetchTimer);bookFetchTimer=null;return;}
-  const {title,author,key,resolve,startIndex}=bookFetchQueue.shift();
+  const {title,author,key,resolve}=bookFetchQueue.shift();
   try{
     const q=encodeURIComponent('intitle:'+title+(author?' inauthor:'+author:''));
     const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
     if(res.status===429){
-      bookFetchQueue.unshift({title,author,key,resolve,startIndex});
+      bookFetchQueue.unshift({title,author,key,resolve});
       clearInterval(bookFetchTimer);bookFetchTimer=null;
       setTimeout(()=>{if(!bookFetchTimer)bookFetchTimer=setInterval(processBookQueue,600);},3000);
       return;
     }
     const data=await res.json();
     const items=data?.items||[];
-    // Sadece aynı kitabın farklı baskılarını al (başlık benzerliği kontrolü)
     const titleLower=title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
-    const covers=items.map(item=>{
-      const itemTitle=(item?.volumeInfo?.title||'').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
-      // Başlık en az %60 benzer olmalı
-      if(!itemTitle.includes(titleLower.substring(0,Math.max(3,titleLower.length*0.6|0))))return null;
+    const allCovers=items.map(item=>{
       let url=item?.volumeInfo?.imageLinks?.thumbnail||null;
-      if(url)url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
+      if(!url)return null;
+      // "image not available" placeholder'larını filtrele
+      if(url.includes('x-raw-image'))return null;
+      url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
       return url;
     }).filter(Boolean);
-    bookCoverResults[key]=covers.length?covers:(items.map(item=>{
-      let url=item?.volumeInfo?.imageLinks?.thumbnail||null;
-      if(url)url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
-      return url;
-    }).filter(Boolean));
+    // Önce başlık eşleşenleri dene
+    const matchCovers=items.map((item,idx)=>{
+      const itemTitle=(item?.volumeInfo?.title||'').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
+      if(!itemTitle.includes(titleLower.substring(0,Math.max(3,titleLower.length*0.6|0))))return null;
+      return allCovers[idx]||null;
+    }).filter(Boolean);
+    bookCoverResults[key]=matchCovers.length?matchCovers:allCovers;
     bookCoverIndex[key]=0;
     const url=bookCoverResults[key][0]||null;
     bookCoverCache[key]=url;
@@ -1060,10 +1061,18 @@ function nextBookCover(dbIndex,type){
   if(!b)return;
   const key=b.name+'|'+(b.author||'');
   const results=bookCoverResults[key]||[];
+  if(results.length<=1){
+    // Sonuç yoksa veya tek sonuç varsa cache'i temizle ve tekrar çek
+    delete bookCoverCache[key];
+    delete bookCoverResults[key];
+    delete bookCoverIndex[key];
+    fetchBookCover(b.name,b.author);
+    return;
+  }
   const cur=(bookCoverIndex[key]||0);
-  const next=(cur+1)%Math.max(results.length,1);
+  const next=(cur+1)%results.length;
   bookCoverIndex[key]=next;
-  bookCoverCache[key]=results[next]||null;
+  bookCoverCache[key]=results[next];
   renderBooks();renderReadlist();
 }
 
