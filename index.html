@@ -1055,13 +1055,6 @@ async function processBookQueue(){
     if(url){renderBooks();renderReadlist();}
   }catch(e){bookCoverCache[key]=null;resolve(null);}
 }
-    bookCoverIndex[key]=0;
-    const url=bookCoverResults[key][0]||null;
-    bookCoverCache[key]=url;
-    resolve(url);
-    if(url){renderBooks();renderReadlist();}
-  }catch(e){bookCoverCache[key]=null;resolve(null);}
-}
 function nextBookCover(dbIndex,type){
   const b=type==='rl'?getRl()[dbIndex]:db.b[dbIndex];
   if(!b)return;
