@@ -1023,7 +1023,7 @@ async function processBookQueue(){
   if(!bookFetchQueue.length){clearInterval(bookFetchTimer);bookFetchTimer=null;return;}
   const {title,author,key,resolve}=bookFetchQueue.shift();
   try{
-    const q=encodeURIComponent('intitle:'+title+(author?' inauthor:'+author:''));
+    const q=encodeURIComponent('intitle:'+title);
     const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
     if(res.status===429){
       bookFetchQueue.unshift({title,author,key,resolve});
