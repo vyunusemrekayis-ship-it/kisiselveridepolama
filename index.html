@@ -1033,19 +1033,31 @@ async function processBookQueue(){
     }
     const data=await res.json();
     const items=data?.items||[];
-    const titleLower=title.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
-    const allCovers=[];
+    const authorLower=(author||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const candidateUrls=[];
     for(const item of items){
-      const itemTitle=(item?.volumeInfo?.title||'').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g,'');
-      // Başlık tam eşleşmeli ya da birini içermeli
-      if(!itemTitle.includes(titleLower)&&!titleLower.includes(itemTitle))continue;
       let url=item?.volumeInfo?.imageLinks?.thumbnail||null;
       if(!url)continue;
-      if(url.includes('x-raw-image'))continue;
       url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
-      allCovers.push(url);
+      if(url.includes('x-raw-image'))continue;
+      // Yazar kontrolü
+      if(authorLower){
+        const itemAuthors=(item?.volumeInfo?.authors||[]).join(' ').toLowerCase().replace(/[^a-z0-9]/g,'');
+        const lastName=authorLower.slice(-5);
+        if(itemAuthors.length>0&&!itemAuthors.includes(lastName))continue;
+      }
+      candidateUrls.push(url);
     }
-    bookCoverResults[key]=allCovers;
+    // Her URL'nin geçerli resim olup olmadığını kontrol et
+    const validCovers=await Promise.all(candidateUrls.map(url=>
+      new Promise(r=>{
+        const img=new Image();
+        img.onload=()=>r(img.naturalWidth>50?url:null);
+        img.onerror=()=>r(null);
+        img.src=url;
+      })
+    ));
+    bookCoverResults[key]=validCovers.filter(Boolean);
     bookCoverIndex[key]=0;
     const url=bookCoverResults[key][0]||null;
     bookCoverCache[key]=url;
