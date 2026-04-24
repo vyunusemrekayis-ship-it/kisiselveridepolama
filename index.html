@@ -1023,41 +1023,38 @@ async function processBookQueue(){
   if(!bookFetchQueue.length){clearInterval(bookFetchTimer);bookFetchTimer=null;return;}
   const {title,author,key,resolve}=bookFetchQueue.shift();
   try{
-    const q=encodeURIComponent('intitle:'+title);
-    const res=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
-    if(res.status===429){
-      bookFetchQueue.unshift({title,author,key,resolve});
-      clearInterval(bookFetchTimer);bookFetchTimer=null;
-      setTimeout(()=>{if(!bookFetchTimer)bookFetchTimer=setInterval(processBookQueue,600);},3000);
-      return;
-    }
+    // Open Library Search API
+    const q=encodeURIComponent(title+(author?' '+author:''));
+    const res=await fetch(`https://openlibrary.org/search.json?q=${q}&limit=10&fields=key,title,author_name,cover_i,isbn`);
     const data=await res.json();
-    const items=data?.items||[];
-    const authorLower=(author||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-    const candidateUrls=[];
-    for(const item of items){
-      let url=item?.volumeInfo?.imageLinks?.thumbnail||null;
-      if(!url)continue;
-      url=url.replace('zoom=1','zoom=3').replace('&edge=curl','').replace('http://','https://');
-      if(url.includes('x-raw-image'))continue;
+    const docs=data?.docs||[];
+    const titleLower=title.toLowerCase();
+    const authorLower=(author||'').toLowerCase();
+    const covers=[];
+    for(const doc of docs){
+      const docTitle=(doc.title||'').toLowerCase();
+      // Başlık kontrolü
+      if(!docTitle.includes(titleLower.split(' ')[0]))continue;
       // Yazar kontrolü
-      if(authorLower){
-        const itemAuthors=(item?.volumeInfo?.authors||[]).join(' ').toLowerCase().replace(/[^a-z0-9]/g,'');
-        const lastName=authorLower.slice(-5);
-        if(itemAuthors.length>0&&!itemAuthors.includes(lastName))continue;
+      if(authorLower&&doc.author_name){
+        const docAuthor=doc.author_name.join(' ').toLowerCase();
+        const lastName=authorLower.split(' ').pop();
+        if(!docAuthor.includes(lastName))continue;
       }
-      candidateUrls.push(url);
+      if(doc.cover_i){
+        covers.push(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
+      } else if(doc.isbn&&doc.isbn[0]){
+        covers.push(`https://covers.openlibrary.org/b/isbn/${doc.isbn[0]}-L.jpg`);
+      }
     }
-    // Her URL'nin geçerli resim olup olmadığını kontrol et
-    const validCovers=await Promise.all(candidateUrls.map(url=>
-      new Promise(r=>{
-        const img=new Image();
-        img.onload=()=>r(img.naturalWidth>50?url:null);
-        img.onerror=()=>r(null);
-        img.src=url;
-      })
-    ));
-    bookCoverResults[key]=validCovers.filter(Boolean);
+    bookCoverResults[key]=covers;
+    bookCoverIndex[key]=0;
+    const url=covers[0]||null;
+    bookCoverCache[key]=url;
+    resolve(url);
+    if(url){renderBooks();renderReadlist();}
+  }catch(e){bookCoverCache[key]=null;resolve(null);}
+}
     bookCoverIndex[key]=0;
     const url=bookCoverResults[key][0]||null;
     bookCoverCache[key]=url;
