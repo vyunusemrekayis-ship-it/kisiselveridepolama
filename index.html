@@ -73,7 +73,38 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* SECTIONS */
 .section{display:none}.section.active{display:block}
 
-/* HOME */
+/* HOME WIDGETS */
+.hw-widget{position:absolute;background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:14px;padding:12px 14px;width:220px;max-height:200px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
+.hw-tl{top:24px;left:24px}
+.hw-tr{top:24px;right:24px}
+.hw-bl{bottom:40px;left:24px}
+.hw-br{bottom:40px;right:24px}
+.hw-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.55);margin-bottom:8px;font-weight:500}
+.hw-body{font-size:12px;color:rgba(255,255,255,.85);display:flex;flex-direction:column;gap:5px}
+.hw-body .hw-item{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hw-body .hw-empty{color:rgba(255,255,255,.35);font-size:11px}
+.hw-check{width:12px;height:12px;border-radius:3px;border:1.5px solid rgba(255,255,255,.4);flex-shrink:0}
+.hw-check.done{background:rgba(255,255,255,.6);border-color:transparent}
+.hw-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:12px}
+.hw-sw-time{font-family:'Playfair Display',serif;font-size:52px;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.5);letter-spacing:2px;line-height:1}
+.hw-sw-btns{display:flex;gap:10px}
+.hw-sw-btn{background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:50%;width:40px;height:40px;font-size:14px;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center}
+.hw-sw-btn:hover{background:rgba(255,255,255,.25)}
+.hw-sw-reset{font-size:16px}
+.hw-chain-row{display:flex;align-items:center;gap:6px}
+.hw-chain-dots{display:flex;gap:3px;flex-wrap:wrap;max-width:140px}
+.hw-chain-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2)}
+.hw-chain-dot.done{background:var(--accent)}
+.hw-cal-today{font-size:28px;font-weight:700;color:#fff;line-height:1}
+.hw-cal-month{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
+.hw-cal-todos{margin-top:8px;font-size:11px;color:rgba(255,255,255,.7)}
+@media(max-width:600px){
+  .hw-widget{width:calc(50vw - 32px);max-height:160px;padding:10px 12px}
+  .hw-sw-time{font-size:36px}
+  .hw-tl{top:16px;left:12px}.hw-tr{top:16px;right:12px}
+  .hw-bl{bottom:30px;left:12px}.hw-br{bottom:30px;right:12px}
+}
+
 .home-wrap{border-radius:14px;overflow:hidden;min-height:calc(100vh - 100px);position:relative;background:#111 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
 .home-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3),rgba(0,0,0,.58))}
 .home-content{position:relative;z-index:1;text-align:center;color:#fff;padding:0 20px}
@@ -430,10 +461,40 @@ select option{background:var(--surface2)}
   <div class="section active" id="section-home">
     <div class="home-wrap" id="home-bg">
       <div class="home-overlay"></div>
-      <div class="home-content">
-        <div class="home-time" id="home-time">--:--</div>
-        <div class="home-date" id="home-date"></div>
+
+      <!-- SOL ÜST: Bugünün Görevleri -->
+      <div class="hw-widget hw-tl" id="hw-todos">
+        <div class="hw-title">Bugünün Görevleri</div>
+        <div class="hw-body" id="hw-todos-body"></div>
       </div>
+
+      <!-- SAĞ ÜST: Hedefler -->
+      <div class="hw-widget hw-tr" id="hw-goals">
+        <div class="hw-title">Hedefler</div>
+        <div class="hw-body" id="hw-goals-body"></div>
+      </div>
+
+      <!-- ORTA: Kronometre -->
+      <div class="hw-center">
+        <div class="hw-sw-time" id="hw-sw-display">00:00</div>
+        <div class="hw-sw-btns">
+          <button class="hw-sw-btn" id="hw-sw-btn" onclick="hwSwToggle()">▶</button>
+          <button class="hw-sw-btn hw-sw-reset" onclick="hwSwReset()">↺</button>
+        </div>
+      </div>
+
+      <!-- SOL ALT: Zincir Kırma -->
+      <div class="hw-widget hw-bl" id="hw-chains">
+        <div class="hw-title">Zincir Kırma</div>
+        <div class="hw-body" id="hw-chains-body"></div>
+      </div>
+
+      <!-- SAĞ ALT: Takvim -->
+      <div class="hw-widget hw-br" id="hw-cal">
+        <div class="hw-title">Takvim</div>
+        <div class="hw-body" id="hw-cal-body"></div>
+      </div>
+
       <div class="home-credit" id="home-credit"></div>
     </div>
   </div>
@@ -952,7 +1013,7 @@ function updateThemeIcon(t){
 }
 
 // RENDER
-function renderAll(){renderFilms();renderBooks();renderGoals();renderWatchlist();renderReadlist();renderChains();}
+function renderAll(){renderFilms();renderBooks();renderGoals();renderWatchlist();renderReadlist();renderChains();renderHomeWidgets();}
 
 const OMDB_KEY='97eb66bc';
 const posterCache={};
@@ -1474,6 +1535,86 @@ function initHome(){
   localStorage.setItem('gn_seen_photos',JSON.stringify(seen));
   if(bg) bg.style.backgroundImage=`url('${photos[idx]}')`;
   if(credit) credit.textContent='Unsplash';
+  renderHomeWidgets();
+}
+
+function renderHomeWidgets(){
+  const today=todayStr();
+  // Todos
+  const tb=document.getElementById('hw-todos-body');
+  if(tb){
+    const todos=getTodos()[today]||[];
+    if(!todos.length) tb.innerHTML='<div class="hw-empty">Görev yok</div>';
+    else tb.innerHTML=todos.slice(0,5).map(t=>`<div class="hw-item"><div class="hw-check${t.done?' done':''}"></div><span style="text-decoration:${t.done?'line-through':'none'};opacity:${t.done?.5:1}">${esc(t.text)}</span></div>`).join('');
+  }
+  // Goals
+  const gb=document.getElementById('hw-goals-body');
+  if(gb){
+    const goals=db.g||[];
+    if(!goals.length) gb.innerHTML='<div class="hw-empty">Hedef yok</div>';
+    else gb.innerHTML=goals.slice(0,4).map(g=>{
+      const pct=g.target?Math.min(100,Math.round((g.current||0)/g.target*100)):0;
+      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
+        <span style="font-size:11px">${esc(g.name)}</span>
+        <div style="width:100%;height:4px;background:rgba(255,255,255,.2);border-radius:2px">
+          <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Chains
+  const cb=document.getElementById('hw-chains-body');
+  if(cb){
+    const chains=getCh();
+    if(!chains.length) cb.innerHTML='<div class="hw-empty">Zincir yok</div>';
+    else cb.innerHTML=chains.slice(0,3).map(ch=>{
+      const dots=Array.from({length:7},(_,i)=>{
+        const d=new Date();d.setDate(d.getDate()-6+i);
+        const ds=d.toISOString().split('T')[0];
+        const done=ch.done&&ch.done.includes(ds);
+        return `<div class="hw-chain-dot${done?' done':''}"></div>`;
+      }).join('');
+      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
+        <span style="font-size:11px">${esc(ch.name)} <span style="color:var(--accent)">${ch.count||0} gün</span></span>
+        <div class="hw-chain-dots">${dots}</div>
+      </div>`;
+    }).join('');
+  }
+  // Calendar
+  const calb=document.getElementById('hw-cal-body');
+  if(calb){
+    const n=new Date();
+    const notes=getNotes()[today]||[];
+    const todos2=getTodos()[today]||[];
+    calb.innerHTML=`<div class="hw-cal-today">${n.getDate()}</div>
+      <div class="hw-cal-month">${TR_D[n.getDay()]}, ${TR_M[n.getMonth()]} ${n.getFullYear()}</div>
+      ${notes.length||todos2.length?`<div class="hw-cal-todos" style="margin-top:6px">${notes.length?`📝 ${notes.length} not `:''}${todos2.length?`✓ ${todos2.length} görev`:''}</div>`:''}`;
+  }
+}
+
+// HOME STOPWATCH
+let hwSwRunning=false,hwSwInterval=null,hwSwElapsed=0,hwSwStart=null;
+function hwSwFmt(ms){
+  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
+  return String(h).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+}
+function hwSwRender(){const d=document.getElementById('hw-sw-display');if(d)d.textContent=hwSwFmt(hwSwElapsed);}
+function hwSwToggle(){
+  const btn=document.getElementById('hw-sw-btn');
+  if(hwSwRunning){
+    clearInterval(hwSwInterval);hwSwRunning=false;
+    if(btn)btn.textContent='▶';
+  }else{
+    hwSwStart=Date.now()-hwSwElapsed;
+    hwSwInterval=setInterval(()=>{hwSwElapsed=Date.now()-hwSwStart;hwSwRender();},100);
+    hwSwRunning=true;
+    if(btn)btn.textContent='⏸';
+  }
+}
+function hwSwReset(){
+  clearInterval(hwSwInterval);hwSwRunning=false;hwSwElapsed=0;hwSwStart=null;
+  hwSwRender();
+  const btn=document.getElementById('hw-sw-btn');if(btn)btn.textContent='▶';
 }
 function tickClock(){
   const n=new Date();
