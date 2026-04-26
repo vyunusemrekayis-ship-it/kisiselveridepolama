@@ -980,7 +980,7 @@ function renderFilms(){
     const posterHtml=poster
       ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
       :`<div style="width:100%;height:180px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
-    return `<div class="card" style="padding:0;overflow:hidden">
+    return `<div class="card">
       ${posterHtml}
       <div style="padding:12px 13px">
         <div class="card-top"><div style="flex:1;min-width:0">
@@ -1006,74 +1006,9 @@ function renderFilms(){
   });
 }
 
-const bookCoverCache={};
-const bookCoverResults={};  // tüm sonuçlar
-const bookCoverIndex={};    // şu an kaçıncı sonuç
-let bookFetchQueue=[];
-let bookFetchTimer=null;
-async function fetchBookCover(title,author,startIndex=0){
-  const key=title+'|'+(author||'');
-  if(startIndex===0&&bookCoverCache[key]!==undefined)return bookCoverCache[key];
-  return new Promise(resolve=>{
-    bookFetchQueue.push({title,author,key,resolve,startIndex});
-    if(!bookFetchTimer)bookFetchTimer=setInterval(processBookQueue,600);
-  });
-}
-async function processBookQueue(){
-  if(!bookFetchQueue.length){clearInterval(bookFetchTimer);bookFetchTimer=null;return;}
-  const {title,author,key,resolve}=bookFetchQueue.shift();
-  try{
-    // Open Library Search API
-    const q=encodeURIComponent(title+(author?' '+author:''));
-    const res=await fetch(`https://openlibrary.org/search.json?q=${q}&limit=10&fields=key,title,author_name,cover_i,isbn`);
-    const data=await res.json();
-    const docs=data?.docs||[];
-    const titleLower=title.toLowerCase();
-    const authorLower=(author||'').toLowerCase();
-    const covers=[];
-    for(const doc of docs){
-      const docTitle=(doc.title||'').toLowerCase();
-      // Başlık kontrolü
-      if(!docTitle.includes(titleLower.split(' ')[0]))continue;
-      // Yazar kontrolü
-      if(authorLower&&doc.author_name){
-        const docAuthor=doc.author_name.join(' ').toLowerCase();
-        const lastName=authorLower.split(' ').pop();
-        if(!docAuthor.includes(lastName))continue;
-      }
-      if(doc.cover_i){
-        covers.push(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`);
-      } else if(doc.isbn&&doc.isbn[0]){
-        covers.push(`https://covers.openlibrary.org/b/isbn/${doc.isbn[0]}-L.jpg`);
-      }
-    }
-    bookCoverResults[key]=covers;
-    bookCoverIndex[key]=0;
-    const url=covers[0]||null;
-    bookCoverCache[key]=url;
-    resolve(url);
-    if(url){renderBooks();renderReadlist();}
-  }catch(e){bookCoverCache[key]=null;resolve(null);}
-}
-function nextBookCover(dbIndex,type){
-  const b=type==='rl'?getRl()[dbIndex]:db.b[dbIndex];
-  if(!b)return;
-  const key=b.name+'|'+(b.author||'');
-  const results=bookCoverResults[key]||[];
-  if(results.length<=1){
-    // Sonuç yoksa veya tek sonuç varsa cache'i temizle ve tekrar çek
-    delete bookCoverCache[key];
-    delete bookCoverResults[key];
-    delete bookCoverIndex[key];
-    fetchBookCover(b.name,b.author);
-    return;
-  }
-  const cur=(bookCoverIndex[key]||0);
-  const next=(cur+1)%results.length;
-  bookCoverIndex[key]=next;
-  bookCoverCache[key]=results[next];
-  renderBooks();renderReadlist();
-}
+
+
+
 
 function renderBooks(){
   const sorted=db.b.map((b,i)=>({b,i})).sort((a,b)=>{
@@ -1084,16 +1019,8 @@ function renderBooks(){
   const el=document.getElementById('book-list');
   if(!el)return;
   el.innerHTML=sorted.length?sorted.map(({b,i})=>{
-    const cacheKey=b.name+'|'+(b.author||'');
-    const cover=bookCoverCache[cacheKey];
-    const coverHtml=cover
-      ?`<div style="position:relative">
-          <img src="${cover}" alt="${esc(b.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">
-          <button onclick="nextBookCover(${i},'db')" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:6px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer">↻ Farklı kapak</button>
-        </div>`
-      :`<div style="width:100%;height:200px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">📚</div>`;
-    return `<div class="card" style="padding:0;overflow:hidden">
-      ${coverHtml}
+
+    return `<div class="card">
       <div style="padding:12px 13px">
         <div class="card-top"><div style="flex:1;min-width:0">
           <div class="card-title">${esc(b.name)}</div>
@@ -1108,11 +1035,6 @@ function renderBooks(){
     </div>`;
   }).join('')
     :`<div class="empty"><div class="empty-icon">📚</div>Henüz kitap eklemediniz</div>`;
-
-  sorted.forEach(({b})=>{
-    const key=b.name+'|'+(b.author||'');
-    if(bookCoverCache[key]===undefined)fetchBookCover(b.name,b.author);
-  });
 }
 
 function renderReadlist(){
@@ -1120,16 +1042,8 @@ function renderReadlist(){
   const counter=document.getElementById('rl-counter');if(counter)counter.textContent=rl.length;
   const el=document.getElementById('readlist-list');if(!el)return;
   el.innerHTML=rl.length?rl.map((b,i)=>{
-    const cacheKey=b.name+'|'+(b.author||'');
-    const cover=bookCoverCache[cacheKey];
-    const coverHtml=cover
-      ?`<div style="position:relative">
-          <img src="${cover}" alt="${esc(b.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">
-          <button onclick="nextBookCover(${i},'rl')" style="position:absolute;bottom:8px;right:8px;padding:4px 10px;border-radius:6px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:11px;cursor:pointer">↻ Farklı kapak</button>
-        </div>`
-      :`<div style="width:100%;height:200px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">📚</div>`;
-    return `<div class="card" style="padding:0;overflow:hidden">
-      ${coverHtml}
+
+    return `<div class="card">
       <div style="padding:12px 13px">
         <div class="card-top"><div style="flex:1;min-width:0">
           <div class="card-title">${esc(b.name)}</div>
@@ -1143,17 +1057,8 @@ function renderReadlist(){
     </div>`;
   }).join('')
     :`<div class="empty"><div class="empty-icon">📚</div>Okuyacak kitap listesi boş</div>`;
+}
 
-  rl.forEach(b=>{
-    const key=b.name+'|'+(b.author||'');
-    if(bookCoverCache[key]===undefined)fetchBookCover(b.name,b.author);
-  });
-}
-function getWeekStart(date){
-  const d=new Date(date);const day=d.getDay();
-  d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;
-}
-function weekLabel(key){
   const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);
   const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()];
   const cur=getWeekStart(new Date()).toISOString().split('T')[0];
@@ -1415,7 +1320,7 @@ function renderWatchlist(){
     const posterHtml=poster
       ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
       :`<div style="width:100%;height:180px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
-    return `<div class="card" style="padding:0;overflow:hidden">
+    return `<div class="card">
       ${posterHtml}
       <div style="padding:12px 13px">
         <div class="card-top"><div style="flex:1;min-width:0">
