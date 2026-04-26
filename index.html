@@ -1251,8 +1251,8 @@ async function autoFillBook(nameId,authorId,pagesId){
         model:'claude-haiku-4-5-20251001',
         max_tokens:100,
         messages:[{role:'user',content:pagesId
-          ?`"${name}" adlı kitabın yazarı kimdir ve kaç sayfadır? Bu kitabı yazan tek ve gerçek yazarı ver. Başka kitaplarla karıştırma. Sadece şu JSON formatında yanıt ver, başka hiçbir şey yazma: {"author":"Yazar Adı","pages":123} Sayfa sayısı bilinmiyorsa pages:null yaz.`
-          :`"${name}" adlı kitabı kim yazdı? Sadece yazarın tam adını yaz, başka hiçbir şey ekleme.`}]
+          ?`"${name}" kitabının orijinal yazarı kimdir? Çevirmeni değil, orijinal yazarı ver. Türkçe çeviri olsa bile orijinal yazarı yaz. Sadece JSON: {"author":"Ad Soyad","pages":123} pages bilinmiyorsa null.`
+          :`"${name}" kitabının orijinal yazarı kimdir? Çevirmeni değil orijinal yazarı yaz. Sadece isim.`}]
       })
     });
     const data=await res.json();
