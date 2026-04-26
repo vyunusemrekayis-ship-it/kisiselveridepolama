@@ -1058,7 +1058,8 @@ function renderReadlist(){
   }).join('')
     :`<div class="empty"><div class="empty-icon">📚</div>Okuyacak kitap listesi boş</div>`;
 }
-
+function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
+function weekLabel(key){
   const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);
   const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()];
   const cur=getWeekStart(new Date()).toISOString().split('T')[0];
