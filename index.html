@@ -1990,7 +1990,7 @@ function toggleChLink(i,dayIdx){
   const chs=getCh();
   const idx=chs[i].done.indexOf(dayIdx);
   if(idx>=0)chs[i].done.splice(idx,1);else chs[i].done.push(dayIdx);
-  saveCh(chs);renderChains();
+  saveCh(chs);renderChains();renderHomeWidgets();
 }
 
 function fmtDate(ds){const[y,m,d]=ds.split('-');return d+'.'+m+'.'+y}
