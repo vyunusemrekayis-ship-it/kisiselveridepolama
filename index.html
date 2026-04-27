@@ -1615,14 +1615,16 @@ function renderHomeWidgets(){
     else cb.innerHTML=chains.slice(0,3).map(ch=>{
       const today2=todayStr();
       const doneTodayArr=ch.done||[];
-      // Streak hesapla - bugünden geriye kaç gün arka arkaya yapıldı
+      // Streak hesapla
       let streak=0;
       const d=new Date();
-      while(true){
+      // Bugün işaretlenmediyse dünden başla
+      const todayDs=d.toISOString().split('T')[0];
+      if(!doneTodayArr.includes(todayDs))d.setDate(d.getDate()-1);
+      while(streak<1000){
         const ds=d.toISOString().split('T')[0];
         if(doneTodayArr.includes(ds)){streak++;d.setDate(d.getDate()-1);}
         else break;
-        if(streak>365)break;
       }
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:5px">
         <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
