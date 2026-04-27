@@ -1615,17 +1615,18 @@ function renderHomeWidgets(){
     else cb.innerHTML=chains.slice(0,3).map(ch=>{
       const today2=todayStr();
       const doneTodayArr=ch.done||[];
-      // Streak hesapla
+      // Streak hesapla - done array gün indexi (0,1,2...) tutuyor
+      const doneSet=new Set(ch.done||[]);
+      const startDate=ch.start;
       let streak=0;
-      const d=new Date();
-      // Bugün işaretlenmediyse dünden başla
-      const todayDs=d.toISOString().split('T')[0];
-      if(!doneTodayArr.includes(todayDs))d.setDate(d.getDate()-1);
-      while(streak<1000){
-        const ds=d.toISOString().split('T')[0];
-        if(doneTodayArr.includes(ds)){streak++;d.setDate(d.getDate()-1);}
-        else break;
-      }
+      const today3=new Date();
+      // Bugünün indexini bul
+      const startMs=new Date(startDate+'T00:00:00').getTime();
+      const todayIdx=Math.floor((today3.getTime()-startMs)/(1000*60*60*24));
+      // Bugünden geriye say
+      let checkIdx=doneSet.has(todayIdx)?todayIdx:todayIdx-1;
+      while(checkIdx>=0&&doneSet.has(checkIdx)){streak++;checkIdx--;}
+
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:5px">
         <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
           <span style="font-size:11px;font-weight:500">${esc(ch.name)}</span>
