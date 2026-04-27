@@ -719,6 +719,7 @@ select option{background:var(--surface2)}
     <div class="form-panel" id="gf" style="display:none">
       <div class="fg c2"><div><label>Hedef *</label><input id="g-name" placeholder="Örn: 45 saat ders çalış"></div><div><label>Dönem</label><select id="g-period"><option value="weekly">Haftalık</option><option value="monthly">Aylık</option><option value="yearly">Yıllık</option></select></div></div>
       <div class="fg c2"><div><label>Hedef Değer</label><input type="number" id="g-target" min="1" placeholder="Örn: 45"></div><div><label>Birim (isteğe bağlı)</label><input id="g-unit" placeholder="Örn: saat, kitap, km..."></div></div>
+      <div class="fg c2"><div><label>Otomatik Takip</label><select id="g-track"><option value="">Manuel</option><option value="book">📚 Kitap sayısı</option><option value="film">🎬 Film sayısı</option></select></div><div></div></div>
       <div class="form-actions"><button class="btn-cancel" onclick="cancelGoalForm()">İptal</button><button class="btn-save" id="gf-save-btn" onclick="addGoal()">Kaydet</button></div>
     </div>
     <div class="goal-tabs">
@@ -1199,7 +1200,7 @@ function renderGoals(){
 let editingFilm=-1,editingBook=-1,editingGoal=-1;
 function editFilm(i){const f=db.f[i];set('f-name',f.name);set('f-dir',f.dir||'');set('f-date',f.date||'');set('f-note',f.note||'');editingFilm=i;document.getElementById('ff-save-btn').textContent='Güncelle';document.getElementById('ff').style.display='block';document.getElementById('ff').scrollIntoView({behavior:'smooth',block:'start'});}
 function editBook(i){const b=db.b[i];set('b-name',b.name);set('b-author',b.author||'');set('b-pages',b.pages||'');set('b-start',b.start||'');set('b-end',b.end||'');set('b-note',b.note||'');editingBook=i;document.getElementById('bf-save-btn').textContent='Güncelle';document.getElementById('bf').style.display='block';document.getElementById('bf').scrollIntoView({behavior:'smooth',block:'start'});}
-function editGoal(i){const g=db.g[i];set('g-name',g.name);set('g-period',g.period);set('g-target',g.target||g.booktarget||'');set('g-unit',g.unit||'');editingGoal=i;document.getElementById('gf-save-btn').textContent='Güncelle';document.getElementById('gf').style.display='block';document.getElementById('gf').scrollIntoView({behavior:'smooth',block:'start'});}
+function editGoal(i){const g=db.g[i];set('g-name',g.name);set('g-period',g.period);set('g-target',g.target||g.booktarget||'');set('g-unit',g.unit||'');set('g-track',g.track||'');editingGoal=i;document.getElementById('gf-save-btn').textContent='Güncelle';document.getElementById('gf').style.display='block';document.getElementById('gf').scrollIntoView({behavior:'smooth',block:'start'});}
 
 // ADD / SAVE
 function addFilm(){
@@ -1222,9 +1223,14 @@ function addBook(){
 }
 function addGoal(){
   const name=v('g-name').trim();if(!name){alert('Hedef adı zorunludur');return}
-  const target=parseFloat(v('g-target'))||0;const unit=v('g-unit').trim();const period=v('g-period');
-  if(editingGoal>=0){db.g[editingGoal].name=name;db.g[editingGoal].target=target;db.g[editingGoal].unit=unit;editingGoal=-1;document.getElementById('gf-save-btn').textContent='Kaydet';}
-  else{const n=new Date();let pk=period==='weekly'?getWeekStart(n).toISOString().split('T')[0]:period==='monthly'?n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'):String(n.getFullYear());db.g.unshift({name,period,periodKey:pk,target,unit,current:0,done:false,created:todayStr()});}
+  const target=parseFloat(v('g-target'))||0;const unit=v('g-unit').trim();const period=v('g-period');const track=v('g-track')||'';
+  if(editingGoal>=0){
+    db.g[editingGoal].name=name;db.g[editingGoal].target=target;db.g[editingGoal].unit=unit;db.g[editingGoal].track=track;
+    editingGoal=-1;document.getElementById('gf-save-btn').textContent='Kaydet';
+  }else{
+    const n=new Date();let pk=period==='weekly'?getWeekStart(n).toISOString().split('T')[0]:period==='monthly'?n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'):String(n.getFullYear());
+    db.g.unshift({name,period,periodKey:pk,target,unit,track,current:0,done:false,created:todayStr()});
+  }
   ['g-name','g-target','g-unit'].forEach(id=>set(id,''));
   document.getElementById('gf').style.display='none';save();
 }
@@ -1458,6 +1464,12 @@ function moveToRead(i){
   switchBookTab('read',document.getElementById('btab-read'));
   document.getElementById('bf').style.display='block';
 }
+function getGoalCurrent(g){
+  if(!g.track)return g.current||0;
+  if(g.track==='book')return db.b.length;
+  if(g.track==='film')return db.f.length;
+  return g.current||0;
+}
 function cancelGoalForm(){editingGoal=-1;['g-name','g-target','g-unit'].forEach(id=>set(id,''));document.getElementById('gf').style.display='none';document.getElementById('gf-save-btn').textContent='Kaydet';}
 
 // DELETE / UPDATE
@@ -1582,11 +1594,12 @@ function renderHomeWidgets(){
     const label=hwGoalPeriod==='weekly'?'Haftalık':hwGoalPeriod==='monthly'?'Aylık':'Yıllık';
     if(!goals.length) gb.innerHTML=`<div class="hw-empty">${label} hedef yok</div>`;
     else gb.innerHTML=goals.slice(0,4).map(g=>{
-      const pct=g.target?Math.min(100,Math.round((g.current||0)/g.target*100)):0;
+      const cur=getGoalCurrent(g);
+      const pct=g.target?Math.min(100,Math.round(cur/g.target*100)):0;
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
         <div style="display:flex;justify-content:space-between;width:100%">
           <span style="font-size:11px">${esc(g.name)}</span>
-          <span style="font-size:10px;color:var(--accent)">${g.current||0}/${g.target} ${g.unit||''}</span>
+          <span style="font-size:10px;color:var(--accent)">${cur}/${g.target} ${g.unit||''}</span>
         </div>
         <div style="width:100%;height:4px;background:rgba(255,255,255,.2);border-radius:2px">
           <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div>
@@ -1602,11 +1615,20 @@ function renderHomeWidgets(){
     else cb.innerHTML=chains.slice(0,3).map(ch=>{
       const today2=todayStr();
       const doneTodayArr=ch.done||[];
+      // Streak hesapla - bugünden geriye kaç gün arka arkaya yapıldı
+      let streak=0;
+      const d=new Date();
+      while(true){
+        const ds=d.toISOString().split('T')[0];
+        if(doneTodayArr.includes(ds)){streak++;d.setDate(d.getDate()-1);}
+        else break;
+        if(streak>365)break;
+      }
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:5px">
         <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
           <span style="font-size:11px;font-weight:500">${esc(ch.name)}</span>
-          <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <span style="font-size:11px;font-weight:700;color:var(--accent)">${ch.count||0}</span>
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-size:12px;font-weight:700;color:var(--accent)">${streak}</span>
           </div>
         </div>
       </div>`;
