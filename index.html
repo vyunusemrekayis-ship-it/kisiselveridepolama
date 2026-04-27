@@ -1565,11 +1565,22 @@ function renderHomeWidgets(){
         <button onclick="hwTodoAdd()" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;padding:4px 8px;cursor:pointer;font-size:11px">+</button>
       </div>`;
   }
-  // Goals
+  // Goals - dinamik zaman filtresi
   const gb=document.getElementById('hw-goals-body');
   if(gb){
-    const goals=(db.g||[]).filter(g=>g.period===hwGoalPeriod);
-    if(!goals.length) gb.innerHTML=`<div class="hw-empty">${hwGoalPeriod==='weekly'?'Haftalık':'hwGoalPeriod'==='monthly'?'Aylık':'Yıllık'} hedef yok</div>`;
+    const now=new Date();
+    const curWeekKey=getWeekStart(now).toISOString().split('T')[0];
+    const curMonthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const curYearKey=String(now.getFullYear());
+    const goals=(db.g||[]).filter(g=>{
+      if(g.period!==hwGoalPeriod)return false;
+      if(hwGoalPeriod==='weekly')return g.periodKey===curWeekKey;
+      if(hwGoalPeriod==='monthly')return g.periodKey===curMonthKey;
+      if(hwGoalPeriod==='yearly')return g.periodKey===curYearKey||!g.periodKey;
+      return true;
+    });
+    const label=hwGoalPeriod==='weekly'?'Haftalık':hwGoalPeriod==='monthly'?'Aylık':'Yıllık';
+    if(!goals.length) gb.innerHTML=`<div class="hw-empty">${label} hedef yok</div>`;
     else gb.innerHTML=goals.slice(0,4).map(g=>{
       const pct=g.target?Math.min(100,Math.round((g.current||0)/g.target*100)):0;
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
@@ -1591,20 +1602,13 @@ function renderHomeWidgets(){
     else cb.innerHTML=chains.slice(0,3).map(ch=>{
       const today2=todayStr();
       const doneTodayArr=ch.done||[];
-      const doneToday=doneTodayArr.includes(today2);
-      const dots=Array.from({length:7},(_,i)=>{
-        const d=new Date();d.setDate(d.getDate()-6+i);
-        const ds=d.toISOString().split('T')[0];
-        const done=doneTodayArr.includes(ds);
-        const isToday=ds===today2;
-        return `<div class="hw-chain-dot${done?' done':''}" style="${isToday?'border:1px solid rgba(255,255,255,.5)':''}"></div>`;
-      }).join('');
-      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:4px">
+      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:5px">
         <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
           <span style="font-size:11px;font-weight:500">${esc(ch.name)}</span>
-          <span style="font-size:10px;color:var(--accent);background:rgba(255,255,255,.1);padding:1px 6px;border-radius:10px">${ch.count||0} 🔥</span>
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-size:11px;font-weight:700;color:var(--accent)">${ch.count||0}</span>
+          </div>
         </div>
-        <div class="hw-chain-dots">${dots}</div>
       </div>`;
     }).join('');
   }
