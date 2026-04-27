@@ -470,7 +470,14 @@ select option{background:var(--surface2)}
 
       <!-- SAĞ ÜST: Hedefler -->
       <div class="hw-widget hw-tr" id="hw-goals">
-        <div class="hw-title">Hedefler</div>
+        <div class="hw-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>Hedefler</span>
+          <div style="display:flex;gap:3px">
+            <button onclick="hwGoalTab('weekly')" id="hw-gt-weekly" style="background:var(--accent);color:#000;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">H</button>
+            <button onclick="hwGoalTab('monthly')" id="hw-gt-monthly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">A</button>
+            <button onclick="hwGoalTab('yearly')" id="hw-gt-yearly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">Y</button>
+          </div>
+        </div>
         <div class="hw-body" id="hw-goals-body"></div>
       </div>
 
@@ -1544,20 +1551,34 @@ function renderHomeWidgets(){
   const tb=document.getElementById('hw-todos-body');
   if(tb){
     const todos=getTodos()[today]||[];
-    if(!todos.length) tb.innerHTML='<div class="hw-empty">Görev yok</div>';
-    else tb.innerHTML=todos.slice(0,5).map(t=>`<div class="hw-item"><div class="hw-check${t.done?' done':''}"></div><span style="text-decoration:${t.done?'line-through':'none'};opacity:${t.done?.5:1}">${esc(t.text)}</span></div>`).join('');
+    const items=todos.slice(0,5).map((t,i)=>`
+      <div class="hw-item" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1" onclick="hwTodoToggle('${today}',${i})">
+          <div class="hw-check${t.done?' done':''}"></div>
+          <span style="text-decoration:${t.done?'line-through':'none'};opacity:${t.done?.5:1};font-size:11px">${esc(t.text)}</span>
+        </div>
+        <button onclick="hwTodoEdit('${today}',${i})" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:12px;padding:0 2px">✎</button>
+      </div>`).join('');
+    tb.innerHTML=`${items||'<div class="hw-empty">Görev yok</div>'}
+      <div style="margin-top:6px;display:flex;gap:4px">
+        <input id="hw-todo-input" placeholder="Görev ekle..." style="flex:1;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 7px;color:#fff;font-size:11px;outline:none" onkeydown="if(event.key==='Enter')hwTodoAdd()">
+        <button onclick="hwTodoAdd()" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;padding:4px 8px;cursor:pointer;font-size:11px">+</button>
+      </div>`;
   }
   // Goals
   const gb=document.getElementById('hw-goals-body');
   if(gb){
-    const goals=db.g||[];
-    if(!goals.length) gb.innerHTML='<div class="hw-empty">Hedef yok</div>';
+    const goals=(db.g||[]).filter(g=>g.period===hwGoalPeriod);
+    if(!goals.length) gb.innerHTML=`<div class="hw-empty">${hwGoalPeriod==='weekly'?'Haftalık':'hwGoalPeriod'==='monthly'?'Aylık':'Yıllık'} hedef yok</div>`;
     else gb.innerHTML=goals.slice(0,4).map(g=>{
       const pct=g.target?Math.min(100,Math.round((g.current||0)/g.target*100)):0;
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
-        <span style="font-size:11px">${esc(g.name)}</span>
+        <div style="display:flex;justify-content:space-between;width:100%">
+          <span style="font-size:11px">${esc(g.name)}</span>
+          <span style="font-size:10px;color:var(--accent)">${g.current||0}/${g.target} ${g.unit||''}</span>
+        </div>
         <div style="width:100%;height:4px;background:rgba(255,255,255,.2);border-radius:2px">
-          <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
+          <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div>
         </div>
       </div>`;
     }).join('');
@@ -1568,69 +1589,102 @@ function renderHomeWidgets(){
     const chains=getCh();
     if(!chains.length) cb.innerHTML='<div class="hw-empty">Zincir yok</div>';
     else cb.innerHTML=chains.slice(0,3).map(ch=>{
+      const today2=todayStr();
+      const doneTodayArr=ch.done||[];
+      const doneToday=doneTodayArr.includes(today2);
       const dots=Array.from({length:7},(_,i)=>{
         const d=new Date();d.setDate(d.getDate()-6+i);
         const ds=d.toISOString().split('T')[0];
-        const done=ch.done&&ch.done.includes(ds);
-        return `<div class="hw-chain-dot${done?' done':''}"></div>`;
+        const done=doneTodayArr.includes(ds);
+        const isToday=ds===today2;
+        return `<div class="hw-chain-dot${done?' done':''}" style="${isToday?'border:1px solid rgba(255,255,255,.5)':''}"></div>`;
       }).join('');
-      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
-        <span style="font-size:11px">${esc(ch.name)} <span style="color:var(--accent)">${ch.count||0} gün</span></span>
+      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+          <span style="font-size:11px;font-weight:500">${esc(ch.name)}</span>
+          <span style="font-size:10px;color:var(--accent);background:rgba(255,255,255,.1);padding:1px 6px;border-radius:10px">${ch.count||0} 🔥</span>
+        </div>
         <div class="hw-chain-dots">${dots}</div>
       </div>`;
     }).join('');
   }
-  // Calendar
+  // Takvim - mini ay
   const calb=document.getElementById('hw-cal-body');
   if(calb){
     const n=new Date();
-    const notes=getNotes()[today]||[];
-    const todos2=getTodos()[today]||[];
-    calb.innerHTML=`<div class="hw-cal-today">${n.getDate()}</div>
-      <div class="hw-cal-month">${TR_D[n.getDay()]}, ${TR_M[n.getMonth()]} ${n.getFullYear()}</div>
-      ${notes.length||todos2.length?`<div class="hw-cal-todos" style="margin-top:6px">${notes.length?`📝 ${notes.length} not `:''}${todos2.length?`✓ ${todos2.length} görev`:''}</div>`:''}`;
+    const y=n.getFullYear(),mo=n.getMonth(),tod=n.getDate();
+    const first=new Date(y,mo,1).getDay();
+    const startDay=first===0?6:first-1;
+    const days=new Date(y,mo+1,0).getDate();
+    let grid='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">';
+    ['P','S','Ç','P','C','C','P'].forEach(d=>{grid+=`<div style="font-size:9px;color:rgba(255,255,255,.4)">${d}</div>`;});
+    for(let i=0;i<startDay;i++)grid+='<div></div>';
+    for(let d=1;d<=days;d++){
+      const isT=d===tod;
+      grid+=`<div style="font-size:10px;padding:2px;border-radius:3px;${isT?'background:var(--accent);color:#000;font-weight:700':'color:rgba(255,255,255,.8)'}">${d}</div>`;
+    }
+    grid+='</div>';
+    calb.innerHTML=`<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">${TR_M[mo]} ${y}</div>${grid}`;
   }
+}
+let hwGoalPeriod='weekly';
+function hwGoalTab(p){
+  hwGoalPeriod=p;
+  ['weekly','monthly','yearly'].forEach(t=>{
+    const btn=document.getElementById('hw-gt-'+t);
+    if(btn){btn.style.background=t===p?'var(--accent)':'rgba(255,255,255,.15)';btn.style.color=t===p?'#000':'#fff';}
+  });
+  renderHomeWidgets();
+}
+function hwTodoEdit(date,idx){
+  const todos=getTodos();
+  if(!todos[date]||!todos[date][idx])return;
+  const newText=prompt('Görevi düzenle:',todos[date][idx].text);
+  if(newText===null)return;
+  if(newText.trim()){todos[date][idx].text=newText.trim();}
+  else{todos[date].splice(idx,1);}
+  setTodos(todos);renderHomeWidgets();renderCal();
+}
+function hwTodoAdd(){
+  const inp=document.getElementById('hw-todo-input');
+  if(!inp||!inp.value.trim())return;
+  const today=todayStr();
+  const todos=getTodos();
+  if(!todos[today])todos[today]=[];
+  todos[today].push({text:inp.value.trim(),done:false});
+  setTodos(todos);inp.value='';
+  renderHomeWidgets();renderCal();
+}
+function hwTodoToggle(date,idx){
+  const todos=getTodos();
+  if(!todos[date]||!todos[date][idx])return;
+  todos[date][idx].done=!todos[date][idx].done;
+  setTodos(todos);renderHomeWidgets();renderCal();
 }
 
-// HOME STOPWATCH
-let hwSwRunning=false,hwSwInterval=null,hwSwElapsed=0,hwSwStart=null;
-function hwSwFmt(ms){
-  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
-  return String(h).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-}
-function hwSwRender(){const d=document.getElementById('hw-sw-display');if(d)d.textContent=hwSwFmt(hwSwElapsed);}
-function hwSwToggle(){
-  const btn=document.getElementById('hw-sw-btn');
-  if(hwSwRunning){
-    clearInterval(hwSwInterval);hwSwRunning=false;
-    if(btn)btn.textContent='▶';
-  }else{
-    hwSwStart=Date.now()-hwSwElapsed;
-    hwSwInterval=setInterval(()=>{hwSwElapsed=Date.now()-hwSwStart;hwSwRender();},100);
-    hwSwRunning=true;
-    if(btn)btn.textContent='⏸';
-  }
-}
-function hwSwReset(){
-  clearInterval(hwSwInterval);hwSwRunning=false;hwSwElapsed=0;hwSwStart=null;
-  hwSwRender();
-  const btn=document.getElementById('hw-sw-btn');if(btn)btn.textContent='▶';
-}
+function hwSwToggle(){swToggle();}
+function hwSwReset(){swReset();}
 function tickClock(){
   const n=new Date();
   const hh=String(n.getHours()).padStart(2,'0'),mm=String(n.getMinutes()).padStart(2,'0');
-  const hte=document.getElementById('home-time');if(hte)hte.textContent=hh+':'+mm;
-  const hde=document.getElementById('home-date');if(hde)hde.textContent=TR_D[n.getDay()]+', '+n.getDate()+' '+TR_M[n.getMonth()]+' '+n.getFullYear();
   const sbe=document.getElementById('sb-date');if(sbe)sbe.textContent=n.getDate()+' '+TR_M[n.getMonth()];
-  // saat bölümü
   const ss=String(n.getSeconds()).padStart(2,'0');
   const cde=document.getElementById('clock-display');if(cde)cde.textContent=hh+':'+mm+':'+ss;
   const cdd=document.getElementById('clock-date-display');if(cdd)cdd.textContent=n.getDate()+' '+TR_M[n.getMonth()]+' '+n.getFullYear();
   const cdw=document.getElementById('clock-day-display');if(cdw)cdw.textContent=TR_D[n.getDay()];
+  // Ana ekran kronometre — sidebar'daki sw ile eş zamanlı
+  const hwd=document.getElementById('hw-sw-display');
+  if(hwd){
+    const elapsed=swRunning&&swStartTime?Date.now()-swStartTime:swElapsed;
+    hwd.textContent=swFmt(elapsed).main;
+  }
+  // Ana ekran başlat/durdur butonunu güncelle
+  const hwBtn=document.getElementById('hw-sw-btn');
+  if(hwBtn)hwBtn.textContent=swRunning?'⏸':'▶';
 }
 
 // STOPWATCH
-let swRunning=false,swInterval=null,swStartTime=null;
+let swRunning=false,swInterval=null,swStartTime=null,swStartLabel=null;
 let swElapsed=parseInt(localStorage.getItem('gn_sw_elapsed')||'0');
 function swFmt(ms){
   const ts=Math.floor(ms/1000),h=Math.floor(ts/3600),m=Math.floor((ts%3600)/60),s=ts%60,cs=Math.floor((ms%1000)/10);
@@ -1662,16 +1716,16 @@ function swToggle(){
     const stopAt=swTimestamp();
     const f=swFmt(swElapsed);
     localStorage.setItem('gn_sw_elapsed',String(swElapsed));
-    // Oturumu kaydet
     const log=swGetLog();
-    log.push({startAt:swStartTime,stopAt,duration:f.main,date:swDateStr()});
-    swSaveLog(log);swStartTime=null;
+    log.push({startAt:swStartLabel,stopAt,duration:f.main,date:swDateStr()});
+    swSaveLog(log);swStartTime=null;swStartLabel=null;
     if(btn)btn.textContent='Devam Et';
     const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;
     swRenderLog();
   }else{
-    swStartTime=swTimestamp();
-    const st=Date.now()-swElapsed;
+    swStartLabel=swTimestamp();
+    swStartTime=Date.now()-swElapsed;
+    const st=swStartTime;
     swInterval=setInterval(()=>{swElapsed=Date.now()-st;swRender();},33);
     swRunning=true;if(btn)btn.textContent='Durdur';
     const sv=document.getElementById('sw-saved');if(sv)sv.textContent='';
@@ -2042,7 +2096,7 @@ function delCalNote(i){
   const t=localStorage.getItem('gn_theme')||'light';
   document.documentElement.setAttribute('data-theme',t);updateThemeIcon(t);
   set('f-date',todayStr());
-  initHome();tickClock();setInterval(tickClock,1000);
+  initHome();tickClock();setInterval(tickClock,100);
   swRender();swRenderLog();
   if(swElapsed>0){const f=swFmt(swElapsed);const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;const btn=document.getElementById('sw-btn');if(btn)btn.textContent='Devam Et';}
   updateBadges();renderAll();
