@@ -1618,12 +1618,14 @@ function renderHomeWidgets(){
       const doneSet=new Set(ch.done||[]);
       const startMs=new Date(ch.start+'T00:00:00').getTime();
       const todayIdx=Math.floor((Date.now()-startMs)/86400000);
-      // Bugün veya dünden başla (bugün henüz işaretlenmemiş olabilir)
-      let startIdx=doneSet.has(todayIdx)?todayIdx:doneSet.has(todayIdx-1)?todayIdx-1:todayIdx;
-      // En son işaretlenen günden geriye say
-      let checkIdx=startIdx;
+      // En son işaretlenen günden başla (en fazla 2 gün öncesine kadar)
+      let startIdx=-1;
+      for(let d=0;d<=2;d++){if(doneSet.has(todayIdx-d)){startIdx=todayIdx-d;break;}}
       let streak=0;
-      while(checkIdx>=0&&doneSet.has(checkIdx)){streak++;checkIdx--;}
+      if(startIdx>=0){
+        let checkIdx=startIdx;
+        while(checkIdx>=0&&doneSet.has(checkIdx)){streak++;checkIdx--;}
+      }
 
       return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:5px">
         <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
