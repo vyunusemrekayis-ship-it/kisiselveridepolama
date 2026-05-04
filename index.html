@@ -71,9 +71,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* HOME WIDGETS */
 .hw-widget{position:absolute;background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:14px;padding:12px 14px;width:220px;max-height:200px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
 .hw-tl{top:24px;left:16px}
-.hw-tr{top:24px;right:24px}
+.hw-tr{top:24px;right:16px}
 .hw-bl{bottom:40px;left:16px}
-.hw-br{bottom:40px;right:24px}
+.hw-br{bottom:40px;right:16px}
 .hw-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:rgba(255,255,255,.55);margin-bottom:8px;font-weight:500}
 .hw-body{font-size:12px;color:rgba(255,255,255,.85);display:flex;flex-direction:column;gap:5px}
 .hw-body .hw-item{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -377,10 +377,6 @@ select option{background:var(--surface2)}
     <div class="m-nav-item" onclick="mobileNav('chain','Zincir Kırma')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Zincir Kırma</div>
   </nav>
   <div style="padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:center">
-    <button onclick="toggleTheme()" title="Tema" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px">
-      <svg id="mobile-theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      Tema
-    </button>
     <button onclick="doSignOut()" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Çıkış
@@ -447,9 +443,6 @@ select option{background:var(--surface2)}
     </div>
   </nav>
   <div class="sidebar-footer" style="gap:6px">
-    <button onclick="toggleTheme()" title="Koyu/Açık mod" style="background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;padding:5px 7px;display:flex;align-items:center">
-      <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-    </button>
     <button onclick="doSignOut()" title="Çıkış Yap" style="background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;padding:5px 7px;display:flex;align-items:center">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
@@ -463,12 +456,6 @@ select option{background:var(--surface2)}
   <div class="section active" id="section-home">
     <div class="home-wrap" id="home-bg">
       <div class="home-overlay"></div>
-
-      <!-- SOL ÜST: Bugünün Görevleri -->
-      <div class="hw-widget hw-tl" id="hw-todos">
-        <div class="hw-title">Bugünün Görevleri</div>
-        <div class="hw-body" id="hw-todos-body"></div>
-      </div>
 
       <!-- SAĞ ÜST: Hedefler -->
       <div class="hw-widget hw-tr" id="hw-goals">
@@ -485,23 +472,29 @@ select option{background:var(--surface2)}
 
       <!-- ORTA: Kronometre -->
       <div class="hw-center">
-        <div class="hw-sw-time" id="hw-sw-display">00:00</div>
+        <div class="hw-sw-time" id="hw-sw-display">00:00:00</div>
         <div class="hw-sw-btns">
           <button class="hw-sw-btn" id="hw-sw-btn" onclick="hwSwToggle()">▶</button>
           <button class="hw-sw-btn hw-sw-reset" onclick="hwSwReset()">↺</button>
         </div>
       </div>
 
-      <!-- SOL ALT: Zincir Kırma -->
-      <div class="hw-widget hw-bl" id="hw-chains">
-        <div class="hw-title">Zincir Kırma</div>
-        <div class="hw-body" id="hw-chains-body"></div>
+      <!-- SOL ALT: Bugünün Görevleri -->
+      <div class="hw-widget hw-bl" id="hw-todos">
+        <div class="hw-title">Bugünün Görevleri</div>
+        <div class="hw-body" id="hw-todos-body"></div>
       </div>
 
       <!-- SAĞ ALT: Takvim -->
       <div class="hw-widget hw-br" id="hw-cal">
         <div class="hw-title">Takvim</div>
         <div class="hw-body" id="hw-cal-body"></div>
+      </div>
+
+      <!-- SOL ÜST: Zincir Kırma -->
+      <div class="hw-widget hw-tl" id="hw-chains">
+        <div class="hw-title">Zincir Kırma</div>
+        <div class="hw-body" id="hw-chains-body"></div>
       </div>
 
       <div class="home-credit" id="home-credit"></div>
@@ -1019,72 +1012,6 @@ function mobileNav(id,title){
   document.querySelectorAll('.m-nav-item').forEach(i=>i.classList.remove('active'));
   event.currentTarget.classList.add('active');
   closeDrawer();
-}
-function toggleTheme(){
-  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  const next=isDark?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('gn_theme',next);
-  updateThemeIcon(next);
-}
-function updateThemeIcon(t){
-  const ic=document.getElementById('theme-icon');if(!ic)return;
-  ic.innerHTML=t==='dark'?'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>':'<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-}
-
-// RENDER
-function renderAll(){renderFilms();renderBooks();renderGoals();renderWatchlist();renderReadlist();renderChains();renderHomeWidgets();}
-
-const OMDB_KEY='97eb66bc';
-const posterCache={};
-async function fetchPoster(name){
-  if(posterCache[name]!==undefined)return posterCache[name];
-  try{
-    const res=await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`);
-    const data=await res.json();
-    const url=(data.Poster&&data.Poster!=='N/A')?data.Poster.replace(/SX\d+/,'SX1000').replace('http://','https://'):null;
-    posterCache[name]=url;
-    return url;
-  }catch(e){posterCache[name]=null;return null;}
-}
-
-function renderFilms(){
-  const sorted=db.f.map((f,i)=>({f,i})).sort((a,b)=>{
-    const da=a.f.date||'';const db2=b.f.date||'';
-    if(da&&db2)return db2.localeCompare(da);
-    if(da)return -1;if(db2)return 1;return 0;
-  });
-  const el=document.getElementById('film-list');
-  if(!el)return;
-  el.innerHTML=sorted.length?sorted.map(({f,i})=>{
-    const poster=posterCache[f.name];
-    const posterHtml=poster
-      ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
-      :`<div style="width:100%;height:180px;background:rgba(255,255,255,.06);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
-    return `<div class="card">
-      ${posterHtml}
-      <div style="padding:12px 13px">
-        <div class="card-top"><div style="flex:1;min-width:0">
-          <div class="card-title">${esc(f.name)}</div>
-          <div class="card-meta">${[f.dir,fmtDate(f.date)].filter(Boolean).join(' · ')}</div>
-        </div><div class="card-actions">
-          <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editFilm(${i})">✎</button>
-          <button class="del-btn" onclick="del('f',${i})">×</button>
-        </div></div>
-        ${f.note?`<div class="card-note">${esc(f.note)}</div>`:''}
-      </div>
-    </div>`;
-  }).join('')
-    :`<div class="empty"><div class="empty-icon">🎬</div>Henüz film eklemediniz</div>`;
-
-  // Posterleri arka planda yükle
-  sorted.forEach(({f})=>{
-    if(posterCache[f.name]===undefined){
-      fetchPoster(f.name).then(url=>{
-        if(url)renderFilms();
-      });
-    }
-  });
 }
 
 
