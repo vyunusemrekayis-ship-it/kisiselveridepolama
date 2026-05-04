@@ -31,7 +31,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .layout{display:flex;min-height:100vh}
 
 /* SIDEBAR */
-.sidebar{width:220px;flex-shrink:0;background:rgba(10,12,16,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:2;overflow-y:auto;transition:width .25s ease}
+.sidebar{width:220px;flex-shrink:0;background:rgba(10,12,16,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;transition:width .25s ease}
 .sidebar.home-mode{background:rgba(0,0,0,.25)!important;border-right-color:rgba(255,255,255,.08)!important}
 .sidebar.home-mode{background:rgba(0,0,0,.2)!important;border-right-color:rgba(255,255,255,.1)!important}
 .sidebar-brand{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -70,7 +70,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .section{display:none}.section.active{display:block}
 
 /* HOME WIDGETS */
-.hw-widget{position:absolute;background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:14px;padding:12px 14px;width:220px;max-height:200px;overflow:hidden;border:1px solid rgba(255,255,255,.1);z-index:10}
+.hw-widget{position:absolute;background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:14px;padding:12px 14px;width:220px;max-height:200px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
 .hw-tl{top:24px;left:16px}
 .hw-tr{top:24px;right:16px}
 .hw-bl{bottom:40px;left:16px}
@@ -102,7 +102,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 }
 
 .home-wrap{position:fixed;top:0;left:0;right:0;bottom:0;background:#111 center/cover no-repeat;z-index:0}
-#section-home{position:fixed;top:0;left:58px;right:0;bottom:0;z-index:3;overflow:hidden;pointer-events:none;transition:left .25s ease}
+#section-home{position:fixed;top:0;left:58px;right:0;bottom:0;z-index:1;overflow:hidden;pointer-events:none;transition:left .25s ease}
 #section-home.active{pointer-events:all}
 #section-home.active{pointer-events:all}
 #section-home.active{pointer-events:all}
