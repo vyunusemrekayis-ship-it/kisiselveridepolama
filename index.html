@@ -1618,9 +1618,14 @@ function renderHomeWidgets(){
       const doneSet=new Set(ch.done||[]);
       const startMs=new Date(ch.start+'T00:00:00').getTime();
       const todayIdx=Math.floor((Date.now()-startMs)/86400000);
-      // En son işaretlenen günden başla (en fazla 2 gün öncesine kadar)
+      // En son işaretlenen günden geriye say (bugünden en fazla 1 gün öncesine kadar bak)
       let startIdx=-1;
-      for(let d=0;d<=2;d++){if(doneSet.has(todayIdx-d)){startIdx=todayIdx-d;break;}}
+      for(let d=0;d<=1;d++){if(doneSet.has(todayIdx-d)){startIdx=todayIdx-d;break;}}
+      // Bulamazsak en son işaretlenen günü bul
+      if(startIdx<0){
+        const maxDone=Math.max(...(ch.done||[-1]));
+        if(maxDone>=0)startIdx=maxDone;
+      }
       let streak=0;
       if(startIdx>=0){
         let checkIdx=startIdx;
