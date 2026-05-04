@@ -70,7 +70,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* MAIN */
 .main{margin-left:220px;flex:1;padding:26px 30px;max-width:calc(100% - 220px);transition:margin-left .25s,max-width .25s;min-height:100vh}
-.section.active:not(#section-home){background:rgba(var(--bg-rgb),.82);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);min-height:100vh}
+.section.active:not(#section-home){background:rgba(var(--bg-rgb),.0);min-height:100vh}
 .main.expanded{margin-left:58px;max-width:calc(100% - 58px)}
 
 /* SECTIONS */
@@ -129,7 +129,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .fg{display:grid;gap:10px;margin-bottom:10px}
 .fg.c2{grid-template-columns:1fr 1fr}.fg.c1{grid-template-columns:1fr}
 label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
-input,select,textarea{width:100%;padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
+input,select,textarea{width:100%;padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:rgba(var(--bg-rgb),.6);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:75px}
 select option{background:var(--surface2)}
@@ -140,7 +140,7 @@ select option{background:var(--surface2)}
 /* CARDS */
 .cards{display:grid;gap:10px}
 .cards.c2{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
-.card{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:14px 16px}
+.card{background:rgba(var(--bg-rgb),.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:0.5px solid rgba(128,128,128,.2);border-radius:12px;padding:14px 16px}
 .card:hover{border-color:var(--border2)}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start}
 .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:400;line-height:1.3}
@@ -156,7 +156,7 @@ select option{background:var(--surface2)}
 /* GOALS */
 .goal-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
 .g-tab{padding:6px 18px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
-.g-tab.active{background:var(--surface3);color:var(--text)}
+.g-tab.active{background:rgba(var(--bg-rgb),.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text);border:0.5px solid rgba(128,128,128,.2)}
 .g-tab-content{display:none}.g-tab-content.active{display:block}
 .period-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .ptag{font-size:11px;padding:3px 11px;border-radius:12px;text-transform:uppercase;letter-spacing:.5px}
@@ -555,7 +555,7 @@ select option{background:var(--surface2)}
           <div id="todo-list" style="display:grid;gap:5px;margin-bottom:8px"></div>
           <div style="display:flex;gap:6px">
             <input id="todo-input" placeholder="Görev ekle..." onkeydown="if(event.key==='Enter')todoEnter()"
-              style="flex:1;padding:7px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
+              style="flex:1;padding:7px 10px;border-radius:8px;border:0.5px solid var(--border);background:rgba(var(--bg-rgb),.6);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
             <button id="todo-add-btn" onclick="addTodo()" style="padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
           </div>
         </div>
@@ -1230,7 +1230,7 @@ function goalCardHtml(g,i,totalBooks){
         <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
         ${(!isBookGoal&&!isFilmGoal)?`<div style="display:flex;align-items:center;gap:7px;margin-top:7px">
           <input type="number" min="0" step="any" placeholder="+${unit||'değer'} ekle" id="gp-${i}"
-            style="flex:1;padding:5px 9px;border-radius:7px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none"
+            style="flex:1;padding:5px 9px;border-radius:7px;border:0.5px solid var(--border);background:rgba(var(--bg-rgb),.6);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none"
             onkeydown="if(event.key==='Enter')addProgress(${i})">
           <button onclick="addProgress(${i})" style="padding:5px 12px;border-radius:7px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
           <button onclick="setProgress(${i})" style="padding:5px 10px;border-radius:7px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Düzelt</button>
