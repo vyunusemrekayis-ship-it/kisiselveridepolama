@@ -16,20 +16,12 @@ html{scroll-behavior:smooth}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
 #bg-wallpaper{position:fixed;top:0;left:0;right:0;bottom:0;z-index:-1;background:#111 center/cover no-repeat}
 
+
+.btn-save,.note-save{color:#1a1a00}
 :root{
-  --bg:#f0f4f8;--bg-rgb:240,244,248;--surface:#e8edf2;--surface2:#dde3ea;--surface3:#d0d8e2;
-  --border:#c8d0db;--border2:#b8c4d0;--text:#1a2130;--muted:#6a7a8e;--muted2:#9aaabb;
-  --accent:#3a7bd5;--accent2:#1a5aaa;
-  --film-l:#6b5d9e;--film-bg:rgba(107,93,158,.08);
-  --book-l:#3d7a5a;--book-bg:rgba(61,122,90,.08);
-  --goal-l:#b05a30;--goal-bg:rgba(176,90,48,.08);
-  --event-l:#3a6a9e;--event-bg:rgba(58,106,158,.08);
-}
-[data-theme="dark"] .btn-save,[data-theme="dark"] .note-save{color:#1a1a00}
-[data-theme="dark"]{
-  --bg:#36393e;--bg-rgb:54,57,62;--surface:#3e4248;--surface2:#464b52;--surface3:#4e545c;
-  --border:#52585f;--border2:#606870;--text:#e8edf5;--muted:#9aaabf;--muted2:#6a7580;
-  --accent:#FBD100;--accent2:#ffe44d;
+  --bg:#1a1d23;--bg-rgb:26,29,35;--surface:#22262e;--surface2:#2a2f38;--surface3:#323840;
+  --border:#383e48;--border2:#444c58;--text:#e8edf5;--muted:#8a9ab5;--muted2:#5a6878;
+  --accent:#3a7bd5;--accent2:#5a9bf5;
   --film-l:#b8aed6;--film-bg:rgba(124,111,158,.15);
   --book-l:#6ec4a0;--book-bg:rgba(61,122,90,.15);
   --goal-l:#e8a888;--goal-bg:rgba(196,122,90,.15);
@@ -39,7 +31,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .layout{display:flex;min-height:100vh}
 
 /* SIDEBAR */
-.sidebar{width:220px;flex-shrink:0;background:rgba(var(--bg-rgb),.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right:1px solid rgba(128,128,128,.15);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;transition:width .25s ease}
+.sidebar{width:220px;flex-shrink:0;background:rgba(30,32,36,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right:1px solid rgba(128,128,128,.15);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;transition:width .25s ease}
 .sidebar.home-mode{background:rgba(0,0,0,.2)!important;border-right-color:rgba(255,255,255,.1)!important}
 .sidebar-brand{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .sidebar-brand h1{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--accent2);white-space:nowrap;overflow:hidden}
@@ -70,7 +62,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* MAIN */
 .main{margin-left:220px;flex:1;padding:26px 30px;max-width:calc(100% - 220px);transition:margin-left .25s,max-width .25s;min-height:100vh}
-.section.active:not(#section-home){background:rgba(var(--bg-rgb),.0);min-height:100vh}
+.section.active:not(#section-home){background:transparent;min-height:100vh}
 .main.expanded{margin-left:58px;max-width:calc(100% - 58px)}
 
 /* SECTIONS */
@@ -125,11 +117,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .add-btn:hover{background:rgba(58,123,213,.08)}
 
 /* FORM */
-.form-panel{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:18px}
+.form-panel{background:rgba(0,0,0,.3);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;padding:18px;margin-bottom:18px}
 .fg{display:grid;gap:10px;margin-bottom:10px}
 .fg.c2{grid-template-columns:1fr 1fr}.fg.c1{grid-template-columns:1fr}
 label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
-input,select,textarea{width:100%;padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:rgba(var(--bg-rgb),.6);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
+input,select,textarea{width:100%;padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:rgba(255,255,255,.08);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:75px}
 select option{background:var(--surface2)}
@@ -140,7 +132,7 @@ select option{background:var(--surface2)}
 /* CARDS */
 .cards{display:grid;gap:10px}
 .cards.c2{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
-.card{background:rgba(var(--bg-rgb),.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:0.5px solid rgba(128,128,128,.2);border-radius:12px;padding:14px 16px}
+.card{background:rgba(0,0,0,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px}
 .card:hover{border-color:var(--border2)}
 .card-top{display:flex;justify-content:space-between;align-items:flex-start}
 .card-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:400;line-height:1.3}
@@ -156,7 +148,7 @@ select option{background:var(--surface2)}
 /* GOALS */
 .goal-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:4px;width:fit-content}
 .g-tab{padding:6px 18px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
-.g-tab.active{background:rgba(var(--bg-rgb),.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--text);border:0.5px solid rgba(128,128,128,.2)}
+.g-tab.active{background:rgba(255,255,255,.12);color:var(--text);border:0.5px solid rgba(255,255,255,.15)}
 .g-tab-content{display:none}.g-tab-content.active{display:block}
 .period-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .ptag{font-size:11px;padding:3px 11px;border-radius:12px;text-transform:uppercase;letter-spacing:.5px}
@@ -176,7 +168,7 @@ select option{background:var(--surface2)}
 .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-nav{background:var(--surface);border:0.5px solid var(--border);border-radius:8px;color:var(--muted);padding:5px 11px;cursor:pointer;font-size:16px}
 .cal-month{font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)}
-.cal-grid{background:var(--surface);border:0.5px solid var(--border);border-radius:12px;overflow:hidden}
+.cal-grid{background:rgba(0,0,0,.3);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}
 .cal-wds{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:0.5px solid var(--border)}
 .cal-wd{padding:8px 0;text-align:center;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
@@ -184,7 +176,7 @@ select option{background:var(--surface2)}
 .cal-day:hover{background:var(--surface2)}
 .cal-day.today{color:var(--text);font-weight:500}
 .cal-day.today .day-num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-weight:600;font-size:12px}
-[data-theme="dark"] .cal-day.today .day-num{color:#1a1a00}
+.cal-day.today .day-num{color:#1a1a00}
 .cal-day.other{opacity:.25;color:var(--muted)}
 .cal-day.selected{background:var(--surface3);border:0.5px solid var(--border2)}
 .cal-day.is-holiday{font-weight:500}
@@ -555,7 +547,7 @@ select option{background:var(--surface2)}
           <div id="todo-list" style="display:grid;gap:5px;margin-bottom:8px"></div>
           <div style="display:flex;gap:6px">
             <input id="todo-input" placeholder="Görev ekle..." onkeydown="if(event.key==='Enter')todoEnter()"
-              style="flex:1;padding:7px 10px;border-radius:8px;border:0.5px solid var(--border);background:rgba(var(--bg-rgb),.6);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
+              style="flex:1;padding:7px 10px;border-radius:8px;border:0.5px solid var(--border);background:rgba(255,255,255,.08);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
             <button id="todo-add-btn" onclick="addTodo()" style="padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
           </div>
         </div>
@@ -1068,7 +1060,7 @@ function renderFilms(){
     const poster=posterCache[f.name];
     const posterHtml=poster
       ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
-      :`<div style="width:100%;height:180px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
+      :`<div style="width:100%;height:180px;background:rgba(255,255,255,.06);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
     return `<div class="card">
       ${posterHtml}
       <div style="padding:12px 13px">
@@ -1230,7 +1222,7 @@ function goalCardHtml(g,i,totalBooks){
         <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
         ${(!isBookGoal&&!isFilmGoal)?`<div style="display:flex;align-items:center;gap:7px;margin-top:7px">
           <input type="number" min="0" step="any" placeholder="+${unit||'değer'} ekle" id="gp-${i}"
-            style="flex:1;padding:5px 9px;border-radius:7px;border:0.5px solid var(--border);background:rgba(var(--bg-rgb),.6);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none"
+            style="flex:1;padding:5px 9px;border-radius:7px;border:0.5px solid var(--border);background:rgba(255,255,255,.08);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none"
             onkeydown="if(event.key==='Enter')addProgress(${i})">
           <button onclick="addProgress(${i})" style="padding:5px 12px;border-radius:7px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
           <button onclick="setProgress(${i})" style="padding:5px 10px;border-radius:7px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Düzelt</button>
@@ -1438,7 +1430,7 @@ function renderWatchlist(){
     const poster=posterCache[f.name];
     const posterHtml=poster
       ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
-      :`<div style="width:100%;height:180px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
+      :`<div style="width:100%;height:180px;background:rgba(255,255,255,.06);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
     return `<div class="card">
       ${posterHtml}
       <div style="padding:12px 13px">
