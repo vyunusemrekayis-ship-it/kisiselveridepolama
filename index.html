@@ -2163,6 +2163,14 @@ function delCalNote(i){
   document.documentElement.setAttribute('data-theme',t);updateThemeIcon(t);
   set('f-date',todayStr());
   initHome();tickClock();setInterval(tickClock,100);
+  // Sidebar durumuna göre home pozisyonunu ayarla
+  const sb=document.getElementById('sidebar');
+  const hw=document.getElementById('home-bg');
+  const hs=document.getElementById('section-home');
+  if(sb&&hw&&hs){
+    const left=sb.classList.contains('collapsed')?'58px':'220px';
+    hw.style.left=left;hs.style.left=left;
+  }
   swRender();swRenderLog();
   if(swElapsed>0){const f=swFmt(swElapsed);const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;const btn=document.getElementById('sw-btn');if(btn)btn.textContent='Devam Et';}
   updateBadges();renderAll();
