@@ -105,7 +105,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .hw-bl{bottom:30px;left:12px}.hw-br{bottom:30px;right:12px}
 }
 
-.home-wrap{border-radius:14px;overflow:hidden;min-height:calc(100vh - 100px);position:relative;background:#111 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.home-wrap{border-radius:0;overflow:hidden;height:100vh;position:fixed;top:0;left:220px;right:0;bottom:0;background:#111 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
 .home-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3),rgba(0,0,0,.58))}
 .home-content{position:relative;z-index:1;text-align:center;color:#fff;padding:0 20px}
 .home-time{font-family:'Playfair Display',serif;font-size:86px;font-weight:400;letter-spacing:-3px;line-height:1;text-shadow:0 2px 24px rgba(0,0,0,.4)}
@@ -261,6 +261,7 @@ select option{background:var(--surface2)}
   .sidebar{width:58px}.sidebar-brand h1,.sidebar-brand p,.nav-group-label,.nav-label-text,.nav-badge{display:none}
   .nav-item{justify-content:center;padding:11px;gap:0}.main{margin-left:58px;max-width:calc(100% - 58px);padding:16px 14px}
   .cal-wrap{grid-template-columns:1fr}.clock-grid{grid-template-columns:1fr}.fg.c2{grid-template-columns:1fr}
+  .home-wrap{left:58px}
 }
 @media(max-width:600px){.cards.c2{grid-template-columns:1fr}}
 
@@ -270,6 +271,7 @@ select option{background:var(--surface2)}
   .main{margin-left:0!important;max-width:100%!important;padding:68px 20px 20px!important}
   .main.expanded{margin-left:0!important;max-width:100%!important;padding:68px 20px 20px!important}
   #mobile-topbar{display:flex!important}
+  .home-wrap{left:0;top:52px}
   #mobile-drawer{display:block!important}
   #mobile-overlay{display:block!important}
   .cards.c2{grid-template-columns:1fr 1fr}
@@ -945,8 +947,12 @@ function switchGTab(p,btn){
   btn.classList.add('active');document.getElementById('gt-'+p).classList.add('active');
 }
 function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  const sb=document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
   document.getElementById('main-content').classList.toggle('expanded');
+  const collapsed=sb.classList.contains('collapsed');
+  const hw=document.getElementById('home-bg');
+  if(hw)hw.style.left=collapsed?'58px':'220px';
 }
 
 // BADGES
@@ -2153,6 +2159,9 @@ function delCalNote(i){
   document.documentElement.setAttribute('data-theme',t);updateThemeIcon(t);
   set('f-date',todayStr());
   initHome();tickClock();setInterval(tickClock,100);
+  const _sb=document.getElementById('sidebar');
+  const _hw=document.getElementById('home-bg');
+  if(_sb&&_hw)_hw.style.left=_sb.classList.contains('collapsed')?'58px':'220px';
   swRender();swRenderLog();
   if(swElapsed>0){const f=swFmt(swElapsed);const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;const btn=document.getElementById('sw-btn');if(btn)btn.textContent='Devam Et';}
   updateBadges();renderAll();
