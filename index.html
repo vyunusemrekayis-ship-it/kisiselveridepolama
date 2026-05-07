@@ -110,7 +110,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .home-content{position:relative;z-index:1;text-align:center;color:#fff;padding:0 20px}
 .home-time{font-family:'Playfair Display',serif;font-size:86px;font-weight:400;letter-spacing:-3px;line-height:1;text-shadow:0 2px 24px rgba(0,0,0,.4)}
 .home-date{font-size:15px;font-weight:300;letter-spacing:3px;text-transform:uppercase;margin-top:12px;opacity:.85}
-.home-credit{position:absolute;bottom:14px;right:18px;font-size:11px;color:rgba(255,255,255,.4);z-index:1}
+.home-credit{display:none}
 
 /* SECTION HEADER */
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
@@ -471,7 +471,7 @@ select option{background:var(--surface2)}
       <!-- SAĞ ÜST: Hedefler -->
       <div class="hw-widget hw-tr" id="hw-goals">
         <div class="hw-title" style="display:flex;justify-content:space-between;align-items:center">
-          <span onclick="navWidget('goals')" style="cursor:pointer">Hedefler ↗</span>
+          <span onclick="navWidget('goals')" style="cursor:pointer">Hedefler</span>
           <div style="display:flex;gap:3px">
             <button onclick="event.stopPropagation();hwGoalTab('weekly')" id="hw-gt-weekly" style="background:var(--accent);color:#000;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">H</button>
             <button onclick="event.stopPropagation();hwGoalTab('monthly')" id="hw-gt-monthly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">A</button>
@@ -1515,65 +1515,35 @@ function initHome(){
   const credit=document.getElementById('home-credit');
   const photos=[
     'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
-    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1920&q=80',
     'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80',
-    'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1920&q=80',
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80',
-    'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=1920&q=80',
-    'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1920&q=80',
-    'https://images.unsplash.com/photo-1444723121867-7a241cacace9?w=1920&q=80',
-    'https://images.unsplash.com/photo-1502899576159-f224dc2349fa?w=1920&q=80',
-    'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1920&q=80',
-    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920&q=80',
-    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80',
-    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&q=80',
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80',
+    'https://images.unsplash.com/photo-1506773090264-ac0b07293a64?w=1920&q=80',
+    'https://images.unsplash.com/photo-1476673160081-cf065607f449?w=1920&q=80',
     'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1920&q=80',
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&q=80',
     'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1920&q=80',
     'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1920&q=80',
     'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1920&q=80',
-    'https://images.unsplash.com/photo-1459478309853-2c33a60058e7?w=1920&q=80',
-    'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=1920&q=80',
-    'https://images.unsplash.com/photo-1434725039720-aaad6dd32dfe?w=1920&q=80',
-    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920&q=80',
-    'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1920&q=80',
-    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80',
     'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&q=80',
     'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80',
+    'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1920&q=80',
+    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920&q=80',
     'https://images.unsplash.com/photo-1455156218388-5e61b526818b?w=1920&q=80',
-    'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=1920&q=80',
     'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1920&q=80',
     'https://images.unsplash.com/photo-1520962880247-cfaf541c8724?w=1920&q=80',
     'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=1920&q=80',
-    'https://images.unsplash.com/photo-1546514714-df0ccc50d7bf?w=1920&q=80',
-    'https://images.unsplash.com/photo-1540390769625-2fc3f8b1d50c?w=1920&q=80',
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80',
-    'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80',
-    'https://images.unsplash.com/photo-1490750967868-88df5691cc7d?w=1920&q=80',
-    'https://images.unsplash.com/photo-1529528744093-6f8abeee511d?w=1920&q=80',
-    'https://images.unsplash.com/photo-1525183995014-bd94026c2fb4?w=1920&q=80',
-    'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=1920&q=80',
-    'https://images.unsplash.com/photo-1553481187-be93c21490a9?w=1920&q=80',
-    'https://images.unsplash.com/photo-1548587359-24b16de0c46f?w=1920&q=80',
-    'https://images.unsplash.com/photo-1560707303-4e980ce876ad?w=1920&q=80',
-    'https://images.unsplash.com/photo-1574169208507-84376144848b?w=1920&q=80',
-    'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=1920&q=80',
-    'https://images.unsplash.com/photo-1585409677983-0f6c41ca9c3b?w=1920&q=80',
-    'https://images.unsplash.com/photo-1591779051696-1c3fa1469a79?w=1920&q=80',
-    'https://images.unsplash.com/photo-1598908314732-07113901949e?w=1920&q=80',
-    'https://images.unsplash.com/photo-1604537466608-109fa2f16c3b?w=1920&q=80',
-    'https://images.unsplash.com/photo-1617369120004-4fc70312c5e6?w=1920&q=80',
-    'https://images.unsplash.com/photo-1623479322729-28b25c16b011?w=1920&q=80',
-    'https://images.unsplash.com/photo-1625244724120-1fd1d34d00f6?w=1920&q=80',
-    'https://images.unsplash.com/photo-1641326488546-4e7b4b326a37?w=1920&q=80',
-    'https://images.unsplash.com/photo-1648737154547-b0dfd281c51e?w=1920&q=80',
-    'https://images.unsplash.com/photo-1655220028813-6a14b0e4d5e5?w=1920&q=80',
-    'https://images.unsplash.com/photo-1661956600684-97d3a4320e45?w=1920&q=80',
-    'https://images.unsplash.com/photo-1667837401329-2b5c5e3f9b77?w=1920&q=80',
-    'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80',
-    'https://images.unsplash.com/photo-1506773090264-ac0b07293a64?w=1920&q=80',
-    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1920&q=80',
+    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920&q=80',
+    'https://images.unsplash.com/photo-1502899576159-f224dc2349fa?w=1920&q=80',
+    'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1920&q=80',
     'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80',
-    'https://images.unsplash.com/photo-1476673160081-cf065607f449?w=1920&q=80',
+    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1920&q=80',
+    'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=1920&q=80',
+    'https://images.unsplash.com/photo-1540390769625-2fc3f8b1d50c?w=1920&q=80',
+    'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80',
+    'https://images.unsplash.com/photo-1546514714-df0ccc50d7bf?w=1920&q=80',
   ];
   let seen=[];
   try{seen=JSON.parse(localStorage.getItem('gn_seen_photos')||'[]')}catch(e){}
@@ -1583,7 +1553,7 @@ function initHome(){
   seen.push(idx);
   localStorage.setItem('gn_seen_photos',JSON.stringify(seen));
   if(bg) bg.style.backgroundImage=`url('${photos[idx]}')`;
-  if(credit) credit.textContent='Unsplash';
+  if(credit) credit.textContent='';
 }
 
 function renderHomeWidgets(){
@@ -1594,11 +1564,11 @@ function renderHomeWidgets(){
     const todos=getTodos()[today]||[];
     const items=todos.slice(0,5).map((t,i)=>`
       <div class="hw-item" style="justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1" onclick="hwTodoToggle('${today}',${i})">
+        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1" onclick="event.stopPropagation();hwTodoToggle('${today}',${i})">
           <div class="hw-check${t.done?' done':''}"></div>
           <span style="text-decoration:${t.done?'line-through':'none'};opacity:${t.done?.5:1};font-size:11px">${esc(t.text)}</span>
         </div>
-        <button onclick="hwTodoEdit('${today}',${i})" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:12px;padding:0 2px">✎</button>
+        <button onclick="event.stopPropagation();hwTodoEdit('${today}',${i})" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:12px;padding:0 2px">✎</button>
       </div>`).join('');
     tb.innerHTML=`${items||'<div class="hw-empty">Görev yok</div>'}
       <div style="margin-top:6px;display:flex;gap:4px">
