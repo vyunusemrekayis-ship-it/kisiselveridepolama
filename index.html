@@ -469,13 +469,13 @@ select option{background:var(--surface2)}
       </div>
 
       <!-- SAĞ ÜST: Hedefler -->
-      <div class="hw-widget hw-tr" id="hw-goals" onclick="navWidget('goals')" style="cursor:pointer">
+      <div class="hw-widget hw-tr" id="hw-goals">
         <div class="hw-title" style="display:flex;justify-content:space-between;align-items:center">
-          <span>Hedefler</span>
+          <span onclick="navWidget('goals')" style="cursor:pointer">Hedefler ↗</span>
           <div style="display:flex;gap:3px">
-            <button onclick="hwGoalTab('weekly')" id="hw-gt-weekly" style="background:var(--accent);color:#000;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">H</button>
-            <button onclick="hwGoalTab('monthly')" id="hw-gt-monthly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">A</button>
-            <button onclick="hwGoalTab('yearly')" id="hw-gt-yearly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">Y</button>
+            <button onclick="event.stopPropagation();hwGoalTab('weekly')" id="hw-gt-weekly" style="background:var(--accent);color:#000;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">H</button>
+            <button onclick="event.stopPropagation();hwGoalTab('monthly')" id="hw-gt-monthly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">A</button>
+            <button onclick="event.stopPropagation();hwGoalTab('yearly')" id="hw-gt-yearly" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:4px;padding:1px 5px;font-size:9px;cursor:pointer">Y</button>
           </div>
         </div>
         <div class="hw-body" id="hw-goals-body"></div>
@@ -1602,8 +1602,8 @@ function renderHomeWidgets(){
       </div>`).join('');
     tb.innerHTML=`${items||'<div class="hw-empty">Görev yok</div>'}
       <div style="margin-top:6px;display:flex;gap:4px">
-        <input id="hw-todo-input" placeholder="Görev ekle..." style="flex:1;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 7px;color:#fff;font-size:11px;outline:none" onkeydown="if(event.key==='Enter')hwTodoAdd()">
-        <button onclick="hwTodoAdd()" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;padding:4px 8px;cursor:pointer;font-size:11px">+</button>
+        <input id="hw-todo-input" placeholder="Görev ekle..." style="flex:1;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 7px;color:#fff;font-size:11px;outline:none" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')hwTodoAdd()">
+        <button onclick="event.stopPropagation();hwTodoAdd()" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;padding:4px 8px;cursor:pointer;font-size:11px">+</button>
       </div>`;
   }
   // Goals - dinamik zaman filtresi
