@@ -99,10 +99,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .hw-cal-month{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
 .hw-cal-todos{margin-top:8px;font-size:11px;color:rgba(255,255,255,.7)}
 @media(max-width:600px){
-  .hw-widget{width:calc(50vw - 32px);max-height:160px;padding:10px 12px}
-  .hw-sw-time{font-size:36px}
-  .hw-tl{top:16px;left:12px}.hw-tr{top:16px;right:12px}
-  .hw-bl{bottom:30px;left:12px}.hw-br{bottom:30px;right:12px}
+  .hw-widget{width:calc(50vw - 20px);max-height:150px;padding:8px 10px}
+  .hw-sw-time{font-size:32px}
+  .hw-tl{top:8px;left:8px}.hw-tr{top:8px;right:8px}
+  .hw-bl{bottom:8px;left:8px}.hw-br{bottom:8px;right:8px}
 }
 
 .home-wrap{border-radius:0;overflow:hidden;height:100vh;position:fixed;top:0;left:220px;right:0;bottom:0;background:#111 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
@@ -463,13 +463,13 @@ select option{background:var(--surface2)}
       <div class="home-overlay"></div>
 
       <!-- SOL ÜST: Bugünün Görevleri -->
-      <div class="hw-widget hw-tl" id="hw-todos">
-        <div class="hw-title">Bugünün Görevleri</div>
+      <div class="hw-widget hw-tl" id="hw-todos" onclick="navWidget('calendar')" style="cursor:pointer">
+        <div class="hw-title" onclick="hwNavTo('calendar')" style="cursor:pointer">Bugünün Görevleri ›</div>
         <div class="hw-body" id="hw-todos-body"></div>
       </div>
 
       <!-- SAĞ ÜST: Hedefler -->
-      <div class="hw-widget hw-tr" id="hw-goals">
+      <div class="hw-widget hw-tr" id="hw-goals" onclick="navWidget('goals')" style="cursor:pointer">
         <div class="hw-title" style="display:flex;justify-content:space-between;align-items:center">
           <span>Hedefler</span>
           <div style="display:flex;gap:3px">
@@ -491,14 +491,14 @@ select option{background:var(--surface2)}
       </div>
 
       <!-- SOL ALT: Zincir Kırma -->
-      <div class="hw-widget hw-bl" id="hw-chains">
-        <div class="hw-title">Zincir Kırma</div>
+      <div class="hw-widget hw-bl" id="hw-chains" onclick="navWidget('chain')" style="cursor:pointer">
+        <div class="hw-title" onclick="hwNavTo('chain')" style="cursor:pointer">Zincir Kırma ›</div>
         <div class="hw-body" id="hw-chains-body"></div>
       </div>
 
       <!-- SAĞ ALT: Takvim -->
-      <div class="hw-widget hw-br" id="hw-cal">
-        <div class="hw-title">Takvim</div>
+      <div class="hw-widget hw-br" id="hw-cal" onclick="navWidget('calendar')" style="cursor:pointer">
+        <div class="hw-title">Takvim <span style="opacity:.5;font-size:9px">↗</span></div>
         <div class="hw-body" id="hw-cal-body"></div>
       </div>
 
@@ -943,6 +943,10 @@ function switchGTab(p,btn){
   document.querySelectorAll('.g-tab').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.g-tab-content').forEach(c=>c.classList.remove('active'));
   btn.classList.add('active');document.getElementById('gt-'+p).classList.add('active');
+}
+function navWidget(id){
+  const navItem=document.querySelector(`.nav-item[onclick*="'${id}'"]`);
+  if(navItem)navItem.click();
 }
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
