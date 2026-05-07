@@ -29,7 +29,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .layout{display:flex;min-height:100vh}
 
 /* SIDEBAR */
-.sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:0.5px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;box-shadow:1px 0 0 var(--border);transition:width .25s ease}
+.sidebar{width:220px;flex-shrink:0;background:rgba(240,244,248,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right:0.5px solid rgba(0,0,0,.08);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto;transition:width .25s ease}
 .sidebar-brand{padding:18px 16px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .sidebar-brand h1{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--accent2);white-space:nowrap;overflow:hidden}
 .sidebar-brand p{font-size:11px;color:var(--muted2);margin-top:2px;white-space:nowrap;overflow:hidden}
