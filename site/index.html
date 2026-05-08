@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Günlüğüm">
+<meta name="theme-color" content="#36393e">
+<link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/initials/svg?seed=YEK&backgroundColor=FBD100&fontFamily=Georgia&fontSize=40&chars=2">
+<title>Yunus Emre Kayış</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/films.css">
+  <link rel="stylesheet" href="css/books.css">
+  <link rel="stylesheet" href="css/goals.css">
+  <link rel="stylesheet" href="css/calendar.css">
+  <link rel="stylesheet" href="css/clock.css">
+  <link rel="stylesheet" href="css/chain.css">
+</head>
+<body>
+
+<div id="bg-wallpaper"></div>
+
+<div id="mobile-topbar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:300;height:52px;background:var(--surface);border-bottom:0.5px solid var(--border);align-items:center;padding:0 16px;justify-content:space-between">
+  <button onclick="toggleDrawer()" style="background:transparent;border:none;cursor:pointer;color:var(--text);padding:6px;display:flex;flex-direction:column;gap:4px;justify-content:center">
+    <span style="display:block;width:20px;height:1.5px;background:currentColor;border-radius:2px"></span>
+    <span style="display:block;width:20px;height:1.5px;background:currentColor;border-radius:2px"></span>
+    <span style="display:block;width:20px;height:1.5px;background:currentColor;border-radius:2px"></span>
+  </button>
+  <div id="mobile-page-title" style="font-family:'Playfair Display',serif;font-size:16px;color:var(--accent2)">Giriş</div>
+  <div style="width:32px"></div>
+</div>
+
+<!-- MOBİL OVERLAY -->
+<div id="mobile-overlay" onclick="closeDrawer()" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.4);opacity:0;transition:opacity .25s"></div>
+
+<!-- MOBİL DRAWER -->
+<div id="mobile-drawer" style="display:none;position:fixed;top:0;left:0;bottom:0;width:260px;z-index:500;background:var(--surface);border-right:0.5px solid var(--border);transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;flex-direction:column">
+  <div style="padding:20px 16px 14px;border-bottom:0.5px solid var(--border)">
+    <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)">Yunus Emre Kayış</div>
+    <div id="mobile-user-email" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
+  </div>
+  <nav style="padding:8px 0;flex:1">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);padding:8px 18px 3px">Genel</div>
+    <div class="m-nav-item" onclick="mobileNav('home','Giriş')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Giriş</div>
+    <div class="m-nav-item" onclick="mobileNav('calendar','Takvim')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Takvim</div>
+    <div class="m-nav-item" onclick="mobileNav('clock','Saat & Kronometre')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Saat & Kronometre</div>
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);padding:8px 18px 3px;margin-top:4px">İçerik</div>
+    <div class="m-nav-item" onclick="mobileNav('films','Filmler')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="2" y1="17" x2="7" y2="17"/></svg>Filmler</div>
+    <div class="m-nav-item" onclick="mobileNav('books','Kitaplar')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Kitaplar</div>
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);padding:8px 18px 3px;margin-top:4px">Takip</div>
+    <div class="m-nav-item" onclick="mobileNav('goals','Hedefler')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Hedefler</div>
+    <div class="m-nav-item" onclick="mobileNav('chain','Zincir Kırma')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Zincir Kırma</div>
+  </nav>
+  <div style="padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:center">
+    
+    <button onclick="doSignOut()" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;gap:6px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Çıkış
+    </button>
+  </div>
+</div>
+
+<style>
+#mobile-topbar,#mobile-drawer,#mobile-overlay{display:none}
+.m-nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;cursor:pointer;font-size:14px;color:var(--muted);transition:background .15s}
+.m-nav-item:hover,.m-nav-item.active{background:var(--surface2);color:var(--accent)}
+.m-nav-item svg{opacity:.6;flex-shrink:0}
+.m-nav-item.active svg{opacity:1}
+</style>
+
+<div id="app-wrapper" style="display:none;width:100vw;min-height:100vh;overflow-x:hidden">
+  <aside class="sidebar collapsed" id="sidebar">
+  <div class="sidebar-brand">
+    <div><h1>Yunus Emre Kayış</h1><p id="sb-date"></p></div>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group">
+      <div class="nav-group-label">Genel</div>
+      <div class="nav-item active" onclick="nav('home',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+        <span class="nav-label-text">Giriş</span>
+      </div>
+      <div class="nav-item" onclick="nav('calendar',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/></svg>
+        <span class="nav-label-text">Takvim</span>
+      </div>
+      <div class="nav-item" onclick="nav('clock',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="nav-label-text">Saat & Kronometre</span>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">İçerik</div>
+      <div class="nav-item" onclick="nav('films',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        <span class="nav-label-text">Filmler</span><span class="nav-badge" id="nb-film">0</span>
+      </div>
+      <div class="nav-item" onclick="nav('books',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6s1.5-2 5-2 5 2 5 2v14s-1.5-1-5-1-5 1-5 1V6z"/><path d="M12 6s1.5-2 5-2 5 2 5 2v14s-1.5-1-5-1-5 1-5 1V6z"/><line x1="12" y1="6" x2="12" y2="20"/></svg>
+        <span class="nav-label-text">Kitaplar</span><span class="nav-badge" id="nb-book">0</span>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Takip</div>
+      <div class="nav-item" onclick="nav('goals',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <span class="nav-label-text">Hedefler</span><span class="nav-badge" id="nb-goal">0</span>
+      </div>
+      <div class="nav-item" onclick="nav('chain',this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span class="nav-label-text">Zincir Kırma</span>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer" style="gap:6px">
+    
+    <button onclick="doSignOut()" title="Çıkış Yap" style="background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;padding:5px 7px;display:flex;align-items:center">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</aside>
+  <main class="main expanded" id="main-content">
+    <div id="page-container">
+      <!-- Sayfalar buraya dinamik yüklenir -->
+    </div>
+  </main>
+</div>
+
+<div id="loading-screen" style="display:flex;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:12px">
+  <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--accent)">Yunus Emre Kayış</div>
+  <div style="width:32px;height:32px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<div id="login-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px">
+  <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--accent);text-align:center">Yunus Emre Kayış</div>
+  <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Devam etmek için giriş yapın</div>
+  <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
+    <input id="login-email" type="email" placeholder="E-posta" style="padding:11px 14px;border-radius:9px;border:0.5px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+    <input id="login-password" type="password" placeholder="Şifre" onkeydown="if(event.key==='Enter')emailSignIn()" style="padding:11px 14px;border-radius:9px;border:0.5px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
+    <button onclick="emailSignIn()" style="padding:11px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;width:100%">Giriş Yap</button>
+    <button onclick="emailSignUp()" style="padding:11px;border-radius:9px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;width:100%">Hesap Oluştur</button>
+  </div>
+  <div id="login-error" style="font-size:12px;color:#c0392b;display:none;text-align:center"></div>
+</div>
+
+<script>
+// ── FIREBASE ──────────────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAgdKifZBSTjf-IS76NpmR40BuDPQ1BXNA",
+  authDomain: "veritoplama-919919.firebaseapp.com",
+  projectId: "veritoplama-919919",
+  storageBucket: "veritoplama-919919.firebasestorage.app",
+  messagingSenderId: "586804494080",
+  appId: "1:586804494080:web:57e869a02c5a26b55e3de5"
+};
+
+// Firebase SDK'yı CDN'den yükle
+const fbScript = document.createElement('script');
+fbScript.type = 'module';
+fbScript.textContent = `
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+  const app = initializeApp(${JSON.stringify(FIREBASE_CONFIG)});
+  const auth = getAuth(app);
+  const fsdb = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  window._fbAuth = auth;
+  window._fbDb = fsdb;
+  window._fbDoc = doc;
+  window._fbSetDoc = setDoc;
+  window._fbGetDoc = getDoc;
+  window._fbOnSnapshot = onSnapshot;
+  window._fbSignOut = signOut;
+
+  window.signInWithGoogle = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch(e) {
+      const err = document.getElementById('login-error');
+      err.textContent = 'Google girişi başarısız, tekrar deneyin.';
+      err.style.display = 'block';
+    }
+  };
+
+  window.emailSignIn = async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-password').value;
+    const err = document.getElementById('login-error');
+    if(!email||!pass){err.textContent='E-posta ve şifre gerekli.';err.style.display='block';return;}
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      err.style.display='none';
+    } catch(e) {
+      err.textContent = 'Hatalı e-posta veya şifre.';
+      err.style.display='block';
+    }
+  };
+
+  window.emailSignUp = async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-password').value;
+    const err = document.getElementById('login-error');
+    if(!email||!pass){err.textContent='E-posta ve şifre gerekli.';err.style.display='block';return;}
+    if(pass.length < 6){err.textContent='Şifre en az 6 karakter olmalı.';err.style.display='block';return;}
+    try {
+      await createUserWithEmailAndPassword(auth, email, pass);
+      err.style.display='none';
+    } catch(e) {
+      err.textContent = 'Bu e-posta zaten kayıtlı veya geçersiz.';
+      err.style.display='block';
+    }
+  };
+
+  onAuthStateChanged(auth, async (user) => {
+    document.getElementById('loading-screen').style.display='none';
+    if (user) {
+      window._fbUser = user;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-wrapper').style.display = 'block';
+      if(window.innerWidth<=1024){
+        document.getElementById('mobile-topbar').style.cssText += ';display:flex!important';
+      }
+      const emailEl=document.getElementById('mobile-user-email');
+      if(emailEl)emailEl.textContent=user.email||'';
+      // API key'i yükle
+      await window.loadApiKey();
+      // Firestore'dan veriyi çek
+      await window.loadFromFirestore(user.uid);
+      // Gerçek zamanlı senkronizasyon
+      window.setupSync(user.uid);
+    } else {
+      window._fbUser = null;
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('app-wrapper').style.display = 'none';
+    }
+  });
+`;
+document.head.appendChild(fbScript);
+</script>
+
+<script>
+const SK='gunlugum_v3';
+let db=(function(){
+  try{
+    const v3=localStorage.getItem(SK);
+    if(v3)return JSON.parse(v3);
+    return{f:[],b:[],g:[],e:[]};
+  }catch(x){return{f:[],b:[],g:[],e:[]};}
+})();
+
+// Firebase Firestore sync
+let _syncUnsub=null;
+window.loadFromFirestore=async function(uid){
+  try{
+    const ref=window._fbDoc(window._fbDb,'users',uid);
+    const snap=await window._fbGetDoc(ref);
+    if(snap.exists()){
+      const d=snap.data();
+      if(d.main){db=d.main;localStorage.setItem(SK,JSON.stringify(db));}
+      if(d.notes)localStorage.setItem('gn_notes',JSON.stringify(d.notes));
+      if(d.todos)localStorage.setItem('gn_todos',JSON.stringify(d.todos));
+      if(d.chains)localStorage.setItem('gn_chains',JSON.stringify(d.chains));
+      if(d.wl)localStorage.setItem('gn_wl',JSON.stringify(d.wl));
+      if(d.rl)localStorage.setItem('gn_rl',JSON.stringify(d.rl));
+      if(d.sw_log)localStorage.setItem('gn_sw_log',JSON.stringify(d.sw_log));
+    }
+    renderAll();updateBadges();
+  }catch(e){console.error('Firestore yükleme:',e);}
+};
+window.setupSync=function(uid){
+  if(_syncUnsub)_syncUnsub();
+  const ref=window._fbDoc(window._fbDb,'users',uid);
+  _syncUnsub=window._fbOnSnapshot(ref,(snap)=>{
+    if(snap.exists()&&!snap.metadata.hasPendingWrites){
+      const d=snap.data();
+      if(d.main){db=d.main;localStorage.setItem(SK,JSON.stringify(db));}
+      if(d.notes)localStorage.setItem('gn_notes',JSON.stringify(d.notes));
+      if(d.todos)localStorage.setItem('gn_todos',JSON.stringify(d.todos));
+      if(d.chains)localStorage.setItem('gn_chains',JSON.stringify(d.chains));
+      if(d.wl)localStorage.setItem('gn_wl',JSON.stringify(d.wl));
+      if(d.rl)localStorage.setItem('gn_rl',JSON.stringify(d.rl));
+      if(d.sw_log)localStorage.setItem('gn_sw_log',JSON.stringify(d.sw_log));
+      renderAll();updateBadges();
+    }
+  });
+};
+window.saveToFirestore=async function(){
+  if(!window._fbUser)return;
+  try{
+    const ref=window._fbDoc(window._fbDb,'users',window._fbUser.uid);
+    await window._fbSetDoc(ref,{
+      main:db,
+      notes:JSON.parse(localStorage.getItem('gn_notes')||'{}'),
+      todos:JSON.parse(localStorage.getItem('gn_todos')||'{}'),
+      chains:JSON.parse(localStorage.getItem('gn_chains')||'[]'),
+      wl:JSON.parse(localStorage.getItem('gn_wl')||'[]'),
+      rl:JSON.parse(localStorage.getItem('gn_rl')||'[]'),
+      sw_log:JSON.parse(localStorage.getItem('gn_sw_log')||'[]'),
+    });
+  }catch(e){console.error('Firestore kayıt:',e);}
+};
+
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function fmtDate(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]+'.'+p[1]+'.'+p[0]:d}
+function todayStr(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')}
+function v(id){const el=document.getElementById(id);return el?el.value:''}
+function set(id,val){const el=document.getElementById(id);if(el)el.value=val}
+function moodColor(m){return{'Harika':'#237F52','İyi':'#3d7a5a','Normal':'#b07a40','Kötü':'#b05a30','Berbat':'#c0392b'}[m]||'#888'}
+const TR_M=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const TR_D=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+
+// NAV
+const titles={home:'Giriş',chain:'Zincir Kırma',clock:'Saat & Kronometre',calendar:'Takvim',films:'Filmler',books:'Kitaplar',goals:'Hedefler'};
+function nav(id,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+id).classList.add('active');
+  el.classList.add('active');
+  if(id==='calendar')renderCal();
+  if(id==='chain')setTimeout(renderChains,0);
+  if(id==='films')switchFilmTab('watched',document.getElementById('ftab-watched'));
+  if(id==='books')switchBookTab('read',document.getElementById('btab-read'));
+  // Mobil başlık güncelle
+  const titleEl=document.getElementById('mobile-page-title');
+  if(titleEl)titleEl.textContent=titles[id]||id;
+}
+function toggleForm(id){const f=document.getElementById(id);f.style.display=f.style.display==='none'?'block':'none'}
+function switchGTab(p,btn){
+  document.querySelectorAll('.g-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.g-tab-content').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('gt-'+p).classList.add('active');
+}
+function navWidget(id){
+  const navItem=document.querySelector(`.nav-item[onclick*="'${id}'"]`);
+  if(navItem)navItem.click();
+}
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  sb.classList.toggle('collapsed');
+  document.getElementById('main-content').classList.toggle('expanded');
+  const collapsed=sb.classList.contains('collapsed');
+  const hw=document.getElementById('home-bg');
+  if(hw)hw.style.left=collapsed?'58px':'220px';
+}
+
+// BADGES
+function updateBadges(){
+  document.getElementById('nb-film').textContent=db.f.length;
+  document.getElementById('nb-book').textContent=db.b.length;
+  document.getElementById('nb-goal').textContent=db.g.length;
+  
+  const fc=document.getElementById('film-counter');if(fc)fc.textContent=db.f.length;
+  const bc=document.getElementById('book-counter');if(bc)bc.textContent=db.b.length;
+}
+
+// THEME
+function doSignOut(){
+  if(!confirm('Çıkış yapmak istediğinize emin misiniz?'))return;
+  if(window._fbSignOut&&window._fbAuth)window._fbSignOut(window._fbAuth);
+}
+
+// MOBİL DRAWER
+function toggleDrawer(){
+  const drawer=document.getElementById('mobile-drawer');
+  const overlay=document.getElementById('mobile-overlay');
+  const isOpen=drawer.getAttribute('data-open')==='1';
+  if(isOpen){closeDrawer();}
+  else{
+    drawer.style.display='flex';
+    drawer.style.flexDirection='column';
+    overlay.style.display='block';
+    drawer.setAttribute('data-open','1');
+    setTimeout(()=>{drawer.style.transform='translateX(0)';overlay.style.opacity='1';},10);
+  }
+}
+function closeDrawer(){
+  const drawer=document.getElementById('mobile-drawer');
+  const overlay=document.getElementById('mobile-overlay');
+  drawer.style.transform='translateX(-100%)';
+  overlay.style.opacity='0';
+  drawer.setAttribute('data-open','0');
+  setTimeout(()=>{drawer.style.display='none';overlay.style.display='none';},250);
+}
+function mobileNav(id,title){
+  // Desktop nav'ı da tetikle
+  const navItem=document.querySelector(`.nav-item[onclick*="'${id}'"]`);
+  if(navItem)navItem.click();
+  else{
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    const sec=document.getElementById('section-'+id);
+    if(sec)sec.classList.add('active');
+    if(id==='calendar')renderCal();
+    if(id==='chain')setTimeout(renderChains,0);
+    if(id==='films')switchFilmTab('watched',document.getElementById('ftab-watched'));
+    if(id==='books')switchBookTab('read',document.getElementById('btab-read'));
+  }
+  // Başlık güncelle
+  const titleEl=document.getElementById('mobile-page-title');
+  if(titleEl)titleEl.textContent=title;
+  // Aktif item güncelle
+  document.querySelectorAll('.m-nav-item').forEach(i=>i.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  closeDrawer();
+}
+
+
+
+// RENDER
+function renderAll(){renderFilms();renderBooks();renderGoals();renderWatchlist();renderReadlist();renderChains();renderHomeWidgets();}
+
+const OMDB_KEY='97eb66bc';
+const posterCache={};
+async function fetchPoster(name){
+  if(posterCache[name]!==undefined)return posterCache[name];
+  try{
+    const res=await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`);
+    const data=await res.json();
+    const url=(data.Poster&&data.Poster!=='N/A')?data.Poster.replace(/SX\d+/,'SX1000').replace('http://','https://'):null;
+    posterCache[name]=url;
+    return url;
+  }catch(e){posterCache[name]=null;return null;}
+}
+
+function renderFilms(){
+  const sorted=db.f.map((f,i)=>({f,i})).sort((a,b)=>{
+    const da=a.f.date||'';const db2=b.f.date||'';
+    if(da&&db2)return db2.localeCompare(da);
+    if(da)return -1;if(db2)return 1;return 0;
+  });
+  const el=document.getElementById('film-list');
+  if(!el)return;
+  el.innerHTML=sorted.length?sorted.map(({f,i})=>{
+    const poster=posterCache[f.name];
+    const posterHtml=poster
+      ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
+      :`<div style="width:100%;height:180px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
+    return `<div class="card">
+      ${posterHtml}
+      <div style="padding:12px 13px">
+        <div class="card-top"><div style="flex:1;min-width:0">
+          <div class="card-title">${esc(f.name)}</div>
+          <div class="card-meta">${[f.dir,fmtDate(f.date)].filter(Boolean).join(' · ')}</div>
+        </div><div class="card-actions">
+          <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editFilm(${i})">✎</button>
+          <button class="del-btn" onclick="del('f',${i})">×</button>
+        </div></div>
+        ${f.note?`<div class="card-note">${esc(f.note)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('')
+    :`<div class="empty"><div class="empty-icon">🎬</div>Henüz film eklemediniz</div>`;
+
+  // Posterleri arka planda yükle
+  sorted.forEach(({f})=>{
+    if(posterCache[f.name]===undefined){
+      fetchPoster(f.name).then(url=>{
+        if(url)renderFilms();
+      });
+    }
+  });
+}
+
+
+
+
+
+function renderBooks(){
+  const sorted=db.b.map((b,i)=>({b,i})).sort((a,b)=>{
+    const da=a.b.end||a.b.start||'';const db2=b.b.end||b.b.start||'';
+    if(da&&db2)return db2.localeCompare(da);
+    if(da)return -1;if(db2)return 1;return 0;
+  });
+  const el=document.getElementById('book-list');
+  if(!el)return;
+  el.innerHTML=sorted.length?sorted.map(({b,i})=>{
+
+    return `<div class="card">
+      <div style="padding:12px 13px">
+        <div class="card-top"><div style="flex:1;min-width:0">
+          <div class="card-title">${esc(b.name)}</div>
+          <div class="card-meta">${[b.author,b.pages?b.pages+' sf.':''].filter(Boolean).join(' · ')}</div>
+          ${b.start||b.end?`<div class="card-meta">${[b.start?'Başlangıç: '+fmtDate(b.start):'',b.end?'Bitiş: '+fmtDate(b.end):''].filter(Boolean).join(' · ')}</div>`:''}
+        </div><div class="card-actions">
+          <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editBook(${i})">✎</button>
+          <button class="del-btn" onclick="del('b',${i})">×</button>
+        </div></div>
+        ${b.note?`<div class="card-note">${esc(b.note)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('')
+    :`<div class="empty"><div class="empty-icon">📚</div>Henüz kitap eklemediniz</div>`;
+}
+
+function renderReadlist(){
+  const rl=getRl();
+  const counter=document.getElementById('rl-counter');if(counter)counter.textContent=rl.length;
+  const el=document.getElementById('readlist-list');if(!el)return;
+  el.innerHTML=rl.length?rl.map((b,i)=>{
+
+    return `<div class="card">
+      <div style="padding:12px 13px">
+        <div class="card-top"><div style="flex:1;min-width:0">
+          <div class="card-title">${esc(b.name)}</div>
+          <div class="card-meta">${b.author?esc(b.author):''}</div>
+        </div><div class="card-actions">
+          <button class="del-btn" style="font-size:13px;color:#237F52;opacity:.9" onclick="moveToRead(${i})" title="Okudum — taşı">✓</button>
+          <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editRl(${i})">✎</button>
+          <button class="del-btn" onclick="delRl(${i})">×</button>
+        </div></div>
+      </div>
+    </div>`;
+  }).join('')
+    :`<div class="empty"><div class="empty-icon">📚</div>Okuyacak kitap listesi boş</div>`;
+}
+function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
+function weekLabel(key){
+  const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);
+  const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()];
+  const cur=getWeekStart(new Date()).toISOString().split('T')[0];
+  return (key===cur?'Bu Hafta · ':'')+fmt(ws)+' – '+fmt(we)+' '+ws.getFullYear();
+}
+function monthLabel(key){
+  const[y,m]=key.split('-');const n=new Date();
+  const isCur=parseInt(y)===n.getFullYear()&&parseInt(m)-1===n.getMonth();
+  return (isCur?'Bu Ay · ':'')+TR_M[parseInt(m)-1]+' '+y;
+}
+function yearLabel(key){const n=new Date();return(key===String(n.getFullYear())?'Bu Yıl · ':'')+key;}
+
+function renderGoals(){
+  const totalBooks=db.b.length;
+  ['weekly','monthly','yearly'].forEach(p=>{
+    const items=db.g.map((g,i)=>({g,i})).filter(({g})=>g.period===p);
+    const el=document.getElementById('gl-'+p);
+    if(!items.length){el.innerHTML=`<div class="empty" style="padding:28px 0"><div class="empty-icon">🎯</div>Bu dönem için hedef yok</div>`;return}
+    const groups={};
+    items.forEach(({g,i})=>{const key=g.periodKey||g.created||todayStr();if(!groups[key])groups[key]=[];groups[key].push({g,i});});
+    const now=new Date();
+    let curKey=p==='weekly'?getWeekStart(now).toISOString().split('T')[0]:p==='monthly'?now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'):String(now.getFullYear());
+    let html='';
+    Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(key=>{
+      const isCur=key===curKey;
+      const tagCls=p==='weekly'?'ptw':p==='monthly'?'ptm':'pty';
+      const lbl=p==='weekly'?weekLabel(key):p==='monthly'?monthLabel(key):yearLabel(key);
+      if(isCur){
+        html+=`<div style="margin-bottom:18px"><div class="period-hdr"><span class="ptag ${tagCls}">${lbl}</span><span style="font-size:11px;color:var(--accent);background:rgba(58,123,213,.1);padding:2px 8px;border-radius:8px">Aktif</span></div><div class="cards">`;
+        groups[key].forEach(({g,i})=>{html+=_goalCard(g,i,totalBooks);});
+        html+='</div></div>';
+      } else {
+        const accId='gacc_'+p+'_'+key.replace(/[^a-z0-9]/gi,'');
+        html+=`<div style="margin-bottom:8px">
+          <div onclick="toggleGoalAcc('${accId}')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-radius:10px;background:var(--surface2);border:0.5px solid var(--border)">
+            <span class="ptag ${tagCls}" style="margin:0">${lbl}</span>
+            <span id="${accId}_icon" style="font-size:12px;color:var(--muted)">▸ ${groups[key].length} hedef</span>
+          </div>
+          <div id="${accId}" style="display:none;padding-top:8px"><div class="cards">`;
+        groups[key].forEach(({g,i})=>{html+=_goalCard(g,i,totalBooks);});
+        html+='</div></div></div>';
+      }
+    });
+    el.innerHTML=html;
+  });
+}
+function toggleGoalAcc(id){
+  const el=document.getElementById(id);
+  const icon=document.getElementById(id+'_icon');
+  if(!el)return;
+  const open=el.style.display==='none';
+  el.style.display=open?'block':'none';
+  if(icon){const count=icon.textContent.match(/\d+ hedef/)?.[0]||'';icon.textContent=open?'▾ '+count:'▸ '+count;}
+}
+function _goalCard(g,i,totalBooks){
+  const isBookGoal=g.track==='book'||(g.name.toLowerCase().includes('kitap')&&!g.track);
+  const isFilmGoal=g.track==='film';
+  const target=parseFloat(g.target)||parseFloat(g.booktarget)||0;
+  const current=isBookGoal?totalBooks:isFilmGoal?db.f.length:(parseFloat(g.current)||0);
+  const hasTarget=target>0;
+  const pct=hasTarget?Math.min(100,Math.round(current/target*100)):0;
+  const isDone=hasTarget?current>=target:g.done;
+  const unit=g.unit||'';
+  return `<div class="card ${isDone?'goal-done':''}"><div class="goal-row">
+    <div class="g-check ${isDone?'done':''}" ${!hasTarget?`onclick="toggleGoal(${i})"`:''} style="cursor:${hasTarget?'default':'pointer'}">${isDone?'✓':''}</div>
+    <div class="g-info">
+      <div class="card-top"><div style="flex:1"><div class="card-title">${esc(g.name)}</div></div>
+      <div class="card-actions">
+        <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editGoal(${i})">✎</button>
+        <button class="del-btn" onclick="del('g',${i})">×</button>
+      </div></div>
+      ${hasTarget?`<div style="margin-top:7px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:12px;color:var(--muted)">${current} / ${target}${unit?' '+unit:''}</span>
+          <span style="font-size:12px;font-weight:500;color:#237F52">%${pct}</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+        ${(!isBookGoal&&!isFilmGoal)?`<div style="display:flex;align-items:center;gap:7px;margin-top:7px">
+          <input type="number" min="0" step="any" placeholder="+${unit||'değer'} ekle" id="gp-${i}"
+            style="flex:1;padding:5px 9px;border-radius:7px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;outline:none"
+            onkeydown="if(event.key==='Enter')addProgress(${i})">
+          <button onclick="addProgress(${i})" style="padding:5px 12px;border-radius:7px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
+          <button onclick="setProgress(${i})" style="padding:5px 10px;border-radius:7px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer">Düzelt</button>
+        </div>`:''}
+      </div>`:''}
+    </div>
+  </div></div>`;
+}
+
+// EDIT
+let editingFilm=-1,editingBook=-1,editingGoal=-1;
+function editFilm(i){const f=db.f[i];set('f-name',f.name);set('f-dir',f.dir||'');set('f-date',f.date||'');set('f-note',f.note||'');editingFilm=i;document.getElementById('ff-save-btn').textContent='Güncelle';document.getElementById('ff').style.display='block';document.getElementById('ff').scrollIntoView({behavior:'smooth',block:'start'});}
+function editBook(i){const b=db.b[i];set('b-name',b.name);set('b-author',b.author||'');set('b-pages',b.pages||'');set('b-start',b.start||'');set('b-end',b.end||'');set('b-note',b.note||'');editingBook=i;document.getElementById('bf-save-btn').textContent='Güncelle';document.getElementById('bf').style.display='block';document.getElementById('bf').scrollIntoView({behavior:'smooth',block:'start'});}
+function editGoal(i){const g=db.g[i];set('g-name',g.name);set('g-period',g.period);set('g-target',g.target||g.booktarget||'');set('g-unit',g.unit||'');set('g-track',g.track||'');editingGoal=i;document.getElementById('gf-save-btn').textContent='Güncelle';document.getElementById('gf').style.display='block';document.getElementById('gf').scrollIntoView({behavior:'smooth',block:'start'});}
+
+// ADD / SAVE
+function addFilm(){
+  const name=v('f-name').trim();if(!name){alert('Film adı zorunludur');return}
+  const film={name,dir:v('f-dir').trim(),date:v('f-date'),note:v('f-note').trim()};
+  if(editingFilm>=0){db.f[editingFilm]=film;editingFilm=-1;}else{db.f.unshift(film);}
+  ['f-name','f-dir','f-date','f-note'].forEach(id=>set(id,''));
+  const dirEl=document.getElementById('f-dir');
+  if(dirEl)dirEl.placeholder='Otomatik doldur →';
+  document.getElementById('ff').style.display='none';document.getElementById('ff-save-btn').textContent='Kaydet';save();
+}
+function addBook(){
+  const name=v('b-name').trim();if(!name){alert('Kitap adı zorunludur');return}
+  const book={name,author:v('b-author').trim(),pages:v('b-pages'),start:v('b-start'),end:v('b-end'),note:v('b-note').trim()};
+  if(editingBook>=0){db.b[editingBook]=book;editingBook=-1;}else{db.b.unshift(book);}
+  ['b-name','b-author','b-pages','b-start','b-end','b-note'].forEach(id=>set(id,''));
+  const authorEl=document.getElementById('b-author');
+  if(authorEl)authorEl.placeholder='Otomatik doldur →';
+  document.getElementById('bf').style.display='none';document.getElementById('bf-save-btn').textContent='Kaydet';save();
+}
+function addGoal(){
+  const name=v('g-name').trim();if(!name){alert('Hedef adı zorunludur');return}
+  const target=parseFloat(v('g-target'))||0;const unit=v('g-unit').trim();const period=v('g-period');const track=v('g-track')||'';
+  if(editingGoal>=0){
+    db.g[editingGoal].name=name;db.g[editingGoal].target=target;db.g[editingGoal].unit=unit;db.g[editingGoal].track=track;
+    editingGoal=-1;document.getElementById('gf-save-btn').textContent='Kaydet';
+  }else{
+    const n=new Date();let pk=period==='weekly'?getWeekStart(n).toISOString().split('T')[0]:period==='monthly'?n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'):String(n.getFullYear());
+    db.g.unshift({name,period,periodKey:pk,target,unit,track,current:0,done:false,created:todayStr()});
+  }
+  ['g-name','g-target','g-unit'].forEach(id=>set(id,''));
+  document.getElementById('gf').style.display='none';save();
+}
+
+// CANCEL
+function cancelFilmForm(){
+  editingFilm=-1;
+  ['f-name','f-dir','f-date','f-note'].forEach(id=>set(id,''));
+  const dirEl=document.getElementById('f-dir');
+  if(dirEl)dirEl.placeholder='Otomatik doldur →';
+  document.getElementById('ff').style.display='none';
+  document.getElementById('ff-save-btn').textContent='Kaydet';
+}
+
+// Film ve kitap veritabanı (offline)
+// API KEY - Buraya kendi key'inizi yazın
+window.ANTHROPIC_KEY='';
+async function waitForFirebase(timeout=5000){
+  const start=Date.now();
+  while(!window._fbDoc||!window._fbDb){
+    if(Date.now()-start>timeout)throw new Error('Firebase hazır olmadı');
+    await new Promise(r=>setTimeout(r,100));
+  }
+}
+window.loadApiKey=async function(){
+  if(window.ANTHROPIC_KEY)return;
+  try{
+    await waitForFirebase();
+    const ref=window._fbDoc(window._fbDb,'config','app');
+    const snap=await window._fbGetDoc(ref);
+    if(snap.exists())window.ANTHROPIC_KEY=snap.data().anthropicKey||'';
+  }catch(e){console.error('API key yüklenemedi:',e);}
+};
+
+async function autoFillFilm(nameId,dirId){
+  const nameEl=document.getElementById(nameId);
+  const dirEl=document.getElementById(dirId);
+  if(!nameEl||!dirEl)return;
+  const name=nameEl.value.trim();
+  if(!name)return;
+  const loadEl=document.getElementById(dirId+'-loading');
+  if(loadEl)loadEl.style.display='inline';
+  dirEl.placeholder='Aranıyor...';
+  dirEl.value='';
+  await window.loadApiKey&&window.loadApiKey();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':window.ANTHROPIC_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:60,
+        messages:[{role:'user',content:`"${name}" filminin yönetmeni kimdir? Sadece yönetmenin adını yaz, başka hiçbir şey ekleme.`}]
+      })
+    });
+    const data=await res.json();
+    const text=data?.content?.[0]?.text?.trim();
+    if(text)dirEl.value=text;
+    else dirEl.placeholder='Bulunamadı, elle yazın';
+  }catch(e){dirEl.placeholder='Bulunamadı, elle yazın';}
+  if(loadEl)loadEl.style.display='none';
+}
+
+async function autoFillBook(nameId,authorId,pagesId){
+  const nameEl=document.getElementById(nameId);
+  const authorEl=document.getElementById(authorId);
+  if(!nameEl||!authorEl)return;
+  const name=nameEl.value.trim();
+  if(!name)return;
+  const loadEl=document.getElementById(authorId+'-loading');
+  if(loadEl)loadEl.style.display='inline';
+  authorEl.placeholder='Aranıyor...';
+  authorEl.value='';
+  const pagesEl=pagesId?document.getElementById(pagesId):null;
+  if(pagesEl)pagesEl.value='';
+  await window.loadApiKey&&window.loadApiKey();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':window.ANTHROPIC_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:100,
+        messages:[{role:'user',content:pagesId
+          ?`"${name}" kitabının orijinal yazarı kimdir? Çevirmeni değil, orijinal yazarı ver. Türkçe çeviri olsa bile orijinal yazarı yaz. Sadece JSON: {"author":"Ad Soyad","pages":123} pages bilinmiyorsa null.`
+          :`"${name}" kitabının orijinal yazarı kimdir? Çevirmeni değil orijinal yazarı yaz. Sadece isim.`}]
+      })
+    });
+    const data=await res.json();
+    const text=data?.content?.[0]?.text?.trim();
+    if(text){
+      if(pagesId){
+        try{
+          const clean=text.replace(/```json|```/g,'').replace(/[\u201c\u201d]/g,'"').trim();
+          const jsonMatch=clean.match(/\{[\s\S]*?\}/);
+          const obj=JSON.parse(jsonMatch?jsonMatch[0]:clean);
+          if(obj.author)authorEl.value=obj.author;
+          if(obj.pages){const pEl=document.getElementById(pagesId);if(pEl)pEl.value=obj.pages;}
+        }catch(e){
+          const authorMatch=text.match(/"author"\s*:\s*"([^"]+)"/);
+          if(authorMatch)authorEl.value=authorMatch[1];
+          else authorEl.value=text.split('\n')[0].replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ\s]/g,'').trim();
+        }
+      }else authorEl.value=text;
+    }else authorEl.placeholder='Bulunamadı, elle yazın';
+  }catch(e){authorEl.placeholder='Bulunamadı, elle yazın';}
+  if(loadEl)loadEl.style.display='none';
+}
+
+function switchFilmTab(tab,btn){
+  document.querySelectorAll('#ftab-watched,#ftab-watchlist').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#ft-watched,#ft-watchlist').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ft-'+tab).classList.add('active');
+}
+function getWl(){try{return JSON.parse(localStorage.getItem('gn_wl')||'[]')}catch(e){return[]}}
+function saveWl(d){localStorage.setItem('gn_wl',JSON.stringify(d));window.saveToFirestore&&window.saveToFirestore();}
+let editingWl=-1;
+function addWatchlist(){
+  const name=v('wl-name').trim();if(!name){alert('Film adı zorunludur');return}
+  const film={name,dir:v('wl-dir').trim()};
+  const wl=getWl();
+  if(editingWl>=0){wl[editingWl]=film;editingWl=-1;}else{wl.unshift(film);}
+  saveWl(wl);['wl-name','wl-dir'].forEach(id=>set(id,''));
+  document.getElementById('wlf').style.display='none';document.getElementById('wlf-save-btn').textContent='Kaydet';
+  renderWatchlist();
+}
+function cancelWlForm(){
+  editingWl=-1;['wl-name','wl-dir'].forEach(id=>set(id,''));
+  document.getElementById('wlf').style.display='none';document.getElementById('wlf-save-btn').textContent='Kaydet';
+}
+function editWl(i){
+  const wl=getWl();const f=wl[i];
+  set('wl-name',f.name);set('wl-dir',f.dir||'');
+  editingWl=i;document.getElementById('wlf-save-btn').textContent='Güncelle';
+  document.getElementById('wlf').style.display='block';
+}
+function delWl(i){const wl=getWl();wl.splice(i,1);saveWl(wl);renderWatchlist();}
+function moveToWatched(i){
+  const wl=getWl();const f=wl[i];
+  set('f-name',f.name);set('f-dir',f.dir||'');set('f-note',f.note||'');
+  wl.splice(i,1);saveWl(wl);renderWatchlist();
+  switchFilmTab('watched',document.getElementById('ftab-watched'));
+  document.getElementById('ff').style.display='block';
+}
+function renderWatchlist(){
+  const wl=getWl();
+  const counter=document.getElementById('wl-counter');if(counter)counter.textContent=wl.length;
+  const el=document.getElementById('watchlist-list');if(!el)return;
+  el.innerHTML=wl.length?wl.map((f,i)=>{
+    const poster=posterCache[f.name];
+    const posterHtml=poster
+      ?`<img src="${poster}" alt="${esc(f.name)}" style="width:100%;display:block;border-radius:8px 8px 0 0;object-fit:contain;background:#111;max-height:320px">`
+      :`<div style="width:100%;height:180px;background:var(--surface2);border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:40px">🎬</div>`;
+    return `<div class="card">
+      ${posterHtml}
+      <div style="padding:12px 13px">
+        <div class="card-top"><div style="flex:1;min-width:0">
+          <div class="card-title">${esc(f.name)}</div>
+          <div class="card-meta">${f.dir?esc(f.dir):''}</div>
+        </div><div class="card-actions">
+          <button class="del-btn" style="font-size:13px;color:#237F52;opacity:.9" onclick="moveToWatched(${i})" title="İzledim — taşı">✓</button>
+          <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editWl(${i})">✎</button>
+          <button class="del-btn" onclick="delWl(${i})">×</button>
+        </div></div>
+      </div>
+    </div>`;
+  }).join('')
+    :`<div class="empty"><div class="empty-icon">🎬</div>İzleyecek film listesi boş</div>`;
+
+  // Posterleri arka planda yükle
+  wl.forEach(f=>{
+    if(posterCache[f.name]===undefined){
+      fetchPoster(f.name).then(url=>{
+        if(url)renderWatchlist();
+      });
+    }
+  });
+}
+function cancelBookForm(){editingBook=-1;['b-name','b-author','b-pages','b-start','b-end','b-note'].forEach(id=>set(id,''));document.getElementById('bf').style.display='none';document.getElementById('bf-save-btn').textContent='Kaydet';}
+
+function switchFilmTab(tab,btn){
+  document.querySelectorAll('#ftab-watched,#ftab-watchlist').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#ft-watched,#ft-watchlist').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ft-'+tab).classList.add('active');
+}
+function switchBookTab(tab,btn){
+  document.querySelectorAll('#btab-read,#btab-readlist').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#bt-read,#bt-readlist').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('bt-'+tab).classList.add('active');
+}
+function getRl(){try{return JSON.parse(localStorage.getItem('gn_rl')||'[]')}catch(e){return[]}}
+function saveRl(d){localStorage.setItem('gn_rl',JSON.stringify(d));window.saveToFirestore&&window.saveToFirestore();}
+let editingRl=-1;
+function addReadlist(){
+  const name=v('rl-name').trim();if(!name){alert('Kitap adı zorunludur');return}
+  const book={name,author:v('rl-author').trim()};
+  const rl=getRl();
+  if(editingRl>=0){rl[editingRl]=book;editingRl=-1;}else{rl.unshift(book);}
+  saveRl(rl);['rl-name','rl-author'].forEach(id=>set(id,''));
+  document.getElementById('rlf').style.display='none';document.getElementById('rlf-save-btn').textContent='Kaydet';
+  renderReadlist();
+}
+function cancelRlForm(){
+  editingRl=-1;['rl-name','rl-author'].forEach(id=>set(id,''));
+  document.getElementById('rlf').style.display='none';document.getElementById('rlf-save-btn').textContent='Kaydet';
+}
+function editRl(i){
+  const rl=getRl();const b=rl[i];
+  set('rl-name',b.name);set('rl-author',b.author||'');
+  editingRl=i;document.getElementById('rlf-save-btn').textContent='Güncelle';
+  document.getElementById('rlf').style.display='block';
+}
+function delRl(i){const rl=getRl();rl.splice(i,1);saveRl(rl);renderReadlist();}
+function moveToRead(i){
+  const rl=getRl();const b=rl[i];
+  set('b-name',b.name);set('b-author',b.author||'');
+  rl.splice(i,1);saveRl(rl);renderReadlist();
+  switchBookTab('read',document.getElementById('btab-read'));
+  document.getElementById('bf').style.display='block';
+}
+function getGoalCurrent(g){
+  if(!g.track)return g.current||0;
+  if(g.track==='book')return db.b.length;
+  if(g.track==='film')return db.f.length;
+  return g.current||0;
+}
+function cancelGoalForm(){editingGoal=-1;['g-name','g-target','g-unit'].forEach(id=>set(id,''));document.getElementById('gf').style.display='none';document.getElementById('gf-save-btn').textContent='Kaydet';}
+
+// DELETE / UPDATE
+function del(arr,i){if(!confirm('Silinsin mi?'))return;const a={'f':db.f,'b':db.b,'g':db.g,'e':db.e}[arr];if(a){a.splice(i,1);save()}}
+function save(){localStorage.setItem(SK,JSON.stringify(db));renderAll();updateBadges();window.saveToFirestore&&window.saveToFirestore();}
+function toggleGoal(i){db.g[i].done=!db.g[i].done;save()}
+function addProgress(i){const el=document.getElementById('gp-'+i);if(!el)return;const val=parseFloat(el.value);if(isNaN(val)||val<=0)return;db.g[i].current=(parseFloat(db.g[i].current)||0)+val;el.value='';save();}
+function setProgress(i){const el=document.getElementById('gp-'+i);if(!el)return;const val=parseFloat(el.value);if(isNaN(val)||val<0){alert('Geçerli bir sayı girin.');return;}db.g[i].current=val;el.value='';save();}
+
+// HOME / CLOCK
+function initHome(){
+  const bg=document.getElementById('home-bg');
+  const credit=document.getElementById('home-credit');
+  const photos=[
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80',
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80',
+    'https://images.unsplash.com/photo-1506773090264-ac0b07293a64?w=1920&q=80',
+    'https://images.unsplash.com/photo-1476673160081-cf065607f449?w=1920&q=80',
+    'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1920&q=80',
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&q=80',
+    'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1920&q=80',
+    'https://images.unsplash.com/photo-1518173946687-a4c8892bbd9f?w=1920&q=80',
+    'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1920&q=80',
+    'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&q=80',
+    'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80',
+    'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1920&q=80',
+    'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=1920&q=80',
+    'https://images.unsplash.com/photo-1455156218388-5e61b526818b?w=1920&q=80',
+    'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1920&q=80',
+    'https://images.unsplash.com/photo-1520962880247-cfaf541c8724?w=1920&q=80',
+    'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=1920&q=80',
+    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920&q=80',
+    'https://images.unsplash.com/photo-1502899576159-f224dc2349fa?w=1920&q=80',
+    'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1920&q=80',
+    'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1920&q=80',
+    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1920&q=80',
+    'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=1920&q=80',
+    'https://images.unsplash.com/photo-1540390769625-2fc3f8b1d50c?w=1920&q=80',
+    'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1920&q=80',
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80',
+    'https://images.unsplash.com/photo-1546514714-df0ccc50d7bf?w=1920&q=80',
+  ];
+  let seen=[];
+  try{seen=JSON.parse(localStorage.getItem('gn_seen_photos')||'[]')}catch(e){}
+  if(seen.length>=photos.length)seen=[];
+  const remaining=photos.map((_,i)=>i).filter(i=>!seen.includes(i));
+  const idx=remaining[Math.floor(Math.random()*remaining.length)];
+  seen.push(idx);
+  localStorage.setItem('gn_seen_photos',JSON.stringify(seen));
+  if(bg) bg.style.backgroundImage=`url('${photos[idx]}')`;
+  if(credit) credit.textContent='';
+}
+
+function renderHomeWidgets(){
+  const today=todayStr();
+  // Todos
+  const tb=document.getElementById('hw-todos-body');
+  if(tb){
+    const todos=getTodos()[today]||[];
+    const items=todos.slice(0,5).map((t,i)=>`
+      <div class="hw-item" style="justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1" onclick="event.stopPropagation();hwTodoToggle('${today}',${i})">
+          <div class="hw-check${t.done?' done':''}"></div>
+          <span style="text-decoration:${t.done?'line-through':'none'};opacity:${t.done?.5:1};font-size:11px">${esc(t.text)}</span>
+        </div>
+        <button onclick="event.stopPropagation();hwTodoEdit('${today}',${i})" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:12px;padding:0 2px">✎</button>
+      </div>`).join('');
+    tb.innerHTML=`${items||'<div class="hw-empty">Görev yok</div>'}
+      <div style="margin-top:6px;display:flex;gap:4px">
+        <input id="hw-todo-input" placeholder="Görev ekle..." style="flex:1;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 7px;color:#fff;font-size:11px;outline:none" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')hwTodoAdd()">
+        <button onclick="event.stopPropagation();hwTodoAdd()" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;color:#fff;padding:4px 8px;cursor:pointer;font-size:11px">+</button>
+      </div>`;
+  }
+  // Goals - dinamik zaman filtresi
+  const gb=document.getElementById('hw-goals-body');
+  if(gb){
+    const now=new Date();
+    const curWeekKey=getWeekStart(now).toISOString().split('T')[0];
+    const curMonthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    const curYearKey=String(now.getFullYear());
+    const goals=(db.g||[]).filter(g=>{
+      if(g.period!==hwGoalPeriod)return false;
+      if(hwGoalPeriod==='weekly')return g.periodKey===curWeekKey;
+      if(hwGoalPeriod==='monthly')return g.periodKey===curMonthKey;
+      if(hwGoalPeriod==='yearly')return g.periodKey===curYearKey||!g.periodKey;
+      return true;
+    });
+    const label=hwGoalPeriod==='weekly'?'Haftalık':hwGoalPeriod==='monthly'?'Aylık':'Yıllık';
+    if(!goals.length) gb.innerHTML=`<div class="hw-empty">${label} hedef yok</div>`;
+    else gb.innerHTML=goals.slice(0,4).map(g=>{
+      const cur=getGoalCurrent(g);
+      const pct=g.target?Math.min(100,Math.round(cur/g.target*100)):0;
+      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:3px">
+        <div style="display:flex;justify-content:space-between;width:100%">
+          <span style="font-size:11px">${esc(g.name)}</span>
+          <span style="font-size:10px;color:var(--accent)">${cur}/${g.target} ${g.unit||''}</span>
+        </div>
+        <div style="width:100%;height:4px;background:rgba(255,255,255,.2);border-radius:2px">
+          <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:2px"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Chains
+  const cb=document.getElementById('hw-chains-body');
+  if(cb){
+    const chains=getCh();
+    if(!chains.length) cb.innerHTML='<div class="hw-empty">Zincir yok</div>';
+    else cb.innerHTML=chains.slice(0,3).map(ch=>{
+      const today2=todayStr();
+      const doneTodayArr=ch.done||[];
+      // Streak hesapla - done array gün indexi tutuyor
+      const doneSet=new Set(ch.done||[]);
+      const startMs=new Date(ch.start+'T00:00:00').getTime();
+      const todayIdx=Math.floor((Date.now()-startMs)/86400000);
+      // En son işaretlenen günden geriye say (bugünden en fazla 1 gün öncesine kadar bak)
+      let startIdx=-1;
+      for(let d=0;d<=1;d++){if(doneSet.has(todayIdx-d)){startIdx=todayIdx-d;break;}}
+      // Bulamazsak en son işaretlenen günü bul
+      if(startIdx<0){
+        const maxDone=Math.max(...(ch.done||[-1]));
+        if(maxDone>=0)startIdx=maxDone;
+      }
+      let streak=0;
+      if(startIdx>=0){
+        let checkIdx=startIdx;
+        while(checkIdx>=0&&doneSet.has(checkIdx)){streak++;checkIdx--;}
+      }
+
+      return `<div class="hw-item" style="flex-direction:column;align-items:flex-start;gap:5px">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+          <span style="font-size:11px;font-weight:500">${esc(ch.name)}</span>
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-size:12px;font-weight:700;color:var(--accent)">${streak}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  // Takvim - mini ay
+  const calb=document.getElementById('hw-cal-body');
+  if(calb){
+    const n=new Date();
+    const y=n.getFullYear(),mo=n.getMonth(),tod=n.getDate();
+    const first=new Date(y,mo,1).getDay();
+    const startDay=first===0?6:first-1;
+    const days=new Date(y,mo+1,0).getDate();
+    let grid='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center">';
+    ['P','S','Ç','P','C','C','P'].forEach(d=>{grid+=`<div style="font-size:9px;color:rgba(255,255,255,.4)">${d}</div>`;});
+    for(let i=0;i<startDay;i++)grid+='<div></div>';
+    for(let d=1;d<=days;d++){
+      const isT=d===tod;
+      grid+=`<div style="font-size:10px;padding:2px;border-radius:3px;${isT?'background:var(--accent);color:#000;font-weight:700':'color:rgba(255,255,255,.8)'}">${d}</div>`;
+    }
+    grid+='</div>';
+    calb.innerHTML=`<div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:3px">${TR_M[mo]} ${y}</div>${grid}`;
+  }
+}
+let hwGoalPeriod='weekly';
+function hwGoalTab(p){
+  hwGoalPeriod=p;
+  ['weekly','monthly','yearly'].forEach(t=>{
+    const btn=document.getElementById('hw-gt-'+t);
+    if(btn){btn.style.background=t===p?'var(--accent)':'rgba(255,255,255,.15)';btn.style.color=t===p?'#000':'#fff';}
+  });
+  renderHomeWidgets();
+}
+function hwTodoEdit(date,idx){
+  const todos=getTodos();
+  if(!todos[date]||!todos[date][idx])return;
+  const newText=prompt('Görevi düzenle:',todos[date][idx].text);
+  if(newText===null)return;
+  if(newText.trim()){todos[date][idx].text=newText.trim();}
+  else{todos[date].splice(idx,1);}
+  setTodos(todos);renderHomeWidgets();renderCal();
+}
+function hwTodoAdd(){
+  const inp=document.getElementById('hw-todo-input');
+  if(!inp||!inp.value.trim())return;
+  const today=todayStr();
+  const todos=getTodos();
+  if(!todos[today])todos[today]=[];
+  todos[today].push({text:inp.value.trim(),done:false});
+  setTodos(todos);inp.value='';
+  renderHomeWidgets();renderCal();
+}
+function hwTodoToggle(date,idx){
+  const todos=getTodos();
+  if(!todos[date]||!todos[date][idx])return;
+  todos[date][idx].done=!todos[date][idx].done;
+  setTodos(todos);renderHomeWidgets();renderCal();
+}
+
+function hwSwToggle(){swToggle();}
+function hwSwReset(){swReset();}
+function tickClock(){
+  const n=new Date();
+  const hh=String(n.getHours()).padStart(2,'0'),mm=String(n.getMinutes()).padStart(2,'0');
+  const sbe=document.getElementById('sb-date');if(sbe)sbe.textContent=n.getDate()+' '+TR_M[n.getMonth()];
+  const ss=String(n.getSeconds()).padStart(2,'0');
+  const cde=document.getElementById('clock-display');if(cde)cde.textContent=hh+':'+mm+':'+ss;
+  const cdd=document.getElementById('clock-date-display');if(cdd)cdd.textContent=n.getDate()+' '+TR_M[n.getMonth()]+' '+n.getFullYear();
+  const cdw=document.getElementById('clock-day-display');if(cdw)cdw.textContent=TR_D[n.getDay()];
+  // Ana ekran kronometre — sidebar'daki sw ile eş zamanlı
+  const hwd=document.getElementById('hw-sw-display');
+  if(hwd){
+    const elapsed=swRunning&&swStartTime?Date.now()-swStartTime:swElapsed;
+    hwd.textContent=swFmt(elapsed).main;
+  }
+  // Ana ekran başlat/durdur butonunu güncelle
+  const hwBtn=document.getElementById('hw-sw-btn');
+  if(hwBtn)hwBtn.textContent=swRunning?'⏸':'▶';
+}
+
+// STOPWATCH
+let swRunning=false,swInterval=null,swStartTime=null,swStartLabel=null;
+let swElapsed=parseInt(localStorage.getItem('gn_sw_elapsed')||'0');
+function swFmt(ms){
+  const ts=Math.floor(ms/1000),h=Math.floor(ts/3600),m=Math.floor((ts%3600)/60),s=ts%60,cs=Math.floor((ms%1000)/10);
+  return{main:String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'),ms:'.'+String(cs).padStart(2,'0')};
+}
+function swRender(){const f=swFmt(swElapsed);const d=document.getElementById('sw-display');const m=document.getElementById('sw-ms');if(d)d.textContent=f.main;if(m)m.textContent=f.ms;}
+function swTimestamp(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');}
+function swDateStr(){const n=new Date();return String(n.getDate()).padStart(2,'0')+'.'+String(n.getMonth()+1).padStart(2,'0')+'.'+n.getFullYear();}
+function swGetLog(){try{return JSON.parse(localStorage.getItem('gn_sw_log')||'[]')}catch(x){return[]}}
+function swSaveLog(log){localStorage.setItem('gn_sw_log',JSON.stringify(log))}
+function swRenderLog(){
+  const log=swGetLog();const el=document.getElementById('sw-log');const cw=document.getElementById('sw-log-clear-wrap');
+  if(!el)return;
+  if(!log.length){el.innerHTML='';if(cw)cw.style.display='none';return;}
+  if(cw)cw.style.display='block';
+  el.innerHTML=log.slice().reverse().map((s,i)=>`
+    <div class="sw-log-item">
+      <div class="sw-log-num">${log.length-i}</div>
+      <div class="sw-log-info">
+        <div class="sw-log-time">${s.date?s.date+' · ':''} ${s.startAt} başladı → ${s.stopAt} durdu</div>
+        <div class="sw-log-dur">${s.duration} süre çalışıldı</div>
+      </div>
+    </div>`).join('');
+}
+function swToggle(){
+  const btn=document.getElementById('sw-btn');
+  if(swRunning){
+    clearInterval(swInterval);swRunning=false;
+    const stopAt=swTimestamp();
+    const f=swFmt(swElapsed);
+    localStorage.setItem('gn_sw_elapsed',String(swElapsed));
+    const log=swGetLog();
+    log.push({startAt:swStartLabel,stopAt,duration:f.main,date:swDateStr()});
+    swSaveLog(log);swStartTime=null;swStartLabel=null;
+    if(btn)btn.textContent='Devam Et';
+    const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;
+    swRenderLog();
+  }else{
+    swStartLabel=swTimestamp();
+    swStartTime=Date.now()-swElapsed;
+    const st=swStartTime;
+    swInterval=setInterval(()=>{swElapsed=Date.now()-st;swRender();},33);
+    swRunning=true;if(btn)btn.textContent='Durdur';
+    const sv=document.getElementById('sw-saved');if(sv)sv.textContent='';
+  }
+}
+function swReset(){
+  clearInterval(swInterval);swRunning=false;swElapsed=0;swStartTime=null;
+  localStorage.setItem('gn_sw_elapsed','0');swRender();
+  const btn=document.getElementById('sw-btn');if(btn)btn.textContent='Başlat';
+  const sv=document.getElementById('sw-saved');if(sv)sv.textContent='';
+}
+function swClearLog(){if(confirm('Tüm geçmiş silinsin mi?')){localStorage.removeItem('gn_sw_log');swRenderLog();}}
+
+// CALENDAR - Special Days
+const SP=[
+  {k:'01-01',n:'Yılbaşı',t:'h'},{k:'04-23',n:'Ulusal Egemenlik ve Çocuk Bayramı',t:'h'},
+  {k:'05-01',n:'Emek ve Dayanışma Bayramı',t:'h'},{k:'05-19',n:"Atatürk'ü Anma, Gençlik ve Spor Bayramı",t:'h'},
+  {k:'07-15',n:'Demokrasi ve Millî Birlik Günü',t:'h'},{k:'08-30',n:'Zafer Bayramı',t:'h'},{k:'10-29',n:'Cumhuriyet Bayramı',t:'h'},
+  {k:'03-30',n:'Ramazan Bayramı 1.Gün',t:'r',y:[2025]},{k:'03-31',n:'Ramazan Bayramı 2.Gün',t:'r',y:[2025]},{k:'04-01',n:'Ramazan Bayramı 3.Gün',t:'r',y:[2025]},
+  {k:'03-20',n:'Ramazan Bayramı 1.Gün',t:'r',y:[2026]},{k:'03-21',n:'Ramazan Bayramı 2.Gün',t:'r',y:[2026]},{k:'03-22',n:'Ramazan Bayramı 3.Gün',t:'r',y:[2026]},
+  {k:'06-06',n:'Kurban Bayramı 1.Gün',t:'r',y:[2025]},{k:'06-07',n:'Kurban Bayramı 2.Gün',t:'r',y:[2025]},{k:'06-08',n:'Kurban Bayramı 3.Gün',t:'r',y:[2025]},{k:'06-09',n:'Kurban Bayramı 4.Gün',t:'r',y:[2025]},
+  {k:'05-27',n:'Kurban Bayramı 1.Gün',t:'r',y:[2026]},{k:'05-28',n:'Kurban Bayramı 2.Gün',t:'r',y:[2026]},{k:'05-29',n:'Kurban Bayramı 3.Gün',t:'r',y:[2026]},{k:'05-30',n:'Kurban Bayramı 4.Gün',t:'r',y:[2026]},
+  {k:'02-14',n:'Sevgililer Günü',t:'i'},{k:'03-08',n:'Dünya Kadınlar Günü',t:'i'},{k:'04-22',n:'Dünya Günü',t:'i'},
+  {k:'06-01',n:'Dünya Çocuklar Günü',t:'i'},{k:'10-05',n:'Dünya Öğretmenler Günü',t:'i'},{k:'10-31',n:'Cadılar Bayramı',t:'i'},{k:'12-25',n:'Noel',t:'i'},{k:'12-31',n:'Yılbaşı Gecesi',t:'i'},
+];
+function getSpecial(ds){
+  const[y,m,d]=ds.split('-');const k=m+'-'+d;const yr=parseInt(y);
+  return SP.filter(s=>s.k===k&&(!s.y||s.y.includes(yr)));
+}
+function getSpecialMonth(year,month){
+  const days=new Date(year,month+1,0).getDate(),res=[];
+  for(let d=1;d<=days;d++){const ds=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');getSpecial(ds).forEach(s=>res.push({...s,ds,d}));}
+  return res;
+}
+
+let calY=new Date().getFullYear(),calM=new Date().getMonth(),calSel=null;
+function calMove(dir){calM+=dir;if(calM<0){calM=11;calY--}if(calM>11){calM=0;calY++}renderCal()}
+function renderCal(){
+  document.getElementById('cal-month').textContent=TR_M[calM]+' '+calY;
+  const first=(new Date(calY,calM,1).getDay()+6)%7,dim=new Date(calY,calM+1,0).getDate(),prev=new Date(calY,calM,0).getDate();
+  const today=todayStr(),notes=getCalNotes();
+  const grid=document.getElementById('cal-days');grid.innerHTML='';
+  for(let i=first-1;i>=0;i--){const c=document.createElement('div');c.className='cal-day other';c.textContent=prev-i;grid.appendChild(c)}
+  for(let d=1;d<=dim;d++){
+    const ds=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const sp=getSpecial(ds);const isH=sp.some(s=>s.t==='h'),isR=sp.some(s=>s.t==='r'),isI=sp.some(s=>s.t==='i');
+    const hasGoal=db.g.some(g=>g.due===ds);
+    const nts=Array.isArray(notes[ds])?notes[ds]:(notes[ds]?[notes[ds]]:[]);
+    const tdList=(getTodos()[ds]||[]);
+    const hasTodo=tdList.length>0;
+    const allDone=hasTodo&&tdList.every(t=>t.done);
+    const c=document.createElement('div');
+    c.className='cal-day'+(ds===today?' today':'')+(ds===calSel?' selected':'')+(isH?' is-holiday':isR?' is-religious':isI?' is-intl':'');
+    const num=document.createElement('span');num.className='day-num';num.textContent=d;c.appendChild(num);
+    const dots=[];
+    if(isH)dots.push({c:'#e53935',big:true});
+    if(isR)dots.push({c:'#8e44ad',big:true});
+    if(isI)dots.push({c:'#1565c0',big:true});
+    nts.forEach(n=>{const nc=typeof n==='object'?n.color:'#3a7bd5';dots.push({c:nc,big:false});});
+    if(hasGoal)dots.push({c:'#237F52',big:false});
+    if(dots.length){
+      const dr=document.createElement('div');dr.className='dot-row';
+      dots.slice(0,5).forEach(({c,big})=>{
+        const dot=document.createElement('span');
+        dot.className='dot';
+        dot.style.background=c;
+        if(big){dot.style.width='6px';dot.style.height='6px';}
+        dr.appendChild(dot);
+      });
+      c.appendChild(dr);
+    }
+    c.onclick=()=>selectCalDay(ds);grid.appendChild(c);
+  }
+  const tot=first+dim,rem=tot%7===0?0:7-(tot%7);
+  for(let d=1;d<=rem;d++){const c=document.createElement('div');c.className='cal-day other';c.textContent=d;grid.appendChild(c)}
+  renderSpList();if(calSel)renderCalSide(calSel);
+}
+function selectCalDay(ds){
+  calSel=ds;calNoteEditIdx=-1;
+  document.getElementById('note-ta').value='';
+  document.getElementById('cal-note-lbl').textContent='Not ekle';
+  calNoteColor='#3a7bd5';setCalNoteColor('#3a7bd5');
+  document.getElementById('cal-day-panel').style.display='block';
+  renderCal();renderCalSide(ds);renderTodos(ds);
+}
+function renderCalSide(ds){
+  const[y,m,d]=ds.split('-');document.getElementById('cal-sel-lbl').textContent=d+' '+TR_M[parseInt(m)-1]+' '+y;
+  const sp=getSpecial(ds);const tc={h:'#c0392b',r:'#7b5ea7',i:'#2874a6'};const tl={h:'Resmi Tatil',r:'Dini Bayram',i:'Uluslararası'};
+  let html='';
+  sp.forEach(s=>{html+=`<div class="cal-item" style="border-left-color:${tc[s.t]||'var(--accent)'}"><div class="cal-item-title">${esc(s.n)}</div><div class="cal-item-sub">${tl[s.t]||''}</div></div>`});
+  db.f.filter(x=>x.date===ds).forEach(x=>{html+=`<div class="cal-item" style="border-left-color:var(--film-l)"><div class="cal-item-title">${esc(x.name)}</div><div class="cal-item-sub">Film</div></div>`});
+  db.b.filter(x=>x.end===ds||x.start===ds).forEach(x=>{html+=`<div class="cal-item" style="border-left-color:var(--book-l)"><div class="cal-item-title">${esc(x.name)}</div><div class="cal-item-sub">${x.start===ds?'Kitap Başlangıç':'Kitap Bitiş'}</div></div>`});
+  const notes=getCalNotes();
+  const nts=Array.isArray(notes[ds])?notes[ds]:(notes[ds]?[notes[ds]]:[]);
+  nts.forEach((n,i)=>{
+    const nt=typeof n==='object'?n.text:n;
+    const nc=typeof n==='object'?n.color:'#3a7bd5';
+    html+=`<div class="cal-item" style="border-left-color:${nc};background:rgba(58,123,213,.04);margin-top:4px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+        <div style="flex:1"><div class="cal-item-sub" style="font-size:10px;margin-bottom:2px">Not${nts.length>1?' '+(i+1):''}</div>
+        <div class="cal-item-title" style="font-size:13px;line-height:1.4">${esc(nt)}</div></div>
+        <div style="display:flex;gap:3px;flex-shrink:0;margin-top:1px">
+          <button onclick="editCalNote(${i})" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--accent);padding:2px 4px">✎</button>
+          <button onclick="delCalNote(${i})" style="background:transparent;border:none;cursor:pointer;font-size:15px;color:var(--muted2);padding:2px 4px">×</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('cal-items').innerHTML=html||'<div class="cal-empty">Bu gün için kayıt yok.</div>';
+  document.getElementById('note-saved').style.opacity='0';
+}
+function renderSpList(){
+  const items=getSpecialMonth(calY,calM);const el=document.getElementById('sp-list');
+  if(!items.length){el.innerHTML='<div class="cal-empty">Bu ayda özel gün yok.</div>';return}
+  const bc={h:'spb-h',r:'spb-r',i:'spb-i',p:'spb-p'};const bl={h:'Resmi Tatil',r:'Dini Bayram',i:'Uluslararası',p:'Kişisel'};
+  el.innerHTML=items.map(s=>`<div class="sp-item"><div class="sp-date">${String(s.d).padStart(2,'0')} ${TR_M[calM].slice(0,3)}</div><div><div class="sp-name">${esc(s.n)}</div><span class="sp-badge ${bc[s.t]||''}">${bl[s.t]||s.t}</span></div></div>`).join('');
+}
+// TO-DO LİSTESİ
+function getTodos(){try{return JSON.parse(localStorage.getItem('gn_todos')||'{}')}catch(x){return{}}}
+function setTodos(o){localStorage.setItem('gn_todos',JSON.stringify(o));window.saveToFirestore&&window.saveToFirestore();}
+
+function todoEnter(){
+  const btn=document.getElementById('todo-add-btn');
+  if(btn&&btn.textContent==='Güncelle')btn.onclick();
+  else addTodo();
+}
+function addTodo(){
+  const inp=document.getElementById('todo-input');
+  const text=inp.value.trim();if(!text)return;
+  const todos=getTodos();
+  if(!todos[calSel])todos[calSel]=[];
+  todos[calSel].push({text,done:false});
+  setTodos(todos);inp.value='';
+  renderTodos(calSel);renderCal();
+}
+
+function toggleTodo(i){
+  const todos=getTodos();
+  if(!todos[calSel])return;
+  todos[calSel][i].done=!todos[calSel][i].done;
+  setTodos(todos);renderTodos(calSel);renderCal();
+}
+
+function delTodo(i){
+  const todos=getTodos();
+  if(!todos[calSel])return;
+  todos[calSel].splice(i,1);
+  if(!todos[calSel].length)delete todos[calSel];
+  setTodos(todos);renderTodos(calSel);renderCal();
+}
+
+function renderTodos(ds){
+  const todos=getTodos();
+  const list=todos[ds]||[];
+  const el=document.getElementById('todo-list');
+  const counter=document.getElementById('todo-counter');
+  if(!el)return;
+  const done=list.filter(t=>t.done).length;
+  if(counter)counter.textContent=list.length?done+'/'+list.length+' tamamlandı':'';
+  el.innerHTML=list.map((t,i)=>`
+    <div class="todo-item ${t.done?'done':''}">
+      <div class="todo-check ${t.done?'done':''}" onclick="toggleTodo(${i})">${t.done?'✓':''}</div>
+      <span class="todo-text ${t.done?'done':''}">${esc(t.text)}</span>
+      <button onclick="editTodo(${i})" style="background:transparent;border:none;cursor:pointer;font-size:13px;color:var(--accent);opacity:.7;padding:0 3px;flex-shrink:0">✎</button>
+      <button class="todo-del" onclick="delTodo(${i})">×</button>
+    </div>`).join('');
+}
+
+function editTodo(i){
+  const todos=getTodos();
+  if(!todos[calSel])return;
+  const text=todos[calSel][i].text;
+  const inp=document.getElementById('todo-input');
+  inp.value=text;inp.focus();
+  // Kaydet butonunu güncelle moduna al
+  const btn=document.getElementById('todo-add-btn');
+  if(btn){btn.textContent='Güncelle';btn.onclick=()=>saveTodoEdit(i);}
+}
+
+function saveTodoEdit(i){
+  const inp=document.getElementById('todo-input');
+  const text=inp.value.trim();if(!text)return;
+  const todos=getTodos();
+  if(!todos[calSel])return;
+  todos[calSel][i].text=text;
+  setTodos(todos);inp.value='';
+  const btn=document.getElementById('todo-add-btn');
+  if(btn){btn.textContent='Ekle';btn.onclick=addTodo;}
+  renderTodos(calSel);renderCal();
+}
+
+// ── ZİNCİR KIRMA ─────────────────────────────────────────
+function getCh(){try{return JSON.parse(localStorage.getItem('gn_chains')||'[]')}catch(e){return[]}}
+function saveCh(d){localStorage.setItem('gn_chains',JSON.stringify(d));window.saveToFirestore&&window.saveToFirestore();}
+
+let chColor='#237F52', editingCh=-1;
+function setChColor(c){
+  chColor=c;
+  document.querySelectorAll('#ch-color-picker [data-col]').forEach(el=>{
+    el.style.border=el.getAttribute('data-col')===c?'2.5px solid var(--text)':'2px solid transparent';
+  });
+}
+function saveChain(){
+  const name=v('ch-name').trim();if(!name){alert('Zincir adı zorunludur');return}
+  const count=parseInt(v('ch-count'));if(!count||count<1){alert('Zincir sayısı giriniz');return}
+  const start=v('ch-start')||todayStr();
+  const chs=getCh();
+  const entry={name,count,start,color:chColor,done:[]};
+  if(editingCh>=0){chs[editingCh]=entry;editingCh=-1;document.getElementById('chf-save-btn').textContent='Kaydet';}
+  else chs.push(entry);
+  saveCh(chs);
+  ['ch-name','ch-count','ch-start'].forEach(id=>set(id,''));
+  document.getElementById('chf').style.display='none';
+  renderChains();
+}
+function cancelChForm(){
+  editingCh=-1;['ch-name','ch-count','ch-start'].forEach(id=>set(id,''));
+  document.getElementById('chf').style.display='none';
+  document.getElementById('chf-save-btn').textContent='Kaydet';
+}
+function editCh(i){
+  const chs=getCh();const c=chs[i];
+  set('ch-name',c.name);set('ch-count',c.count);set('ch-start',c.start);
+  chColor=c.color||'#237F52';setChColor(chColor);
+  editingCh=i;document.getElementById('chf-save-btn').textContent='Güncelle';
+  document.getElementById('chf').style.display='block';
+}
+function delCh(i){
+  if(!confirm('Bu zincir silinsin mi?'))return;
+  const chs=getCh();chs.splice(i,1);saveCh(chs);renderChains();
+}
+function toggleChLink(i,dayIdx){
+  const chs=getCh();
+  const idx=chs[i].done.indexOf(dayIdx);
+  if(idx>=0)chs[i].done.splice(idx,1);else chs[i].done.push(dayIdx);
+  saveCh(chs);renderChains();renderHomeWidgets();
+}
+
+function fmtDate(ds){const[y,m,d]=ds.split('-');return d+'.'+m+'.'+y}
+function addDays(dateStr,n){
+  const[y,m,d]=dateStr.split('-').map(Number);
+  const dt=new Date(y,m-1,d+n);
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
+
+function renderChains(){
+  const chs=getCh();
+  const el=document.getElementById('chain-list');if(!el)return;
+  if(!chs.length){el.innerHTML='<div class="empty"><div class="empty-icon">⛓️</div>Henüz zincir eklemediniz</div>';return}
+  const today=todayStr();
+  const TR_SHORT=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+
+  el.innerHTML=chs.map((ch,ci)=>{
+    const color=ch.color||'#237F52';
+    const endDate=addDays(ch.start,ch.count-1);
+    const doneSet=new Set(ch.done);
+    const completedCount=ch.done.length;
+    const pct=Math.min(100,Math.round(completedCount/ch.count*100));
+
+    // İlerleme çubuğu
+    const barHtml=`<div style="height:4px;background:var(--border);border-radius:2px;margin:10px 0 14px">
+      <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width .3s"></div>
+    </div>`;
+
+    // Izgara: her gün bir kare
+    let gridHtml='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px">';
+    for(let k=0;k<ch.count;k++){
+      const ds=addDays(ch.start,k);
+      const done=doneSet.has(k);
+      const isToday=ds===today;
+      const d=new Date(ds+'T00:00:00');
+      const dayNum=d.getDate();
+      const dayName=TR_SHORT[d.getDay()];
+      const isFuture=ds>today;
+      gridHtml+=`<div onclick="toggleChLink(${ci},${k})"
+        title="${ds} · ${dayName}"
+        style="
+          aspect-ratio:1;
+          border-radius:50%;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          cursor:pointer;
+          font-size:11px;font-family:'DM Sans',sans-serif;
+          border:1.5px solid ${done?color:'var(--border)'};
+          background:${done?color:'transparent'};
+          color:${done?'#fff':isToday?color:'var(--muted)'};
+          opacity:${isFuture?.5:1};
+          font-weight:${isToday?'600':'400'};
+          ${isToday&&!done?'box-shadow:0 0 0 2px '+color+';':''}
+          transition:all .15s;
+        ">
+        <span style="font-size:14px;line-height:1">${dayNum}</span>
+        <span style="font-size:10px;opacity:.7;margin-top:2px">${dayName}</span>
+      </div>`;
+    }
+    gridHtml+='</div>';
+
+    return `<div class="ch-card">
+      <div class="ch-header">
+        <div>
+          <div class="ch-name">${esc(ch.name)}</div>
+          <div class="ch-meta">${fmtDate(ch.start)} → ${fmtDate(endDate)} · ${ch.count} gün · ${completedCount} tamamlandı · %${pct}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="del-btn" style="font-size:13px;color:var(--accent);opacity:.7" onclick="editCh(${ci})">✎</button>
+          <button class="del-btn" onclick="delCh(${ci})">×</button>
+        </div>
+      </div>
+      ${barHtml}
+      ${gridHtml}
+    </div>`;
+  }).join('');
+}
+
+let calNoteColor='#3a7bd5';
+let calNoteEditIdx=-1;
+
+function setCalNoteColor(c){
+  calNoteColor=c;
+  document.querySelectorAll('#cal-color-picker [data-color]').forEach(el=>{
+    el.style.border=el.getAttribute('data-color')===c?'2px solid var(--text)':'2px solid transparent';
+  });
+}
+
+function getCalNotes(){try{return JSON.parse(localStorage.getItem('gn_notes')||'{}')}catch(x){return{}}}
+function setCalNotes(o){localStorage.setItem('gn_notes',JSON.stringify(o));window.saveToFirestore&&window.saveToFirestore();}
+
+function saveCalNote(){
+  const val=document.getElementById('note-ta').value.trim();if(!val)return;
+  const notes=getCalNotes();
+  if(!Array.isArray(notes[calSel]))notes[calSel]=[];
+  const entry={text:val,color:calNoteColor};
+  if(calNoteEditIdx>=0){notes[calSel][calNoteEditIdx]=entry;}
+  else{notes[calSel].push(entry);}
+  setCalNotes(notes);
+  calNoteEditIdx=-1;
+  document.getElementById('note-ta').value='';
+  document.getElementById('cal-note-lbl').textContent='Yeni not ekle';
+  calNoteColor='#3a7bd5';setCalNoteColor('#3a7bd5');
+  renderCal();
+  const msg=document.getElementById('note-saved');msg.style.opacity='1';setTimeout(()=>msg.style.opacity='0',1800);
+}
+function cancelCalNote(){
+  calNoteEditIdx=-1;
+  document.getElementById('note-ta').value='';
+  document.getElementById('cal-note-lbl').textContent='Yeni not ekle';
+  calNoteColor='#3a7bd5';setCalNoteColor('#3a7bd5');
+}
+function editCalNote(i){
+  const notes=getCalNotes();const nts=notes[calSel]||[];
+  const n=nts[i];
+  const nt=typeof n==='object'?n.text:n;
+  const nc=typeof n==='object'?n.color:'#3a7bd5';
+  calNoteEditIdx=i;
+  document.getElementById('note-ta').value=nt||'';
+  document.getElementById('cal-note-lbl').textContent='Notu düzenle';
+  calNoteColor=nc;setCalNoteColor(nc);
+  document.getElementById('note-ta').focus();
+}
+function delCalNote(i){
+  const notes=getCalNotes();const nts=notes[calSel]||[];
+  nts.splice(i,1);
+  if(nts.length===0)delete notes[calSel];else notes[calSel]=nts;
+  setCalNotes(notes);renderCal();renderCalSide(calSel);
+}
+
+// INIT
+(function(){
+  
+  set('f-date',todayStr());
+  initHome();tickClock();setInterval(tickClock,100);
+  const _sb=document.getElementById('sidebar');
+  const _hw=document.getElementById('home-bg');
+  if(_sb&&_hw)_hw.style.left=_sb.classList.contains('collapsed')?'58px':'220px';
+  swRender();swRenderLog();
+  if(swElapsed>0){const f=swFmt(swElapsed);const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;const btn=document.getElementById('sw-btn');if(btn)btn.textContent='Devam Et';}
+  updateBadges();renderAll();
+})();
+</script>
+
+
+<!-- JS -->
+<script src="js/common.js"></script>
+<script src="js/home.js"></script>
+<script src="js/films.js"></script>
+<script src="js/books.js"></script>
+<script src="js/goals.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/clock.js"></script>
+<script src="js/chain.js"></script>
+</body>
+</html>
