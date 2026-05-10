@@ -17,7 +17,7 @@ fbScript.textContent = `
   import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
   import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
-  const app = initializeApp(${JSON.stringify(FIREBASE_CONFIG)});
+  const app = initializeApp({"apiKey":"AIzaSyAgdKifZBSTjf-IS76NpmR40BuDPQ1BXNA","authDomain":"veritoplama-919919.firebaseapp.com","projectId":"veritoplama-919919","storageBucket":"veritoplama-919919.firebasestorage.app","messagingSenderId":"586804494080","appId":"1:586804494080:web:57e869a02c5a26b55e3de5"});
   const auth = getAuth(app);
   const fsdb = getFirestore(app);
   const provider = new GoogleAuthProvider();
