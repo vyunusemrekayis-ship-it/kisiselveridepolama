@@ -267,7 +267,16 @@ function mobileNav(id,title){
 
 // RENDER
 
-function renderAll(){renderFilms();renderBooks();renderGoals();renderWatchlist();renderReadlist();renderChains();renderHomeWidgets();}
+function renderAll(){
+  // Sadece aktif sayfayı render et
+  if(_currentPage==='films'){renderFilms();renderWatchlist();}
+  else if(_currentPage==='books'){renderBooks();renderReadlist();}
+  else if(_currentPage==='goals'){renderGoals();}
+  else if(_currentPage==='chain'){renderChains();}
+  else if(_currentPage==='home'){renderHomeWidgets();}
+  else if(_currentPage==='calendar'){if(typeof renderCal==='function')renderCal();}
+  // Badge'leri her zaman güncelle
+}
 
 const OMDB_KEY='97eb66bc';
 const posterCache={};
