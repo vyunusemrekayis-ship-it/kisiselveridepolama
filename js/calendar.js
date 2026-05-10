@@ -230,18 +230,7 @@ function delCalNote(i){
   setCalNotes(notes);renderCal();renderCalSide(calSel);
 }
 
-// INIT
-(function(){
-  
-  set('f-date',todayStr());
-  initHome();tickClock();setInterval(tickClock,100);
-  const _sb=document.getElementById('sidebar');
-  const _hw=document.getElementById('home-bg');
-  if(_sb&&_hw)_hw.style.left=_sb.classList.contains('collapsed')?'58px':'220px';
-  swRender();swRenderLog();
-  if(swElapsed>0){const f=swFmt(swElapsed);const sv=document.getElementById('sw-saved');if(sv)sv.textContent='Kaydedildi: '+f.main;const btn=document.getElementById('sw-btn');if(btn)btn.textContent='Devam Et';}
-  updateBadges();renderAll();
-})();
+
 
 function setCalNoteColor(c){
   calNoteColor=c;
