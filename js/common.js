@@ -309,7 +309,7 @@ function fmtDate(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]
 // ── PAGE LOADER ─────────────────────────────────────────────────────
 const _pageCache = {};
 const _pageInits = {
-  home: () => { initHome(); },
+  home: () => { initHome(); renderHomeWidgets(); },
   calendar: () => { renderCal(); },
   clock: () => {},
   films: () => { renderFilms(); renderWatchlist(); },
@@ -329,7 +329,7 @@ const _pageCss = {
 let _currentPage = null;
 
 async function loadPage(pageId) {
-  if (_currentPage === pageId) return;
+  const isSamePage = _currentPage === pageId;
   _currentPage = pageId;
 
   // Sidebar active güncelle
@@ -340,7 +340,9 @@ async function loadPage(pageId) {
   const container = document.getElementById('page-container');
   if (!container) return;
 
-  if (_pageCache[pageId]) {
+  if (isSamePage && _pageCache[pageId]) {
+    // Aynı sayfa - HTML'i yeniden yükleme, sadece init çağır
+  } else if (_pageCache[pageId]) {
     container.innerHTML = _pageCache[pageId];
   } else {
     try {
