@@ -17,10 +17,13 @@ function parseStartDate(val){
 function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
 
 function weekLabel(key){
-  const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);
+  const raw=new Date(key+'T00:00:00');
+  const ws=getWeekStart(raw);  // periodKey Pazartesi olmayabilir, normalize et
+  const we=new Date(ws);we.setDate(ws.getDate()+6);
   const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()];
   const cur=getWeekStart(new Date()).toISOString().split('T')[0];
-  return (key===cur?'Bu Hafta · ':'')+fmt(ws)+' – '+fmt(we)+' '+ws.getFullYear();
+  const wsKey=ws.toISOString().split('T')[0];
+  return (wsKey===cur?'Bu Hafta · ':'')+fmt(ws)+' – '+fmt(we)+' '+ws.getFullYear();
 }
 
 function monthLabel(key){
@@ -39,7 +42,12 @@ function renderGoals(){
     const el=document.getElementById('gl-'+p);
     if(!items.length){el.innerHTML=`<div class="empty" style="padding:28px 0"><div class="empty-icon">🎯</div>Bu dönem için hedef yok</div>`;return}
     const groups={};
-    items.forEach(({g,i})=>{const key=g.periodKey||g.created||todayStr();if(!groups[key])groups[key]=[];groups[key].push({g,i});});
+    items.forEach(({g,i})=>{
+      let key=g.periodKey||g.created||todayStr();
+      // Haftalık hedeflerde key'i Pazartesi'ye normalize et
+      if(p==='weekly'){const d=new Date(key+'T00:00:00');key=getWeekStart(d).toISOString().split('T')[0];}
+      if(!groups[key])groups[key]=[];groups[key].push({g,i});
+    });
     const now=new Date();
     let curKey=p==='weekly'?getWeekStart(now).toISOString().split('T')[0]:p==='monthly'?now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'):String(now.getFullYear());
     let html='';
