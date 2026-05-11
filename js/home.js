@@ -70,15 +70,10 @@ function renderHomeWidgets(){
   // Goals - dinamik zaman filtresi
   const gb=document.getElementById('hw-goals-body');
   if(gb){
-    const now=new Date();
-    const curWeekKey=getWeekStart(now).toISOString().split('T')[0];
-    const curMonthKey=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-    const curYearKey=String(now.getFullYear());
     const goals=(db.g||[]).filter(g=>{
       if(g.period!==hwGoalPeriod)return false;
-      if(hwGoalPeriod==='weekly')return g.periodKey===curWeekKey;
-      if(hwGoalPeriod==='monthly')return g.periodKey===curMonthKey;
-      if(hwGoalPeriod==='yearly')return g.periodKey===curYearKey||!g.periodKey;
+      // isGoalActive goals.js'den geliyor
+      if(typeof isGoalActive==='function') return isGoalActive(g);
       return true;
     });
     const label=hwGoalPeriod==='weekly'?'Haftalık':hwGoalPeriod==='monthly'?'Aylık':'Yıllık';
