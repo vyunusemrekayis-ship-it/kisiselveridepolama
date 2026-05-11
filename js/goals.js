@@ -44,7 +44,10 @@ function renderGoals(){
     if(!items.length){el.innerHTML=`<div class="empty" style="padding:28px 0"><div class="empty-icon">🎯</div>Bu dönem için hedef yok</div>`;return}
     const groups={};
     items.forEach(({g,i})=>{
-      const key=g.periodKey||g.created||todayStr();
+      let key=g.periodKey||g.created||todayStr();
+      // Aylık/yıllık için eski tam tarih formatını normalize et
+      if(p==='monthly'&&key.length===10) key=key.substring(0,7);
+      if(p==='yearly'&&key.length>=7) key=key.substring(0,4);
       if(!groups[key])groups[key]=[];groups[key].push({g,i});
     });
     const now=new Date();
@@ -134,7 +137,9 @@ function addGoal(){
     if(startDateVal){
       const sd=parseStartDate(startDateVal);
       if(sd&&!isNaN(sd)){
-        db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+        if(period==='weekly') db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+        else if(period==='monthly') db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0');
+        else db.g[editingGoal].periodKey=String(sd.getFullYear());
       }
     }
     // startDateVal boşsa periodKey değişmez, mevcut değer korunur
@@ -144,11 +149,16 @@ function addGoal(){
     if(startDateVal){
       const sd=parseStartDate(startDateVal);
       if(sd&&!isNaN(sd)){
-        pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+        if(period==='weekly') pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
+        else if(period==='monthly') pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0');
+        else pk=String(sd.getFullYear());
       }
     }
     if(!pk){
-      pk=todayStr(); // başlangıç tarihi belirtilmemişse bugün
+      const n=new Date();
+      if(period==='weekly') pk=todayStr();
+      else if(period==='monthly') pk=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+      else pk=String(n.getFullYear());
     }
     db.g.unshift({name,period,periodKey:pk,target,unit,track,current:0,done:false,created:todayStr()});
   }
