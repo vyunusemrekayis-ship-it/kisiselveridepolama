@@ -1,5 +1,19 @@
 // GOALS.JS
 
+function parseStartDate(val){
+  if(!val)return null;
+  val=val.trim();
+  // DD.MM.YYYY formatı
+  if(/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(val)){
+    const[d,m,y]=val.split('.');
+    return new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+  }
+  // YYYY-MM-DD formatı
+  if(/^\d{4}-\d{2}-\d{2}$/.test(val)){
+    return new Date(val+'T00:00:00');
+  }
+  return null;
+}
 function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
 
 function weekLabel(key){
@@ -111,17 +125,22 @@ function addGoal(){
   if(editingGoal>=0){
     db.g[editingGoal].name=name;db.g[editingGoal].target=target;db.g[editingGoal].unit=unit;db.g[editingGoal].track=track;db.g[editingGoal].period=period;
     if(startDateVal){
-      const sd=new Date(startDateVal+'T00:00:00');
-      db.g[editingGoal].periodKey=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
+      const sd=parseStartDate(startDateVal);
+      if(sd&&!isNaN(sd)){
+        db.g[editingGoal].periodKey=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
+      }
     }
     // startDateVal boşsa periodKey değişmez, mevcut değer korunur
     editingGoal=-1;document.getElementById('gf-save-btn').textContent='Kaydet';
   }else{
     let pk;
     if(startDateVal){
-      const sd=new Date(startDateVal+'T00:00:00');
-      pk=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
-    }else{
+      const sd=parseStartDate(startDateVal);
+      if(sd&&!isNaN(sd)){
+        pk=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
+      }
+    }
+    if(!pk){
       const n=new Date();
       pk=period==='weekly'?getWeekStart(n).toISOString().split('T')[0]:period==='monthly'?n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'):String(n.getFullYear());
     }
