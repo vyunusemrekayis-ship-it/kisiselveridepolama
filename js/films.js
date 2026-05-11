@@ -13,6 +13,7 @@ async function fetchPoster(name){
 
 
 function renderFilms(){
+  const fc=document.getElementById('film-counter');if(fc)fc.textContent=db.f.length;
   const sorted=db.f.map((f,i)=>({f,i})).sort((a,b)=>{
     const da=a.f.date||'';const db2=b.f.date||'';
     if(da&&db2)return db2.localeCompare(da);

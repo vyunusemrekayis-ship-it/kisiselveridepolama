@@ -1,6 +1,7 @@
 // BOOKS.JS
 
 function renderBooks(){
+  const bc=document.getElementById('book-counter');if(bc)bc.textContent=db.b.length;
   const sorted=db.b.map((b,i)=>({b,i})).sort((a,b)=>{
     const da=a.b.end||a.b.start||'';const db2=b.b.end||b.b.start||'';
     if(da&&db2)return db2.localeCompare(da);
