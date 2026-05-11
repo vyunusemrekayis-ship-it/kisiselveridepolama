@@ -28,12 +28,38 @@ function weekLabel(key){
 }
 
 function monthLabel(key){
-  const[y,m]=key.split('-');const n=new Date();
-  const isCur=parseInt(y)===n.getFullYear()&&parseInt(m)-1===n.getMonth();
-  return (isCur?'Bu Ay · ':'')+TR_M[parseInt(m)-1]+' '+y;
+  const n=new Date();
+  let start,end,isCur;
+  if(key.length===10){
+    // Tam tarih formatı YYYY-MM-DD
+    start=new Date(key+'T00:00:00');
+    end=new Date(start);end.setMonth(end.getMonth()+1);end.setDate(end.getDate()-1);
+    isCur=n.getFullYear()===start.getFullYear()&&n.getMonth()===start.getMonth();
+  } else {
+    const[y,m]=key.split('-');
+    start=new Date(parseInt(y),parseInt(m)-1,1);
+    end=new Date(parseInt(y),parseInt(m),0);
+    isCur=parseInt(y)===n.getFullYear()&&parseInt(m)-1===n.getMonth();
+  }
+  const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()]+' '+d.getFullYear();
+  return (isCur?'Bu Ay · ':'')+fmt(start)+' – '+fmt(end);
 }
 
-function yearLabel(key){const n=new Date();return(key===String(n.getFullYear())?'Bu Yıl · ':'')+key;}
+function yearLabel(key){
+  const n=new Date();
+  const isCur=key===String(n.getFullYear());
+  // key YYYY-MM-DD formatındaysa tam tarih göster, YYYY ise yıl başı/sonu
+  let start,end;
+  if(key.length===10){
+    start=new Date(key+'T00:00:00');
+    end=new Date(start);end.setFullYear(end.getFullYear()+1);end.setDate(end.getDate()-1);
+  } else {
+    start=new Date(key+'-01-01T00:00:00');
+    end=new Date(key+'-12-31T00:00:00');
+  }
+  const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()]+' '+d.getFullYear();
+  return (isCur?'Bu Yıl · ':'')+fmt(start)+' – '+fmt(end);
+}
 
 
 function renderGoals(){
