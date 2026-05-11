@@ -5,7 +5,7 @@
     <div class="form-panel" id="gf" style="display:none">
       <div class="fg c2"><div><label>Hedef *</label><input id="g-name" placeholder="Örn: 45 saat ders çalış"></div><div><label>Dönem</label><select id="g-period"><option value="weekly">Haftalık</option><option value="monthly">Aylık</option><option value="yearly">Yıllık</option></select></div></div>
       <div class="fg c2"><div><label>Hedef Değer</label><input type="number" id="g-target" min="1" placeholder="Örn: 45"></div><div><label>Birim (isteğe bağlı)</label><input id="g-unit" placeholder="Örn: saat, kitap, km..."></div></div>
-      <div class="fg c2"><div><label>Otomatik Takip</label><select id="g-track"><option value="">Manuel</option><option value="book">📚 Kitap sayısı</option><option value="film">🎬 Film sayısı</option></select></div><div><label>Başlangıç Tarihi <span style="font-size:10px;color:var(--muted)">(boş = bu dönem)</span></label><input type="date" id="g-startdate"></div></div>
+      <div class="fg c2"><div><label>Otomatik Takip</label><select id="g-track"><option value="">Manuel</option><option value="book">📚 Kitap sayısı</option><option value="film">🎬 Film sayısı</option></select></div><div><label>Başlangıç Tarihi <span style="font-size:10px;color:var(--muted)">(boş = değiştirme)</span></label><input type="date" id="g-startdate"></div></div>
       <div class="form-actions"><button class="btn-cancel" onclick="cancelGoalForm()">İptal</button><button class="btn-save" id="gf-save-btn" onclick="addGoal()">Kaydet</button></div>
     </div>
     <div class="goal-tabs">
