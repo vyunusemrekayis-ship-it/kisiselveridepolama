@@ -1,4 +1,4 @@
-// GOALS.JS
+// v2// GOALS.JS
 
 function parseStartDate(val){
   if(!val)return null;
