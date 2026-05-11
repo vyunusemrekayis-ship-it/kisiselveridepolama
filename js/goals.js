@@ -31,24 +31,20 @@ function monthLabel(key){
   const n=new Date();
   let start,end,isCur;
   if(key.length===10){
-    // Tam tarih formatı YYYY-MM-DD
     start=new Date(key+'T00:00:00');
     end=new Date(start);end.setMonth(end.getMonth()+1);end.setDate(end.getDate()-1);
-    isCur=n.getFullYear()===start.getFullYear()&&n.getMonth()===start.getMonth();
   } else {
     const[y,m]=key.split('-');
     start=new Date(parseInt(y),parseInt(m)-1,1);
     end=new Date(parseInt(y),parseInt(m),0);
-    isCur=parseInt(y)===n.getFullYear()&&parseInt(m)-1===n.getMonth();
   }
+  const today=new Date(todayStr()+'T00:00:00');
+  isCur=today>=start&&today<=end;
   const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()]+' '+d.getFullYear();
   return (isCur?'Bu Ay · ':'')+fmt(start)+' – '+fmt(end);
 }
 
 function yearLabel(key){
-  const n=new Date();
-  const isCur=key===String(n.getFullYear());
-  // key YYYY-MM-DD formatındaysa tam tarih göster, YYYY ise yıl başı/sonu
   let start,end;
   if(key.length===10){
     start=new Date(key+'T00:00:00');
@@ -57,6 +53,8 @@ function yearLabel(key){
     start=new Date(key+'-01-01T00:00:00');
     end=new Date(key+'-12-31T00:00:00');
   }
+  const today=new Date(todayStr()+'T00:00:00');
+  const isCur=today>=start&&today<=end;
   const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()]+' '+d.getFullYear();
   return (isCur?'Bu Yıl · ':'')+fmt(start)+' – '+fmt(end);
 }
@@ -80,7 +78,13 @@ function renderGoals(){
     let curKey=p==='weekly'?todayStr():p==='monthly'?now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'):String(now.getFullYear());
     let html='';
     Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(key=>{
-      const isCur=key===curKey||(p==='weekly'&&(()=>{const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);const td=new Date(todayStr()+'T00:00:00');return td>=ws&&td<=we;})());
+      const isCur=(()=>{
+        const td=new Date(todayStr()+'T00:00:00');
+        if(p==='weekly'){const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);return td>=ws&&td<=we;}
+        if(p==='monthly'){let s,e;if(key.length===10){s=new Date(key+'T00:00:00');e=new Date(s);e.setMonth(e.getMonth()+1);e.setDate(e.getDate()-1);}else{const[y,m]=key.split('-');s=new Date(parseInt(y),parseInt(m)-1,1);e=new Date(parseInt(y),parseInt(m),0);}return td>=s&&td<=e;}
+        if(p==='yearly'){let s,e;if(key.length===10){s=new Date(key+'T00:00:00');e=new Date(s);e.setFullYear(e.getFullYear()+1);e.setDate(e.getDate()-1);}else{s=new Date(key+'-01-01T00:00:00');e=new Date(key+'-12-31T00:00:00');}return td>=s&&td<=e;}
+        return false;
+      })();
       const tagCls=p==='weekly'?'ptw':p==='monthly'?'ptm':'pty';
       const lbl=p==='weekly'?weekLabel(key):p==='monthly'?monthLabel(key):yearLabel(key);
       if(isCur){
@@ -171,9 +175,7 @@ function addGoal(){
     if(startDateVal){
       const sd=parseStartDate(startDateVal);
       if(sd&&!isNaN(sd)){
-        if(period==='weekly') db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
-        else if(period==='monthly') db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0');
-        else db.g[editingGoal].periodKey=String(sd.getFullYear());
+        db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
       }
     }
     // startDateVal boşsa periodKey değişmez, mevcut değer korunur
@@ -183,16 +185,12 @@ function addGoal(){
     if(startDateVal){
       const sd=parseStartDate(startDateVal);
       if(sd&&!isNaN(sd)){
-        if(period==='weekly') pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
-        else if(period==='monthly') pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0');
-        else pk=String(sd.getFullYear());
+        pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
       }
     }
     if(!pk){
       const n=new Date();
-      if(period==='weekly') pk=todayStr();
-      else if(period==='monthly') pk=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
-      else pk=String(n.getFullYear());
+      pk=todayStr(); // haftalık, aylık, yıllık hepsi tam tarihle başlasın
     }
     db.g.unshift({name,period,periodKey:pk,target,unit,track,current:0,done:false,created:todayStr()});
   }
