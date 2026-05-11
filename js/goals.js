@@ -100,7 +100,7 @@ function _goalCard(g,i,totalBooks){
 // EDIT
 let editingFilm=-1,editingBook=-1,editingGoal=-1;
 
-function editGoal(i){const g=db.g[i];set('g-name',g.name);set('g-period',g.period);set('g-target',g.target||g.booktarget||'');set('g-unit',g.unit||'');set('g-track',g.track||'');set('g-startdate',g.periodKey||'');editingGoal=i;document.getElementById('gf-save-btn').textContent='Güncelle';document.getElementById('gf').style.display='block';document.getElementById('gf').scrollIntoView({behavior:'smooth',block:'start'});}
+function editGoal(i){const g=db.g[i];set('g-name',g.name);set('g-period',g.period);set('g-target',g.target||g.booktarget||'');set('g-unit',g.unit||'');set('g-track',g.track||'');set('g-startdate','');editingGoal=i;document.getElementById('gf-save-btn').textContent='Güncelle';document.getElementById('gf').style.display='block';document.getElementById('gf').scrollIntoView({behavior:'smooth',block:'start'});}
 
 // ADD / SAVE
 
@@ -109,11 +109,12 @@ function addGoal(){
   const target=parseFloat(v('g-target'))||0;const unit=v('g-unit').trim();const period=v('g-period');const track=v('g-track')||'';
   const startDateVal=v('g-startdate');
   if(editingGoal>=0){
-    db.g[editingGoal].name=name;db.g[editingGoal].target=target;db.g[editingGoal].unit=unit;db.g[editingGoal].track=track;
+    db.g[editingGoal].name=name;db.g[editingGoal].target=target;db.g[editingGoal].unit=unit;db.g[editingGoal].track=track;db.g[editingGoal].period=period;
     if(startDateVal){
       const sd=new Date(startDateVal+'T00:00:00');
       db.g[editingGoal].periodKey=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
     }
+    // startDateVal boşsa periodKey değişmez, mevcut değer korunur
     editingGoal=-1;document.getElementById('gf-save-btn').textContent='Kaydet';
   }else{
     let pk;
