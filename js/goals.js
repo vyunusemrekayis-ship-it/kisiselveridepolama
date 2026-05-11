@@ -17,13 +17,14 @@ function parseStartDate(val){
 function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
 
 function weekLabel(key){
-  const raw=new Date(key+'T00:00:00');
-  const ws=getWeekStart(raw);  // periodKey Pazartesi olmayabilir, normalize et
+  const ws=new Date(key+'T00:00:00');
   const we=new Date(ws);we.setDate(ws.getDate()+6);
   const fmt=d=>d.getDate()+' '+TR_M[d.getMonth()];
-  const cur=getWeekStart(new Date()).toISOString().split('T')[0];
-  const wsKey=ws.toISOString().split('T')[0];
-  return (wsKey===cur?'Bu Hafta · ':'')+fmt(ws)+' – '+fmt(we)+' '+ws.getFullYear();
+  const curKey=todayStr();
+  // Bu haftaya ait mi? key <= bugün <= key+6
+  const today=new Date(curKey+'T00:00:00');
+  const isCur=today>=ws&&today<=we;
+  return (isCur?'Bu Hafta · ':'')+fmt(ws)+' – '+fmt(we)+' '+ws.getFullYear();
 }
 
 function monthLabel(key){
@@ -43,13 +44,11 @@ function renderGoals(){
     if(!items.length){el.innerHTML=`<div class="empty" style="padding:28px 0"><div class="empty-icon">🎯</div>Bu dönem için hedef yok</div>`;return}
     const groups={};
     items.forEach(({g,i})=>{
-      let key=g.periodKey||g.created||todayStr();
-      // Haftalık hedeflerde key'i Pazartesi'ye normalize et
-      if(p==='weekly'){const d=new Date(key+'T00:00:00');key=getWeekStart(d).toISOString().split('T')[0];}
+      const key=g.periodKey||g.created||todayStr();
       if(!groups[key])groups[key]=[];groups[key].push({g,i});
     });
     const now=new Date();
-    let curKey=p==='weekly'?getWeekStart(now).toISOString().split('T')[0]:p==='monthly'?now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'):String(now.getFullYear());
+    let curKey=p==='weekly'?todayStr():p==='monthly'?now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'):String(now.getFullYear());
     let html='';
     Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(key=>{
       const isCur=key===curKey;
@@ -135,7 +134,7 @@ function addGoal(){
     if(startDateVal){
       const sd=parseStartDate(startDateVal);
       if(sd&&!isNaN(sd)){
-        db.g[editingGoal].periodKey=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
+        db.g[editingGoal].periodKey=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
       }
     }
     // startDateVal boşsa periodKey değişmez, mevcut değer korunur
@@ -145,12 +144,11 @@ function addGoal(){
     if(startDateVal){
       const sd=parseStartDate(startDateVal);
       if(sd&&!isNaN(sd)){
-        pk=period==='weekly'?getWeekStart(sd).toISOString().split('T')[0]:period==='monthly'?sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0'):String(sd.getFullYear());
+        pk=sd.getFullYear()+'-'+String(sd.getMonth()+1).padStart(2,'0')+'-'+String(sd.getDate()).padStart(2,'0');
       }
     }
     if(!pk){
-      const n=new Date();
-      pk=period==='weekly'?getWeekStart(n).toISOString().split('T')[0]:period==='monthly'?n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'):String(n.getFullYear());
+      pk=todayStr(); // başlangıç tarihi belirtilmemişse bugün
     }
     db.g.unshift({name,period,periodKey:pk,target,unit,track,current:0,done:false,created:todayStr()});
   }
