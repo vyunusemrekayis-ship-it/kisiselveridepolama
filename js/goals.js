@@ -54,7 +54,7 @@ function renderGoals(){
     let curKey=p==='weekly'?todayStr():p==='monthly'?now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0'):String(now.getFullYear());
     let html='';
     Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(key=>{
-      const isCur=key===curKey;
+      const isCur=key===curKey||(p==='weekly'&&(()=>{const ws=new Date(key+'T00:00:00');const we=new Date(ws);we.setDate(ws.getDate()+6);const td=new Date(todayStr()+'T00:00:00');return td>=ws&&td<=we;})());
       const tagCls=p==='weekly'?'ptw':p==='monthly'?'ptm':'pty';
       const lbl=p==='weekly'?weekLabel(key):p==='monthly'?monthLabel(key):yearLabel(key);
       if(isCur){
@@ -121,6 +121,14 @@ function _goalCard(g,i,totalBooks){
   </div></div>`;
 }
 
+
+function openGoalForm(){
+  // Aktif sekmeye göre dönem seç
+  const period = window._activeGoalTab || 'weekly';
+  const sel = document.getElementById('g-period');
+  if(sel) sel.value = period;
+  toggleForm('gf');
+}
 // EDIT
 let editingFilm=-1,editingBook=-1,editingGoal=-1;
 
