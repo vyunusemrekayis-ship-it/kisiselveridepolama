@@ -1,2 +1,3 @@
   --book-l:#3d7a5a;--book-bg:rgba(61,122,90,.08);
 .ptm{background:rgba(61,122,90,.1);color:var(--book-l)}
+.card{background:var(--surface);border:1.5px solid var(--border2);border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
