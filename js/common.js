@@ -249,7 +249,7 @@ function mobileNav(id,title){
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
     const sec=document.getElementById('section-'+id);
     if(sec)sec.classList.add('active');
-    if(id==='calendar')renderCal();
+    if(id==='calendar'&&typeof renderCal==='function')renderCal();
     if(id==='chain')setTimeout(renderChains,0);
     if(id==='films')switchFilmTab('watched',document.getElementById('ftab-watched'));
     if(id==='books')switchBookTab('read',document.getElementById('btab-read'));
@@ -310,12 +310,13 @@ function fmtDate(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]
 const _pageCache = {};
 const _pageInits = {
   home: () => { initHome(); renderHomeWidgets(); },
-  calendar: () => { renderCal(); },
+  calendar: () => { if(typeof renderCal==='function') renderCal(); },
   clock: () => {},
   films: () => { renderFilms(); renderWatchlist(); },
   books: () => { renderBooks(); renderReadlist(); },
   goals: () => { renderGoals(); },
   chain: () => { renderChains(); },
+  weather: () => { if(typeof window._weatherInit==='function') window._weatherInit(); },
 };
 const _pageCss = {
   home: ['css/home.css'],
@@ -325,6 +326,7 @@ const _pageCss = {
   calendar: ['css/calendar.css'],
   clock: ['css/clock.css'],
   chain: ['css/chain.css'],
+  weather: ['css/calendar.css'],
 };
 let _currentPage = null;
 
