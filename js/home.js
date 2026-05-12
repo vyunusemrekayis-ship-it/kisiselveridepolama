@@ -1,3 +1,7 @@
+// Yardımcı - calendar.js yüklenmeden önce ihtiyaç duyulan fonksiyonlar
+function getTodos(){try{return JSON.parse(localStorage.getItem('gn_todos')||'{}')}catch(x){return{}}}
+function getCh(){try{return JSON.parse(localStorage.getItem('gn_chains')||'[]')}catch(x){return[]}}
+
 // HOME.JS
 
 function initHome(){
@@ -72,9 +76,16 @@ function renderHomeWidgets(){
   if(gb){
     const goals=(db.g||[]).filter(g=>{
       if(g.period!==hwGoalPeriod)return false;
-      // isGoalActive goals.js'den geliyor
       if(typeof isGoalActive==='function') return isGoalActive(g);
-      return true;
+      // Fallback: bugün periodKey'den 7/30/365 gün içinde mi?
+      const pk = g.periodKey||todayStr();
+      const start = new Date(pk+'T00:00:00');
+      const end = new Date(start);
+      if(g.period==='weekly') end.setDate(end.getDate()+6);
+      else if(g.period==='monthly'){end.setMonth(end.getMonth()+1);end.setDate(end.getDate()-1);}
+      else{end.setFullYear(end.getFullYear()+1);end.setDate(end.getDate()-1);}
+      const td = new Date(todayStr()+'T00:00:00');
+      return td>=start&&td<=end;
     });
     const label=hwGoalPeriod==='weekly'?'Haftalık':hwGoalPeriod==='monthly'?'Aylık':'Yıllık';
     if(!goals.length) gb.innerHTML=`<div class="hw-empty">${label} hedef yok</div>`;
