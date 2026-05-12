@@ -132,7 +132,7 @@ function renderCal(){
     if(isR) dots.push({c:CAL_COLORS.r, big:true});
     if(isI) dots.push({c:CAL_COLORS.i, big:true});
     nts.forEach(n => { const nc=typeof n==='object'?n.color:'#3a7bd5'; dots.push({c:nc,big:false}); });
-    if(hasTodo) dots.push({c: allDone?'#237F52':'#FBD100', big:false});
+    // To-do için nokta gösterme
 
     if(dots.length){
       const dr = document.createElement('div');
