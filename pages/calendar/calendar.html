@@ -1,63 +1,99 @@
-<div class="cal-wrap">
-      <div>
-        <div class="cal-header">
-          <button class="cal-nav" onclick="calMove(-1)">‹</button>
-          <div class="cal-month" id="cal-month"></div>
-          <button class="cal-nav" onclick="calMove(1)">›</button>
-        </div>
-        <div class="cal-grid">
-          <div class="cal-wds"><div class="cal-wd">Pzt</div><div class="cal-wd">Sal</div><div class="cal-wd">Çar</div><div class="cal-wd">Per</div><div class="cal-wd">Cum</div><div class="cal-wd">Cmt</div><div class="cal-wd">Paz</div></div>
-          <div class="cal-days" id="cal-days"></div>
-        </div>
-        <div class="cal-legend" style="margin-top:10px">
-          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#e53935"></div>Resmi Tatil</div>
-          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#8e44ad"></div>Dini Bayram</div>
-          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#1565c0"></div>Uluslararası</div>
-          <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent)"></div>Kişisel/Not</div>
-        </div>
+<!-- Arama Butonu -->
+<div class="section-header">
+  <div class="section-title">Takvim</div>
+  <button class="add-btn" onclick="toggleCalSearch()">🔍 Ara</button>
+</div>
+
+<!-- Arama Paneli -->
+<div id="cal-search-panel" style="display:none;margin-bottom:16px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px">
+  <input id="cal-search-input" placeholder="Not, görev veya özel gün ara..." oninput="calSearch()"
+    style="width:100%;padding:9px 12px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+  <div id="cal-search-results" style="margin-top:10px"></div>
+</div>
+
+<!-- Ana Takvim -->
+<div id="cal-grid-wrap" class="cal-wrap">
+  <!-- Sol: Takvim Izgara -->
+  <div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calMove(-1)">‹</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="cal-month" id="cal-month"></div>
+        <button onclick="calGoToday()" style="font-size:11px;padding:3px 9px;border-radius:7px;border:0.5px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif">Bugün</button>
       </div>
-      <div>
-        <div class="sp-title" style="margin-bottom:8px">Bu Aydaki Önemli Günler</div>
-        <div id="sp-list"></div>
+      <button class="cal-nav" onclick="calMove(1)">›</button>
+    </div>
+
+    <div class="cal-grid">
+      <div class="cal-wds">
+        <div class="cal-wd">Pzt</div><div class="cal-wd">Sal</div><div class="cal-wd">Çar</div>
+        <div class="cal-wd">Per</div><div class="cal-wd">Cum</div>
+        <div class="cal-wd" style="color:#e07070">Cmt</div>
+        <div class="cal-wd" style="color:#e07070">Paz</div>
+      </div>
+      <div class="cal-days" id="cal-days"></div>
+    </div>
+
+    <!-- Renk açıklaması -->
+    <div class="cal-legend" style="margin-top:12px">
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#e53935"></div>Resmi Tatil</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#8e44ad"></div>Dini Bayram</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#1565c0"></div>Uluslararası</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--accent)"></div>Not/Görev</div>
+    </div>
+  </div>
+
+  <!-- Sağ: Bu Aydaki Özel Günler -->
+  <div>
+    <div class="sp-title" style="margin-bottom:8px">Bu Aydaki Özel Günler</div>
+    <div id="sp-list"></div>
+  </div>
+</div>
+
+<!-- Seçilen Gün Paneli -->
+<div id="cal-day-panel" style="display:none;margin-top:20px;border-top:0.5px solid var(--border);padding-top:20px">
+  <div class="cal-side-title" id="cal-sel-lbl"></div>
+
+  <!-- Olaylar -->
+  <div class="cal-items" id="cal-items" style="margin-bottom:16px"></div>
+
+  <!-- Yapılacaklar + Not -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <!-- Yapılacaklar -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="note-label">Yapılacaklar</div>
+        <span id="todo-counter" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+      <div id="todo-list" style="display:grid;gap:5px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <input id="todo-input" placeholder="Görev ekle..." onkeydown="if(event.key==='Enter')todoEnter()"
+          style="flex:1;padding:7px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
+        <button id="todo-add-btn" onclick="addTodo()"
+          style="padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
       </div>
     </div>
 
-    <!-- Seçilen gün paneli (altta) -->
-    <div id="cal-day-panel" style="display:none;margin-top:20px;border-top:0.5px solid var(--border);padding-top:20px">
-      <div class="cal-side-title" id="cal-sel-lbl"></div>
-      <div class="cal-items" id="cal-items" style="margin-bottom:16px"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <div class="note-label">Yapılacaklar</div>
-            <span id="todo-counter" style="font-size:11px;color:var(--muted)"></span>
-          </div>
-          <div id="todo-list" style="display:grid;gap:5px;margin-bottom:8px"></div>
-          <div style="display:flex;gap:6px">
-            <input id="todo-input" placeholder="Görev ekle..." onkeydown="if(event.key==='Enter')todoEnter()"
-              style="flex:1;padding:7px 10px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none">
-            <button id="todo-add-btn" onclick="addTodo()" style="padding:7px 14px;border-radius:8px;border:none;background:var(--accent);color:#1a1a00;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer">Ekle</button>
-          </div>
+    <!-- Not -->
+    <div>
+      <div class="note-label" id="cal-note-lbl" style="margin-bottom:8px">Not ekle</div>
+      <textarea class="note-ta" id="note-ta" placeholder="Not yaz..." style="min-height:80px;width:100%;box-sizing:border-box"></textarea>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap">
+        <!-- Renk seçici -->
+        <div style="display:flex;gap:4px" id="cal-color-picker">
+          <div onclick="setCalNoteColor('#3a7bd5')" data-color="#3a7bd5" style="width:16px;height:16px;border-radius:50%;background:#3a7bd5;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="setCalNoteColor('#237F52')" data-color="#237F52" style="width:16px;height:16px;border-radius:50%;background:#237F52;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="setCalNoteColor('#c0392b')" data-color="#c0392b" style="width:16px;height:16px;border-radius:50%;background:#c0392b;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="setCalNoteColor('#FBD100')" data-color="#FBD100" style="width:16px;height:16px;border-radius:50%;background:#FBD100;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="setCalNoteColor('#7b5ea7')" data-color="#7b5ea7" style="width:16px;height:16px;border-radius:50%;background:#7b5ea7;cursor:pointer;border:2px solid transparent"></div>
+          <div onclick="setCalNoteColor('#e8a888')" data-color="#e8a888" style="width:16px;height:16px;border-radius:50%;background:#e8a888;cursor:pointer;border:2px solid transparent"></div>
         </div>
-        <div>
-          <div class="note-label" id="cal-note-lbl" style="margin-bottom:8px">Not ekle</div>
-          <textarea class="note-ta" id="note-ta" placeholder="Not yaz..." style="min-height:70px"></textarea>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap">
-            <div style="display:flex;gap:4px" id="cal-color-picker">
-              <div onclick="setCalNoteColor('#3a7bd5')" style="width:16px;height:16px;border-radius:50%;background:#3a7bd5;cursor:pointer;border:2px solid transparent" data-color="#3a7bd5"></div>
-              <div onclick="setCalNoteColor('#237F52')" style="width:16px;height:16px;border-radius:50%;background:#237F52;cursor:pointer;border:2px solid transparent" data-color="#237F52"></div>
-              <div onclick="setCalNoteColor('#c0392b')" style="width:16px;height:16px;border-radius:50%;background:#c0392b;cursor:pointer;border:2px solid transparent" data-color="#c0392b"></div>
-              <div onclick="setCalNoteColor('#FBD100')" style="width:16px;height:16px;border-radius:50%;background:#FBD100;cursor:pointer;border:2px solid transparent" data-color="#FBD100"></div>
-              <div onclick="setCalNoteColor('#7b5ea7')" style="width:16px;height:16px;border-radius:50%;background:#7b5ea7;cursor:pointer;border:2px solid transparent" data-color="#7b5ea7"></div>
-              <div onclick="setCalNoteColor('#e8a888')" style="width:16px;height:16px;border-radius:50%;background:#e8a888;cursor:pointer;border:2px solid transparent" data-color="#e8a888"></div>
-              <input type="color" id="cal-note-custom-color" onchange="setCalNoteColor(this.value)" title="Özel renk" style="width:16px;height:16px;border:none;padding:0;border-radius:50%;cursor:pointer;background:transparent">
-            </div>
-            <div style="margin-left:auto;display:flex;gap:6px">
-              <button class="note-clear" onclick="cancelCalNote()">İptal</button>
-              <button class="note-save" onclick="saveCalNote()">Kaydet</button>
-            </div>
-          </div>
-          <div class="note-saved" id="note-saved">✓ Kaydedildi</div>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="note-clear" onclick="cancelCalNote()">İptal</button>
+          <button class="note-save" onclick="saveCalNote()">Kaydet</button>
         </div>
       </div>
+      <div class="note-saved" id="note-saved" style="opacity:0;transition:opacity .3s;font-size:11px;color:#237F52;margin-top:5px">✓ Kaydedildi</div>
     </div>
+  </div>
+</div>
