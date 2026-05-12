@@ -2,6 +2,7 @@
 .sidebar.collapsed~#main-content .home-wrap,.sidebar.collapsed~* .home-wrap{left:58px}
 .hw-widget{position:absolute;background:rgba(0,0,0,.45);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:12px;padding:8px 10px;width:170px;max-height:160px;overflow:hidden;border:1px solid rgba(255,255,255,.1)}
 .hw-tl{top:20px;left:20px}
+#hw-todos{width:220px;max-height:220px}
 .hw-tr{top:20px;right:20px}
 .hw-bl{bottom:32px;left:20px}
 .hw-br{bottom:32px;right:20px}
