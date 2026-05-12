@@ -27,8 +27,7 @@
       </div>
       <div class="cal-days" id="cal-days"></div>
     </div>
-    <div class="cal-legend" style="margin-top:10px">
-      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#e53935"></div>Resmi Tatil</div>
+Resmi Tatil</div>
       <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#8e44ad"></div>Dini Bayram</div>
       <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#1565c0"></div>Uluslararası</div>
       <div class="cal-leg-item"><div class="cal-leg-dot" style="background:#3a7bd5"></div>Not</div>
@@ -91,10 +90,13 @@
   <div style="margin-top:16px;border-top:0.5px solid var(--border);padding-top:14px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div class="note-label">Fotoğraf &amp; Video</div>
-      <label style="padding:5px 12px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">
-        + Ekle
-        <input type="file" accept="image/*,video/*" multiple onchange="addCalMedia(event)" style="display:none">
-      </label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="media-edit-btn" onclick="toggleMediaEdit()" style="padding:5px 12px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Düzenle</button>
+        <label style="padding:5px 12px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">
+          + Ekle
+          <input type="file" accept="image/*,video/*" multiple onchange="addCalMedia(event)" style="display:none">
+        </label>
+      </div>
     </div>
     <div id="cal-media-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
   </div>
