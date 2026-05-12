@@ -161,7 +161,6 @@ function renderCal(){
     grid.appendChild(c);
   }
 
-  renderSpList();
   if(calSel) renderCalSide(calSel);
 }
 
