@@ -168,6 +168,7 @@ function renderCal(){
 // ── GÜN SEÇİMİ ──────────────────────────────────────────────────
 
 function selectCalDay(ds){
+  calMediaEditMode = false;
   calSel = ds;
   calNoteEditIdx = -1;
   const ta = document.getElementById('note-ta');
@@ -561,9 +562,9 @@ function renderCalMedia(ds){
     <div style="position:relative;display:inline-block">
       ${m.type==='video'
         ? `<video src="${m.data}" style="width:120px;height:90px;border-radius:8px;object-fit:cover;border:0.5px solid var(--border)" controls></video>`
-        : `<img src="${m.data}" style="width:120px;height:90px;border-radius:8px;object-fit:cover;border:0.5px solid var(--border)" onclick="openMediaFull('${ds}',${i})" style="cursor:pointer">`
+        : `<img src="${m.data}" style="width:120px;height:90px;border-radius:8px;object-fit:cover;border:0.5px solid var(--border);cursor:pointer" onclick="if(!calMediaEditMode)openMediaFull('${ds}',${i})">`
       }
-      <button onclick="delCalMedia(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+      ${calMediaEditMode ? `<button onclick="delCalMedia(${i})" style="position:absolute;top:3px;right:3px;background:rgba(192,57,43,.85);border:none;color:#fff;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-weight:bold">×</button>` : ''}
     </div>`).join('');
 }
 
@@ -576,4 +577,19 @@ function openMediaFull(ds, i){
   overlay.onclick = () => overlay.remove();
   overlay.innerHTML = `<img src="${m.data}" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain">`;
   document.body.appendChild(overlay);
+}
+
+// ── MEDYA DÜZENLEME MODU ────────────────────────────────────────────
+let calMediaEditMode = false;
+
+function toggleMediaEdit(){
+  calMediaEditMode = !calMediaEditMode;
+  const btn = document.getElementById('media-edit-btn');
+  if(btn){
+    btn.textContent = calMediaEditMode ? 'Bitti' : 'Düzenle';
+    btn.style.background = calMediaEditMode ? 'rgba(192,57,43,.15)' : '';
+    btn.style.color = calMediaEditMode ? '#c0392b' : '';
+    btn.style.borderColor = calMediaEditMode ? '#c0392b' : '';
+  }
+  renderCalMedia(calSel);
 }
