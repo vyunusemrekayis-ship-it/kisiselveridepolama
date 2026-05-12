@@ -103,6 +103,7 @@ function renderWeather(d){
 
   // Hero arka plan gradient + animasyon
   const hero = document.getElementById('weather-hero');
+  if(!hero){ console.error('weather-hero bulunamadı'); return; }
   hero.style.background = `linear-gradient(135deg, ${info.grad[0]}, ${info.grad[1]})`;
   renderWeatherBgAnim(c.weather_code, c.is_day);
 
@@ -240,7 +241,7 @@ function hideWeatherLoading(){ document.getElementById('weather-loading').style.
 function showWeatherError(msg){
   document.getElementById('weather-error').textContent='⚠️ '+msg;
   document.getElementById('weather-error').style.display='block';
-  document.getElementById('weather-welcome').style.display='none';
+  const ww=document.getElementById('weather-welcome'); if(ww) ww.style.display='none';
   hideWeatherLoading();
 }
 
