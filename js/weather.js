@@ -38,6 +38,7 @@ function windDir(deg){
   return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
 }
 function uvLabel(v){
+  v=Math.round(v);
   if(v<=2) return v+' Düşük'; if(v<=5) return v+' Orta';
   if(v<=7) return v+' Yüksek'; if(v<=10) return v+' Çok Y.';
   return v+' Aşırı';
@@ -117,7 +118,7 @@ function renderWeather(d){
   // Hero istatistikler
   heroStat('hs-humidity', '💧', c.relative_humidity_2m+'%', 'Nem');
   heroStat('hs-wind', '💨', Math.round(c.wind_speed_10m)+' km/s '+windDir(c.wind_direction_10m), 'Rüzgar');
-  heroStat('hs-uv', '☀️', uvLabel(daily.uv_index_max[0]), 'UV');
+  heroStat('hs-uv', '☀️', uvLabel(Math.round(daily.uv_index_max[0])), 'UV');
   heroStat('hs-precip', '🌧️', c.precipitation+' mm', 'Yağış');
 
   document.getElementById('hs-sunrise').textContent = fmtTime(daily.sunrise[0]);
@@ -128,54 +129,43 @@ function renderWeather(d){
   const now = new Date();
   document.getElementById('weather-updated').textContent = `Güncellendi: ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
 
-  // Saatlik
+  // Saatlik - gelişmiş tasarım
   const hourlyEl = document.getElementById('weather-hourly');
   let hHtml = '';
   let shown = 0;
   const nowTs = Date.now();
+  // Sıcaklık aralığı için min/max bul (gösterilecek saatler)
+  const hTemps = [];
+  for(let i=0; i<hourly.time.length; i++){
+    const ht = new Date(hourly.time[i]);
+    if(ht.getTime() >= nowTs - 1800000 && hTemps.length < 24) hTemps.push(hourly.temperature_2m[i]);
+  }
+  const hMin = Math.min(...hTemps), hMax = Math.max(...hTemps), hRange = hMax-hMin||1;
+  
   for(let i=0; i<hourly.time.length && shown<24; i++){
     const ht = new Date(hourly.time[i]);
     if(ht.getTime() < nowTs - 1800000) continue;
     const hi = wcInfo(hourly.weather_code[i], hourly.is_day[i]);
     const isCur = shown === 0;
-    hHtml += `<div class="hourly-item${isCur?' now':''}">
+    const barH = Math.round(((hourly.temperature_2m[i]-hMin)/hRange)*28)+4;
+    const rainPct = hourly.precipitation_probability[i];
+    hHtml += `<div class="hourly-item${isCur?' now':''}" style="animation:fadeInUp .3s ease ${shown*.03}s both">
       <div class="h-time">${ht.getHours().toString().padStart(2,'0')}:00</div>
       <div class="h-icon">${hi.e}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:36px;margin:3px 0">
+        <div style="width:4px;border-radius:2px;background:${isCur?'rgba(0,0,0,.25)':'var(--accent)'};opacity:.7;height:${barH}px;transition:height .3s"></div>
+      </div>
       <div class="h-temp">${Math.round(hourly.temperature_2m[i])}°</div>
-      <div class="h-rain">${hourly.precipitation_probability[i]}%</div>
+      ${rainPct>20?`<div class="h-rain" style="color:${isCur?'rgba(0,0,0,.5)':'#4facfe'}">💧${rainPct}%</div>`:'<div class="h-rain"></div>'}
     </div>`;
     shown++;
   }
   hourlyEl.innerHTML = hHtml;
 
-  // 7 Günlük
-  const dailyEl = document.getElementById('weather-daily');
-  const TR_DAYS = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
-  const tMin = Math.min(...daily.temperature_2m_min);
-  const tMax = Math.max(...daily.temperature_2m_max);
-  const range = tMax - tMin || 1;
-  let dHtml = '';
-  for(let i=0; i<daily.time.length; i++){
-    const dt = new Date(daily.time[i]+'T12:00:00');
-    const di = wcInfo(daily.weather_code[i]);
-    const isToday = i===0;
-    const barLeft = ((daily.temperature_2m_min[i]-tMin)/range*100).toFixed(0);
-    const barWidth = ((daily.temperature_2m_max[i]-daily.temperature_2m_min[i])/range*100).toFixed(0);
-    dHtml += `<div class="daily-row${isToday?' today':''}">
-      <div style="width:40px;font-size:12px;color:var(--muted);font-weight:${isToday?600:400}">${isToday?'Bugün':TR_DAYS[dt.getDay()]}</div>
-      <div style="font-size:22px;width:30px">${di.e}</div>
-      <div style="flex:1;font-size:12px;color:var(--muted)">${di.t}</div>
-      <div style="font-size:11px;color:var(--muted);width:40px;text-align:right">☔${daily.precipitation_sum[i]}mm</div>
-      <div style="width:100px;display:flex;align-items:center;gap:6px;margin:0 8px">
-        <span style="font-size:12px;color:var(--muted);width:24px;text-align:right">${Math.round(daily.temperature_2m_min[i])}°</span>
-        <div style="flex:1;height:5px;border-radius:3px;background:var(--surface2);position:relative">
-          <div style="position:absolute;top:0;left:${barLeft}%;width:${barWidth}%;height:100%;border-radius:3px;background:linear-gradient(to right,#4facfe,#f7971e)"></div>
-        </div>
-        <span style="font-size:12px;font-weight:600;color:var(--text);width:24px">${Math.round(daily.temperature_2m_max[i])}°</span>
-      </div>
-    </div>`;
-  }
-  dailyEl.innerHTML = dHtml;
+  // 7 Günlük - tıklanabilir + detay paneli
+  window._weatherDaily = daily;
+  window._weatherHourly = hourly;
+  renderDailyList(0);
 
   document.getElementById('weather-welcome').style.display = 'none';
   document.getElementById('weather-main-card').style.display = 'block';
@@ -250,3 +240,108 @@ window._weatherInit = function(){
   if(saved){ try{ const o=JSON.parse(saved); weatherLat=o.lat; weatherLon=o.lon; weatherCityName=o.name;
     document.getElementById('weather-city-input').value=o.name; fetchWeatherData(); }catch(e){} }
 };
+
+// ── 7 GÜNLÜK LİST + DETAY ───────────────────────────────────────────
+const TR_DAYS = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+const TR_DAYS_FULL = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+
+function renderDailyList(selectedIdx){
+  const daily = window._weatherDaily;
+  if(!daily) return;
+  const dailyEl = document.getElementById('weather-daily');
+  if(!dailyEl) return;
+
+  const tMin = Math.min(...daily.temperature_2m_min);
+  const tMax = Math.max(...daily.temperature_2m_max);
+  const range = tMax - tMin || 1;
+
+  let html = '';
+  for(let i=0; i<daily.time.length; i++){
+    const dt = new Date(daily.time[i]+'T12:00:00');
+    const di = wcInfo(daily.weather_code[i]);
+    const isToday = i===0;
+    const isSel = i===selectedIdx;
+    const barLeft = ((daily.temperature_2m_min[i]-tMin)/range*100).toFixed(0);
+    const barWidth = ((daily.temperature_2m_max[i]-daily.temperature_2m_min[i])/range*100).toFixed(0);
+
+    html += `<div class="daily-row${isToday?' today':''}${isSel?' selected':''}" 
+      onclick="selectDailyDay(${i})"
+      style="cursor:pointer;border-radius:12px;padding:11px 10px;transition:background .15s;${isSel?'background:var(--surface2);border:0.5px solid var(--border)':''};animation:fadeInUp .3s ease ${i*.04}s both">
+      <div style="width:44px;font-size:12px;color:var(--muted);font-weight:${isToday||isSel?600:400}">${isToday?'Bugün':TR_DAYS[dt.getDay()]}</div>
+      <div style="font-size:24px;width:32px">${di.e}</div>
+      <div style="flex:1;font-size:12px;color:var(--muted);min-width:80px">${di.t}</div>
+      <div style="font-size:11px;color:#4facfe;width:48px;text-align:right">${daily.precipitation_sum[i]>0?'💧'+daily.precipitation_sum[i]+'mm':''}</div>
+      <div style="width:120px;display:flex;align-items:center;gap:5px;margin-left:8px">
+        <span style="font-size:12px;color:var(--muted);width:26px;text-align:right">${Math.round(daily.temperature_2m_min[i])}°</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:var(--surface2);position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;left:${barLeft}%;width:${barWidth}%;height:100%;border-radius:3px;background:linear-gradient(to right,#4facfe,#f7971e);transition:width .4s ease"></div>
+        </div>
+        <span style="font-size:13px;font-weight:600;color:var(--text);width:26px">${Math.round(daily.temperature_2m_max[i])}°</span>
+      </div>
+      <div style="width:16px;color:var(--muted);text-align:center;font-size:11px;margin-left:4px">${isSel?'▲':'▾'}</div>
+    </div>`;
+
+    // Seçili günün detay paneli
+    if(isSel){
+      html += renderDayDetail(i);
+    }
+  }
+  dailyEl.innerHTML = html;
+}
+
+function renderDayDetail(i){
+  const daily = window._weatherDaily;
+  const hourly = window._weatherHourly;
+  const dt = new Date(daily.time[i]+'T12:00:00');
+  const dayName = i===0 ? 'Bugün' : TR_DAYS_FULL[dt.getDay()]+', '+dt.getDate()+' '+['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][dt.getMonth()];
+
+  // O güne ait saatlik verileri bul
+  const dayStr = daily.time[i];
+  let hHtml = '';
+  if(hourly){
+    let shown = 0;
+    for(let j=0; j<hourly.time.length && shown<24; j++){
+      if(!hourly.time[j].startsWith(dayStr)) continue;
+      const ht = new Date(hourly.time[j]);
+      const hi = wcInfo(hourly.weather_code[j], hourly.is_day[j]);
+      const rainPct = hourly.precipitation_probability[j];
+      hHtml += `<div style="flex-shrink:0;text-align:center;padding:8px 7px;border-radius:10px;background:var(--surface2);min-width:48px">
+        <div style="font-size:10px;color:var(--muted)">${ht.getHours().toString().padStart(2,'0')}:00</div>
+        <div style="font-size:18px;margin:3px 0">${hi.e}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">${Math.round(hourly.temperature_2m[j])}°</div>
+        ${rainPct>20?`<div style="font-size:10px;color:#4facfe">💧${rainPct}%</div>`:''}
+      </div>`;
+      shown++;
+    }
+  }
+
+  return `<div style="margin:4px 0 8px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;animation:fadeInUp .25s ease both">
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">${dayName}</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
+      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">En Yüksek</div>
+        <div style="font-size:16px;font-weight:700;color:#f7971e">${Math.round(daily.temperature_2m_max[i])}°</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">En Düşük</div>
+        <div style="font-size:16px;font-weight:700;color:#4facfe">${Math.round(daily.temperature_2m_min[i])}°</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">UV</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${uvLabel(daily.uv_index_max[i])}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Rüzgar</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${Math.round(daily.wind_speed_10m_max[i])} km/s</div>
+      </div>
+    </div>
+    ${hHtml?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Saatlik</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">${hHtml}</div>`:''}
+  </div>`;
+}
+
+function selectDailyDay(i){
+  const current = window._selectedDailyDay;
+  window._selectedDailyDay = (current===i) ? -1 : i;
+  renderDailyList(window._selectedDailyDay);
+}
