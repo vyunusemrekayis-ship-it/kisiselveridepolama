@@ -181,6 +181,7 @@ function selectCalDay(ds){
   renderCal();
   renderCalSide(ds);
   renderTodos(ds);
+  renderCalMedia(ds);
 }
 
 // ── GÜN DETAY PANELİ ────────────────────────────────────────────
@@ -500,4 +501,79 @@ function setCalNoteColor(c){
   document.querySelectorAll('#cal-color-picker [data-color]').forEach(el=>{
     el.style.border = el.getAttribute('data-color')===c ? '2px solid var(--text)' : '2px solid transparent';
   });
+}
+
+// ── MEDYA ────────────────────────────────────────────────────────────
+
+function getCalMedia(){ try{ return JSON.parse(localStorage.getItem('gn_media')||'{}') }catch(e){ return {} } }
+function setCalMedia(o){ localStorage.setItem('gn_media',JSON.stringify(o)); window.saveToFirestore&&window.saveToFirestore(); }
+
+function addCalMedia(event){
+  const files = Array.from(event.target.files);
+  if(!files.length || !calSel) return;
+
+  const media = getCalMedia();
+  if(!media[calSel]) media[calSel] = [];
+
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      media[calSel].push({
+        type: file.type.startsWith('video') ? 'video' : 'image',
+        data: e.target.result,
+        name: file.name
+      });
+      loaded++;
+      if(loaded === files.length){
+        setCalMedia(media);
+        renderCalMedia(calSel);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Input'u sıfırla
+  event.target.value = '';
+}
+
+function delCalMedia(i){
+  const media = getCalMedia();
+  if(!media[calSel]) return;
+  media[calSel].splice(i,1);
+  if(!media[calSel].length) delete media[calSel];
+  setCalMedia(media);
+  renderCalMedia(calSel);
+}
+
+function renderCalMedia(ds){
+  const el = document.getElementById('cal-media-list');
+  if(!el) return;
+  const media = getCalMedia();
+  const list = media[ds] || [];
+
+  if(!list.length){
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted)">Henüz medya yok.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map((m,i) => `
+    <div style="position:relative;display:inline-block">
+      ${m.type==='video'
+        ? `<video src="${m.data}" style="width:120px;height:90px;border-radius:8px;object-fit:cover;border:0.5px solid var(--border)" controls></video>`
+        : `<img src="${m.data}" style="width:120px;height:90px;border-radius:8px;object-fit:cover;border:0.5px solid var(--border)" onclick="openMediaFull('${ds}',${i})" style="cursor:pointer">`
+      }
+      <button onclick="delCalMedia(${i})" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+    </div>`).join('');
+}
+
+function openMediaFull(ds, i){
+  const media = getCalMedia();
+  const m = (media[ds]||[])[i];
+  if(!m) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.onclick = () => overlay.remove();
+  overlay.innerHTML = `<img src="${m.data}" style="max-width:90vw;max-height:90vh;border-radius:12px;object-fit:contain">`;
+  document.body.appendChild(overlay);
 }
