@@ -35,7 +35,12 @@ function wcInfo(code, isDay=1){
 }
 
 function windDir(deg){
-  return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
+  const dirs = ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'];
+  return dirs[Math.round(deg/22.5)%16];
+}
+function windArrow(deg){
+  // Rüzgar yönü oku - rüzgar nereden esiyor
+  return '↓↙←↖↑↗→↘'[Math.round(deg/45)%8];
 }
 function uvLabel(v){
   if(v<=2) return v.toFixed(1)+' Düşük'; if(v<=5) return v.toFixed(1)+' Orta';
@@ -121,7 +126,7 @@ function renderWeather(d){
 
   // Hero istatistikler
   heroStat('hs-humidity', '💧', c.relative_humidity_2m+'%', 'Bağıl Nem');
-  heroStat('hs-wind', '💨', c.wind_speed_10m.toFixed(1)+' km/s '+windDir(c.wind_direction_10m), 'Rüzgar');
+  heroStat('hs-wind', '💨', c.wind_speed_10m.toFixed(1)+' km/s', 'Rüzgar · '+windArrow(c.wind_direction_10m)+' '+windDir(c.wind_direction_10m));
   heroStat('hs-uv', '☀️', daily.uv_index_max[0].toFixed(1)+' — '+uvCat(daily.uv_index_max[0]), 'UV');
   heroStat('hs-precip', '🌧️', c.precipitation.toFixed(1)+' mm', 'Yağış');
 
