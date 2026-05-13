@@ -12,10 +12,10 @@ function weatherSVG(code, isDay, size=32){
   // Gece kontrolü - açık veya az bulutlu gecelerde ay göster
   if(!isDay && code<=1){
     return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.62} ${s*.18} A${s*.28} ${s*.28} 0 1 1 ${s*.32} ${s*.68} A${s*.22} ${s*.22} 0 0 0 ${s*.62} ${s*.18}Z" fill="url(#moon${s})" style="filter:drop-shadow(0 1px 4px rgba(180,200,255,.5))"/>
+      <path d="M${s*.62} ${s*.18} A${s*.28} ${s*.28} 0 1 1 ${s*.32} ${s*.68} A${s*.22} ${s*.22} 0 0 0 ${s*.62} ${s*.18}Z" fill="url(#moon${s})" style="filter:drop-shadow(0 2px 8px rgba(255,200,80,.6))"/>
       <circle cx="${s*.72}" cy="${s*.22}" r="${s*.04}" fill="rgba(255,255,255,.5)"/>
       <circle cx="${s*.6}" cy="${s*.12}" r="${s*.025}" fill="rgba(255,255,255,.4)"/>
-      <defs><radialGradient id="moon${s}" cx="40%" cy="30%" r="60%"><stop offset="0%" stop-color="#e8f0ff"/><stop offset="100%" stop-color="#b0c4de"/></radialGradient></defs>
+      <defs><radialGradient id="moon${s}" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#fffde0"/><stop offset="40%" stop-color="#ffd97a"/><stop offset="100%" stop-color="#c8a84b"/></radialGradient></defs>
     </svg>`;
   }
   // Gece kapalı bulutlu (code 3) - karanlık bulut
@@ -32,9 +32,9 @@ function weatherSVG(code, isDay, size=32){
   // Gece parçalı bulutlu (code 2) - ay + bulut
   if(!isDay && code===2){
     return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.55} ${s*.15} A${s*.2} ${s*.2} 0 1 1 ${s*.3} ${s*.55} A${s*.18} ${s*.18} 0 0 0 ${s*.55} ${s*.15}Z" fill="#b0c4de" opacity=".9"/>
+      <path d="M${s*.55} ${s*.15} A${s*.2} ${s*.2} 0 1 1 ${s*.3} ${s*.55} A${s*.18} ${s*.18} 0 0 0 ${s*.55} ${s*.15}Z" fill="url(#moonSmall)" opacity=".95"/>
       <path d="M${s*.18} ${s*.72} Q${s*.18} ${s*.5} ${s*.36} ${s*.48} Q${s*.38} ${s*.36} ${s*.54} ${s*.38} Q${s*.68} ${s*.28} ${s*.76} ${s*.42} Q${s*.88} ${s*.42} ${s*.86} ${s*.56} Q${s*.88} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#ncloud${s})" style="animation:cloudDrift 4s ease-in-out infinite"/>
-      <defs><linearGradient id="ncloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c8d8e8"/><stop offset="100%" stop-color="#8898a8"/></linearGradient></defs>
+      <defs><linearGradient id="ncloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c8d8e8"/><stop offset="100%" stop-color="#8898a8"/></linearGradient><radialGradient id="moonSmall" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#fffde0"/><stop offset="40%" stop-color="#ffd97a"/><stop offset="100%" stop-color="#c8a84b"/></radialGradient></defs>
     </svg>`;
   }
   
