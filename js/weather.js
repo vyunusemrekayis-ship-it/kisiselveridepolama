@@ -255,13 +255,12 @@ function renderWeather(d){
 
   document.getElementById('hs-sunrise').textContent = fmtTime(daily.sunrise[0]);
   document.getElementById('hs-sunset').textContent = fmtTime(daily.sunset[0]);
-  // Basınç kartı
+  // Basınç - sadece değeri güncelle
   const pressEl = document.getElementById('hs-pressure');
-  if(pressEl) pressEl.innerHTML = `<div class="ws-val">${c.surface_pressure.toFixed(1)} hPa</div><div class="ws-lbl">Basınç</div>`;
-  // Görünürlük kartı
+  if(pressEl) pressEl.textContent = c.surface_pressure.toFixed(1)+' hPa';
+  // Görünürlük - sadece değeri güncelle
   const visEl = document.getElementById('hs-visibility');
-  const visVal = c.visibility>=1000 ? (c.visibility/1000).toFixed(1)+' km' : c.visibility+' m';
-  if(visEl) visEl.innerHTML = `<div class="ws-val">${visVal}</div><div class="ws-lbl">Görünürlük</div>`;
+  if(visEl) visEl.textContent = c.visibility>=1000 ? (c.visibility/1000).toFixed(1)+' km' : c.visibility+' m';
 
   const now = new Date();
   document.getElementById('weather-updated').textContent = `Güncellendi: ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
