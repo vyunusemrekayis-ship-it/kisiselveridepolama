@@ -70,7 +70,31 @@
           <div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);width:60px;height:60px;background:radial-gradient(circle,rgba(255,220,50,.4) 0%,transparent 70%);animation:sunRay 2.5s ease-in-out infinite"></div>
           <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,180,0,.5),transparent)"></div>
         </div>
-        <div class="w-sun-icon" style="font-size:32px">🌅</div>
+        <div class="w-sun-icon" style="margin-bottom:6px"><svg width="52" height="40" viewBox="0 0 52 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 6px rgba(255,180,0,.5))">
+  <!-- Güneş ışınları -->
+  <g style="animation:sunRay 2.5s ease-in-out infinite;transform-origin:26px 26px">
+    <line x1="26" y1="4" x2="26" y2="10" stroke="rgba(255,220,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="42" y1="10" x2="37.7" y2="14.2" stroke="rgba(255,220,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="10" y1="10" x2="14.3" y2="14.2" stroke="rgba(255,220,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="48" y1="26" x2="42" y2="26" stroke="rgba(255,220,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="4" y1="26" x2="10" y2="26" stroke="rgba(255,220,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Güneş -->
+  <circle cx="26" cy="26" r="10" fill="url(#sunGrad)" style="animation:sunRay 2.5s ease-in-out infinite;transform-origin:26px 26px"/>
+  <!-- Ufuk çizgisi -->
+  <line x1="4" y1="34" x2="48" y2="34" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Yükselen çizgiler (ışık huzmeleri) -->
+  <line x1="26" y1="34" x2="26" y2="38" stroke="rgba(255,200,50,.6)" stroke-width="1" stroke-linecap="round" stroke-dasharray="1 2"/>
+  <line x1="19" y1="34" x2="16" y2="38" stroke="rgba(255,200,50,.4)" stroke-width="1" stroke-linecap="round" stroke-dasharray="1 2"/>
+  <line x1="33" y1="34" x2="36" y2="38" stroke="rgba(255,200,50,.4)" stroke-width="1" stroke-linecap="round" stroke-dasharray="1 2"/>
+  <defs>
+    <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff7a0"/>
+      <stop offset="50%" stop-color="#ffd200"/>
+      <stop offset="100%" stop-color="#f7971e"/>
+    </radialGradient>
+  </defs>
+</svg></div>
         <div class="w-sun-val" id="hs-sunrise"></div>
         <div class="w-sun-lbl">Gündoğumu</div>
       </div>
@@ -79,7 +103,34 @@
           <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:50px;height:50px;background:radial-gradient(circle,rgba(255,100,50,.4) 0%,transparent 70%);animation:sunRay 3s ease-in-out .5s infinite"></div>
           <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,80,0,.5),transparent)"></div>
         </div>
-        <div class="w-sun-icon" style="font-size:32px">🌇</div>
+        <div class="w-sun-icon" style="margin-bottom:6px"><svg width="52" height="40" viewBox="0 0 52 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 6px rgba(255,80,0,.5))">
+  <!-- Güneş ışınları azalan -->
+  <g style="animation:sunRay 3s ease-in-out .5s infinite;transform-origin:26px 30px;opacity:.7">
+    <line x1="26" y1="10" x2="26" y2="16" stroke="rgba(255,140,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="42" y1="14" x2="37.7" y2="18" stroke="rgba(255,140,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="10" y1="14" x2="14.3" y2="18" stroke="rgba(255,140,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="47" y1="30" x2="41" y2="30" stroke="rgba(255,140,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="5" y1="30" x2="11" y2="30" stroke="rgba(255,140,50,.9)" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- Güneş yarısı -->
+  <path d="M16 34 A10 10 0 0 1 36 34" fill="url(#sunsetGrad)"/>
+  <!-- Ufuk çizgisi -->
+  <line x1="4" y1="34" x2="48" y2="34" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Gökyüzü renk katmanları -->
+  <rect x="4" y="34" width="44" height="4" rx="1" fill="url(#skyGrad)" opacity=".4"/>
+  <defs>
+    <radialGradient id="sunsetGrad" cx="50%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#fff0a0"/>
+      <stop offset="40%" stop-color="#ff8c00"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </radialGradient>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="50%" stop-color="rgba(255,100,50,.6)"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </linearGradient>
+  </defs>
+</svg></div>
         <div class="w-sun-val" id="hs-sunset"></div>
         <div class="w-sun-lbl">Günbatımı</div>
       </div>
