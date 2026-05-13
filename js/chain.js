@@ -128,8 +128,3 @@ function renderChains(){
     </div>`;
   }).join('');
 }
-
-let calNoteColor='#3a7bd5';
-let calNoteEditIdx=-1;
-
-
