@@ -65,13 +65,21 @@
 
     <!-- Gündoğumu / Günbatımı / Basınç / Görünürlük -->
     <div style="position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-      <div class="w-sun-card" id="ws-sunrise">
-        <div class="w-sun-icon">🌅</div>
+      <div class="w-sun-card" id="ws-sunrise" style="background:linear-gradient(135deg,rgba(255,140,0,.35),rgba(255,200,50,.2))">
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
+          <div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);width:60px;height:60px;background:radial-gradient(circle,rgba(255,220,50,.4) 0%,transparent 70%);animation:sunRay 2.5s ease-in-out infinite"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,180,0,.5),transparent)"></div>
+        </div>
+        <div class="w-sun-icon" style="font-size:32px">🌅</div>
         <div class="w-sun-val" id="hs-sunrise"></div>
         <div class="w-sun-lbl">Gündoğumu</div>
       </div>
-      <div class="w-sun-card" id="ws-sunset">
-        <div class="w-sun-icon">🌇</div>
+      <div class="w-sun-card" id="ws-sunset" style="background:linear-gradient(135deg,rgba(255,80,0,.35),rgba(180,50,100,.25))">
+        <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:50px;height:50px;background:radial-gradient(circle,rgba(255,100,50,.4) 0%,transparent 70%);animation:sunRay 3s ease-in-out .5s infinite"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(to right,transparent,rgba(255,80,0,.5),transparent)"></div>
+        </div>
+        <div class="w-sun-icon" style="font-size:32px">🌇</div>
         <div class="w-sun-val" id="hs-sunset"></div>
         <div class="w-sun-lbl">Günbatımı</div>
       </div>
@@ -116,20 +124,22 @@
 }
 .w-stat .ws-icon{font-size:18px;margin-bottom:4px}
 .w-stat .ws-val{font-size:16px;font-weight:700;color:#fff;line-height:1.2}
-.w-stat .ws-lbl{font-size:11px;color:rgba(255,255,255,.65);margin-top:3px;font-weight:500}
+.w-stat .ws-lbl{font-size:11px;color:rgba(255,255,255,.95);margin-top:3px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.3)}
 
 .w-sun-card{
-  background:rgba(255,255,255,.1);
-  border:1px solid rgba(255,255,255,.15);
+  background:rgba(0,0,0,.18);
+  border:1px solid rgba(255,255,255,.2);
   border-radius:14px;
-  padding:12px;
+  padding:14px 12px;
   text-align:center;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  position:relative;
+  overflow:hidden;
 }
-.w-sun-icon{font-size:24px;margin-bottom:5px}
-.w-sun-val{font-size:16px;font-weight:700;color:#fff}
-.w-sun-lbl{font-size:11px;color:rgba(255,255,255,.6);margin-top:3px}
+.w-sun-icon{font-size:28px;margin-bottom:6px;position:relative;z-index:1}
+.w-sun-val{font-size:18px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.3);position:relative;z-index:1}
+.w-sun-lbl{font-size:11px;color:rgba(255,255,255,.9);margin-top:4px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.3);position:relative;z-index:1}
 
 .hourly-item{flex-shrink:0;text-align:center;padding:10px 8px;border-radius:12px;min-width:54px;transition:all .15s;cursor:default;border:1px solid transparent}
 .hourly-item.now{background:var(--accent);border-color:var(--accent)}
