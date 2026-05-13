@@ -3,6 +3,115 @@
 let weatherLat = null, weatherLon = null, weatherCityName = '';
 let weatherRefreshTimer = null;
 
+
+// ── HAVA DURUMU SVG İKONLARI ─────────────────────────────────────────
+function weatherSVG(code, isDay, size=32){
+  const s = size;
+  const h = s * 0.9;
+  
+  // Gece kontrolü
+  if(!isDay && (code<=2)){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <path d="M${s*.62} ${s*.18} A${s*.28} ${s*.28} 0 1 1 ${s*.32} ${s*.68} A${s*.22} ${s*.22} 0 0 0 ${s*.62} ${s*.18}Z" fill="url(#moon${s})" style="filter:drop-shadow(0 1px 4px rgba(180,200,255,.5))"/>
+      <circle cx="${s*.72}" cy="${s*.22}" r="${s*.04}" fill="rgba(255,255,255,.5)"/>
+      <circle cx="${s*.6}" cy="${s*.12}" r="${s*.025}" fill="rgba(255,255,255,.4)"/>
+      <defs><radialGradient id="moon${s}" cx="40%" cy="30%" r="60%"><stop offset="0%" stop-color="#e8f0ff"/><stop offset="100%" stop-color="#b0c4de"/></radialGradient></defs>
+    </svg>`;
+  }
+  
+  // Güneş (açık)
+  if(code === 0){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <g style="animation:sunRay ${isDay?'2':'0'}s ease-in-out infinite;transform-origin:${s/2}px ${s/2}px">
+        ${[0,45,90,135,180,225,270,315].map(a=>{
+          const r=s/2, cx=s/2, cy=s/2, r1=s*.38, r2=s*.46;
+          const x1=cx+r1*Math.cos(a*Math.PI/180), y1=cy+r1*Math.sin(a*Math.PI/180);
+          const x2=cx+r2*Math.cos(a*Math.PI/180), y2=cy+r2*Math.sin(a*Math.PI/180);
+          return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,210,0,.9)" stroke-width="${s*.06}" stroke-linecap="round"/>`;
+        }).join('')}
+      </g>
+      <circle cx="${s/2}" cy="${s/2}" r="${s*.28}" fill="url(#sun${s})"/>
+      <defs><radialGradient id="sun${s}" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#fff8a0"/><stop offset="50%" stop-color="#ffd200"/><stop offset="100%" stop-color="#ff9500"/></radialGradient></defs>
+    </svg>`;
+  }
+  
+  // Parçalı bulutlu (1-2)
+  if(code === 1 || code === 2){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <g style="animation:sunRay 2.5s ease-in-out infinite;transform-origin:${s*.35}px ${s*.35}px">
+        <circle cx="${s*.35}" cy="${s*.35}" r="${s*.18}" fill="url(#psun${s})" opacity=".9"/>
+      </g>
+      <path d="M${s*.18} ${s*.72} Q${s*.18} ${s*.48} ${s*.38} ${s*.48} Q${s*.4} ${s*.36} ${s*.56} ${s*.38} Q${s*.7} ${s*.28} ${s*.78} ${s*.42} Q${s*.9} ${s*.42} ${s*.88} ${s*.56} Q${s*.9} ${s*.7} ${s*.78} ${s*.72}Z" fill="url(#cloud${s})" style="animation:cloudDrift 3s ease-in-out infinite"/>
+      <defs>
+        <radialGradient id="psun${s}" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#fff8a0"/><stop offset="100%" stop-color="#ffd200"/></radialGradient>
+        <linearGradient id="cloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f0f8ff"/><stop offset="100%" stop-color="#d0e8f0"/></linearGradient>
+      </defs>
+    </svg>`;
+  }
+  
+  // Kapalı (3)
+  if(code === 3){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <path d="M${s*.08} ${s*.75} Q${s*.08} ${s*.52} ${s*.3} ${s*.5} Q${s*.32} ${s*.35} ${s*.5} ${s*.36} Q${s*.65} ${s*.24} ${s*.74} ${s*.4} Q${s*.88} ${s*.4} ${s*.86} ${s*.56} Q${s*.9} ${s*.74} ${s*.76} ${s*.76}Z" fill="url(#grey1${s})" style="animation:cloudDrift 4s ease-in-out infinite"/>
+      <path d="M${s*.2} ${s*.85} Q${s*.2} ${s*.68} ${s*.36} ${s*.66} Q${s*.38} ${s*.54} ${s*.52} ${s*.55} Q${s*.64} ${s*.46} ${s*.7} ${s*.58} Q${s*.8} ${s*.58} ${s*.78} ${s*.7} Q${s*.8} ${s*.84} ${s*.7} ${s*.86}Z" fill="url(#grey2${s})" style="animation:cloudDrift 4s ease-in-out .5s infinite"/>
+      <defs>
+        <linearGradient id="grey1${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c8d8e8"/><stop offset="100%" stop-color="#98b0c0"/></linearGradient>
+        <linearGradient id="grey2${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#b8c8d8"/><stop offset="100%" stop-color="#88a0b0"/></linearGradient>
+      </defs>
+    </svg>`;
+  }
+  
+  // Sis (45-48)
+  if(code === 45 || code === 48){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      ${[.3,.45,.6,.75].map((y,i)=>`<line x1="${s*.1}" y1="${s*y}" x2="${s*.9}" y2="${s*y}" stroke="rgba(180,190,200,.7)" stroke-width="${s*.04}" stroke-linecap="round" style="animation:windFlow 2s ease-in-out ${i*.2}s infinite"/>`).join('')}
+    </svg>`;
+  }
+  
+  // Yağmur (51-67, 80-82)
+  if((code>=51&&code<=67)||(code>=80&&code<=82)){
+    const heavy = code>=65||code===82;
+    const drops = heavy ? [.25,.42,.58,.75,.33,.67] : [.3,.5,.7];
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <path d="M${s*.12} ${s*.58} Q${s*.12} ${s*.35} ${s*.32} ${s*.33} Q${s*.35} ${s*.18} ${s*.52} ${s*.2} Q${s*.68} ${s*.1} ${s*.76} ${s*.26} Q${s*.9} ${s*.26} ${s*.88} ${s*.42} Q${s*.9} ${s*.58} ${s*.76} ${s*.6}Z" fill="url(#rainCloud${s})"/>
+      ${drops.map((x,i)=>`<line x1="${s*x}" y1="${s*.66}" x2="${s*(x-.04)}" y2="${s*.82}" stroke="url(#rainDrop${s})" stroke-width="${s*.05}" stroke-linecap="round" style="animation:rainDrop ${heavy?.9:1.2}s ease-in ${i*.15}s infinite"/>`).join('')}
+      <defs>
+        <linearGradient id="rainCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#b8d4e8"/><stop offset="100%" stop-color="#7898b0"/></linearGradient>
+        <linearGradient id="rainDrop${s}" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#4facfe"/><stop offset="100%" stop-color="#0066cc"/></linearGradient>
+      </defs>
+    </svg>`;
+  }
+  
+  // Kar (71-77, 85-86)
+  if((code>=71&&code<=77)||(code>=85&&code<=86)){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <path d="M${s*.1} ${s*.5} Q${s*.1} ${s*.28} ${s*.3} ${s*.26} Q${s*.33} ${s*.12} ${s*.5} ${s*.14} Q${s*.66} ${s*.04} ${s*.74} ${s*.2} Q${s*.88} ${s*.2} ${s*.86} ${s*.36} Q${s*.88} ${s*.5} ${s*.74} ${s*.52}Z" fill="url(#snowCloud${s})"/>
+      ${[.25,.42,.58,.75,.33,.67].map((x,i)=>`<text x="${s*x}" y="${s*(.68+((i%2)*.08))}" text-anchor="middle" font-size="${s*.14}" fill="rgba(180,220,255,.9)" style="animation:snowFall ${1.5+i*.2}s linear ${i*.25}s infinite">❄</text>`).join('')}
+      <defs>
+        <linearGradient id="snowCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ddeeff"/><stop offset="100%" stop-color="#aaccdd"/></linearGradient>
+      </defs>
+    </svg>`;
+  }
+  
+  // Fırtına (95-99)
+  if(code>=95){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <path d="M${s*.08} ${s*.55} Q${s*.08} ${s*.32} ${s*.28} ${s*.3} Q${s*.3} ${s*.15} ${s*.48} ${s*.16} Q${s*.64} ${s*.06} ${s*.72} ${s*.22} Q${s*.86} ${s*.22} ${s*.84} ${s*.38} Q${s*.86} ${s*.55} ${s*.72} ${s*.57}Z" fill="url(#stormCloud${s})"/>
+      <path d="M${s*.48} ${s*.58} L${s*.38} ${s*.76} L${s*.5} ${s*.74} L${s*.4} ${s*.92}" stroke="url(#lightning${s})" stroke-width="${s*.07}" stroke-linecap="round" stroke-linejoin="round" fill="none" style="animation:lightning 2.5s ease-in-out infinite"/>
+      <defs>
+        <linearGradient id="stormCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7a8898"/><stop offset="100%" stop-color="#4a5868"/></linearGradient>
+        <linearGradient id="lightning${s}" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#ffe066"/><stop offset="100%" stop-color="#ff9900"/></linearGradient>
+      </defs>
+    </svg>`;
+  }
+  
+  // Default - bulutlu
+  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+    <path d="M${s*.12} ${s*.72} Q${s*.12} ${s*.48} ${s*.32} ${s*.46} Q${s*.35} ${s*.3} ${s*.52} ${s*.32} Q${s*.68} ${s*.22} ${s*.76} ${s*.38} Q${s*.9} ${s*.38} ${s*.88} ${s*.54} Q${s*.9} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#defCloud${s})" style="animation:cloudDrift 3s ease-in-out infinite"/>
+    <defs><linearGradient id="defCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#d0e8f8"/><stop offset="100%" stop-color="#90b8d0"/></linearGradient></defs>
+  </svg>`;
+}
+
 const WC = {
   0:{e:'☀️',t:'Açık',grad:['#f7971e','#ffd200'],night:{e:'🌙',grad:['#1a1a2e','#16213e']}},
   1:{e:'🌤️',t:'Çoğunlukla Açık',grad:['#f7971e','#ffd200'],night:{e:'🌙',grad:['#1a1a2e','#16213e']}},
@@ -124,7 +233,7 @@ function renderWeather(d){
   renderWeatherBgAnim(c.weather_code, c.is_day);
 
   // Anlık bilgiler
-  document.getElementById('weather-icon-big').textContent = info.e;
+  document.getElementById('weather-icon-big').innerHTML = weatherSVG(c.weather_code, c.is_day, 64);
   document.getElementById('weather-temp-big').textContent = Math.round(c.temperature_2m)+'°';
   document.getElementById('weather-feels-lbl').textContent = `Hissedilen ${Math.round(c.apparent_temperature)}°C`;
   document.getElementById('weather-condition-big').textContent = info.t;
@@ -166,7 +275,7 @@ function renderWeather(d){
     const rainPct = hourly.precipitation_probability[i];
     hHtml += `<div class="hourly-item${isCur?' now':''}" style="animation:fadeInUp .3s ease ${shown*.03}s both">
       <div class="h-time">${ht.getHours().toString().padStart(2,'0')}:00</div>
-      <div class="h-icon">${hi.e}</div>
+      <div class="h-icon">${weatherSVG(hourly.weather_code[i], hourly.is_day[i], 28)}</div>
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:36px;margin:3px 0">
         <div style="width:4px;border-radius:2px;background:${isCur?'rgba(0,0,0,.25)':'var(--accent)'};opacity:.7;height:${barH}px;transition:height .3s"></div>
       </div>
@@ -288,7 +397,7 @@ function renderDailyList(selectedIdx){
       onclick="selectDailyDay(${i})"
       style="cursor:pointer;border-radius:12px;padding:11px 10px;transition:all .2s;${isSel?'background:linear-gradient(135deg,rgba(58,123,213,.15),rgba(58,123,213,.05));border:1.5px solid var(--accent);box-shadow:0 2px 12px rgba(58,123,213,.15)':'border:1.5px solid transparent'};animation:fadeInUp .3s ease ${i*.04}s both">
       <div style="width:44px;font-size:12px;color:var(--muted);font-weight:${isToday||isSel?600:400}">${isToday?'Bugün':TR_DAYS[dt.getDay()]}</div>
-      <div style="font-size:24px;width:32px">${di.e}</div>
+      <div style="width:32px">${weatherSVG(daily.weather_code[i], 1, 28)}</div>
       <div style="flex:1;font-size:12px;color:var(--muted);min-width:80px">${di.t}</div>
       <div style="font-size:11px;color:#4facfe;width:48px;text-align:right">${daily.precipitation_sum[i]>0?'💧'+daily.precipitation_sum[i]+'mm':''}</div>
       <div style="width:120px;display:flex;align-items:center;gap:5px;margin-left:8px">
@@ -327,7 +436,7 @@ function renderDayDetail(i){
       const rainPct = hourly.precipitation_probability[j];
       hHtml += `<div style="flex-shrink:0;text-align:center;padding:8px 7px;border-radius:10px;background:var(--surface2);min-width:48px">
         <div style="font-size:10px;color:var(--muted)">${ht.getHours().toString().padStart(2,'0')}:00</div>
-        <div style="font-size:18px;margin:3px 0">${hi.e}</div>
+        <div style="margin:3px 0">${weatherSVG(hourly.weather_code[j], hourly.is_day[j], 26)}</div>
         <div style="font-size:12px;font-weight:600;color:var(--text)">${Math.round(hourly.temperature_2m[j])}°</div>
         ${rainPct>20?`<div style="font-size:10px;color:#4facfe">💧${rainPct}%</div>`:''}
       </div>`;
