@@ -3,105 +3,164 @@
   <button class="add-btn" onclick="refreshWeather()" id="weather-refresh-btn">↻ Güncelle</button>
 </div>
 
-<div id="weather-location-bar" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-  <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;flex:1;min-width:200px">
+<!-- Konum Arama -->
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 14px;flex:1;min-width:200px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    <input id="weather-city-input" placeholder="Şehir ara... (örn: Samsun)"
+    <input id="weather-city-input" placeholder="Şehir ara..." 
       style="border:none;background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;flex:1"
       onkeydown="if(event.key==='Enter')searchWeatherCity()">
   </div>
-  <button onclick="getWeatherByGPS()" style="padding:7px 14px;border-radius:10px;border:0.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">📍 Konumumu Kullan</button>
-  <button onclick="searchWeatherCity()" style="padding:7px 14px;border-radius:10px;border:none;background:var(--accent);color:#1a1a00;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif">Ara</button>
+  <button onclick="getWeatherByGPS()" style="padding:8px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;display:flex;align-items:center;gap:6px">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    Konumumu Kullan
+  </button>
+  <button onclick="searchWeatherCity()" style="padding:8px 18px;border-radius:12px;border:none;background:var(--accent);color:#1a1a00;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Ara</button>
 </div>
 
-<div id="weather-error" style="display:none;padding:12px;background:rgba(192,57,43,.1);border-radius:10px;color:#c0392b;font-size:13px;margin-bottom:12px"></div>
+<div id="weather-error" style="display:none;padding:12px 16px;background:rgba(192,57,43,.1);border-radius:12px;color:#c0392b;font-size:13px;margin-bottom:12px;border:1px solid rgba(192,57,43,.2)"></div>
 <div id="weather-loading" style="display:none;text-align:center;padding:60px;color:var(--muted)">
   <div class="weather-spinner"></div>
   <div style="margin-top:14px;font-size:13px">Hava durumu yükleniyor...</div>
 </div>
 
 <div id="weather-welcome" style="text-align:center;padding:60px 20px;color:var(--muted)">
-  <div style="font-size:72px;margin-bottom:16px;line-height:1">🌤️</div>
+  <div style="font-size:72px;margin-bottom:16px">🌤️</div>
   <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">Hava Durumunu Görüntüle</div>
   <div style="font-size:13px">Şehir adı gir veya konumunu kullan</div>
 </div>
 
 <div id="weather-main-card" style="display:none">
 
-  <!-- Hero: Büyük Hava Kartı -->
-  <div id="weather-hero" style="border-radius:18px;padding:28px;margin-bottom:14px;position:relative;overflow:hidden;min-height:180px">
+  <!-- HERO KARTI -->
+  <div id="weather-hero" style="border-radius:20px;padding:24px;margin-bottom:14px;position:relative;overflow:hidden">
     <div id="weather-bg-anim" style="position:absolute;inset:0;pointer-events:none"></div>
-    <div style="position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px">
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <div id="weather-icon-big" style="font-size:64px;line-height:1"></div>
-          <div>
-            <div id="weather-temp-big" style="font-size:52px;font-weight:800;line-height:1;color:#fff"></div>
-            <div id="weather-feels-lbl" style="font-size:13px;color:rgba(255,255,255,.75);margin-top:2px"></div>
-          </div>
+    
+    <!-- Üst satır: ikon + sıcaklık + konum + güncelleme -->
+    <div style="position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div id="weather-icon-big" style="font-size:72px;line-height:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.2))"></div>
+        <div>
+          <div id="weather-temp-big" style="font-size:56px;font-weight:800;line-height:1;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.2)"></div>
+          <div id="weather-feels-lbl" style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px"></div>
+          <div id="weather-condition-big" style="font-size:15px;font-weight:600;color:#fff;margin-top:6px"></div>
         </div>
-        <div id="weather-condition-big" style="font-size:16px;font-weight:600;color:#fff;margin-bottom:4px"></div>
-        <div id="weather-location-big" style="font-size:12px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:4px">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div style="text-align:right">
+        <div id="weather-location-big" style="font-size:14px;font-weight:600;color:#fff;display:flex;align-items:center;gap:5px;justify-content:flex-end">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <span></span>
         </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:200px">
-        <div class="hero-stat" id="hs-humidity"></div>
-        <div class="hero-stat" id="hs-wind"></div>
-        <div class="hero-stat" id="hs-uv"></div>
-        <div class="hero-stat" id="hs-precip"></div>
+        <div id="weather-updated" style="font-size:11px;color:rgba(255,255,255,.55);margin-top:5px"></div>
       </div>
     </div>
-    <div style="position:relative;z-index:1;display:flex;gap:20px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.15);flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px">🌅 <span id="hs-sunrise"></span></div>
-      <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px">🌇 <span id="hs-sunset"></span></div>
-      <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px">🌡️ <span id="hs-pressure"></span></div>
-      <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.85);font-size:12px">👁️ <span id="hs-visibility"></span></div>
-      <div style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.5)" id="weather-updated"></div>
+
+    <!-- İstatistik kartları -->
+    <div style="position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+      <div class="w-stat" id="hs-humidity"></div>
+      <div class="w-stat" id="hs-wind"></div>
+      <div class="w-stat" id="hs-uv"></div>
+      <div class="w-stat" id="hs-precip"></div>
+    </div>
+
+    <!-- Gündoğumu / Günbatımı / Basınç / Görünürlük -->
+    <div style="position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div class="w-sun-card" id="ws-sunrise">
+        <div class="w-sun-icon">🌅</div>
+        <div class="w-sun-val" id="hs-sunrise"></div>
+        <div class="w-sun-lbl">Gündoğumu</div>
+      </div>
+      <div class="w-sun-card" id="ws-sunset">
+        <div class="w-sun-icon">🌇</div>
+        <div class="w-sun-val" id="hs-sunset"></div>
+        <div class="w-sun-lbl">Günbatımı</div>
+      </div>
+      <div class="w-sun-card">
+        <div class="w-sun-icon">🌡️</div>
+        <div class="w-sun-val" id="hs-pressure"></div>
+        <div class="w-sun-lbl">Basınç</div>
+      </div>
+      <div class="w-sun-card">
+        <div class="w-sun-icon">👁️</div>
+        <div class="w-sun-val" id="hs-visibility"></div>
+        <div class="w-sun-lbl">Görünürlük</div>
+      </div>
     </div>
   </div>
 
   <!-- Saatlik -->
-  <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px">
-    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Saatlik Tahmin</div>
-    <div id="weather-hourly" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin"></div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">⏱ Saatlik Tahmin</div>
+    <div id="weather-hourly" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:6px"></div>
   </div>
 
   <!-- 7 Günlük -->
-  <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:16px">
-    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">7 Günlük Tahmin</div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">📅 7 Günlük Tahmin</div>
     <div id="weather-daily"></div>
   </div>
 
 </div>
 
 <style>
-.weather-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:wspin 0.8s linear infinite;margin:0 auto}
+.weather-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:wspin .8s linear infinite;margin:0 auto}
 @keyframes wspin{to{transform:rotate(360deg)}}
-.hero-stat{background:rgba(255,255,255,.18);border-radius:12px;padding:10px 14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);min-width:100px}
-.hero-stat .hs-val{font-size:14px;font-weight:700;color:#fff;line-height:1.3}
-.hero-stat .hs-lbl{font-size:11px;color:rgba(255,255,255,.7);margin-top:3px;font-weight:500}
-.hourly-item{flex-shrink:0;text-align:center;padding:10px 8px;border-radius:12px;min-width:52px;transition:background .15s;cursor:default}
-.hourly-item.now{background:var(--accent);color:#1a1a00}
-.hourly-item .h-time{font-size:10px;opacity:.65;margin-bottom:4px}
-.hourly-item .h-icon{font-size:22px;margin-bottom:4px}
-.hourly-item .h-temp{font-size:13px;font-weight:600}
-.hourly-item .h-rain{font-size:10px;opacity:.6;margin-top:2px}
-.daily-row{display:flex;align-items:center;gap:12px;padding:10px 6px;border-radius:10px;transition:background .1s}
+
+.w-stat{
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:14px;
+  padding:12px 14px;
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.w-stat .ws-icon{font-size:18px;margin-bottom:4px}
+.w-stat .ws-val{font-size:16px;font-weight:700;color:#fff;line-height:1.2}
+.w-stat .ws-lbl{font-size:11px;color:rgba(255,255,255,.65);margin-top:3px;font-weight:500}
+
+.w-sun-card{
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  padding:12px;
+  text-align:center;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.w-sun-icon{font-size:24px;margin-bottom:5px}
+.w-sun-val{font-size:16px;font-weight:700;color:#fff}
+.w-sun-lbl{font-size:11px;color:rgba(255,255,255,.6);margin-top:3px}
+
+.hourly-item{flex-shrink:0;text-align:center;padding:10px 8px;border-radius:12px;min-width:54px;transition:all .15s;cursor:default;border:1px solid transparent}
+.hourly-item.now{background:var(--accent);border-color:var(--accent)}
+.hourly-item .h-time{font-size:10px;color:var(--muted);margin-bottom:4px}
+.hourly-item.now .h-time{color:rgba(0,0,0,.6)}
+.hourly-item .h-icon{font-size:22px;margin-bottom:3px}
+.hourly-item .h-temp{font-size:13px;font-weight:700;color:var(--text)}
+.hourly-item.now .h-temp{color:#1a1a00}
+.hourly-item .h-bar{width:4px;border-radius:2px;background:var(--accent);opacity:.5;margin:3px auto;transition:height .4s}
+.hourly-item.now .h-bar{background:rgba(0,0,0,.3)}
+.hourly-item .h-rain{font-size:10px;color:#4facfe;margin-top:2px}
+.hourly-item.now .h-rain{color:rgba(0,0,0,.5)}
+
+.daily-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:14px;cursor:pointer;transition:all .2s;border:1.5px solid transparent;margin-bottom:4px}
 .daily-row:hover{background:var(--surface2)}
-.daily-row.today{background:var(--surface2)}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.weather-anim{animation:fadeInUp .4s ease forwards}
-/* Hava animasyonları */
-@keyframes sunRay{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
-@keyframes cloudDrift{0%{transform:translateX(0)}50%{transform:translateX(6px)}100%{transform:translateX(0)}}
-@keyframes rainFall{0%{transform:translateY(-10px);opacity:0}80%{opacity:1}100%{transform:translateY(20px);opacity:0}}
-@keyframes snowFall{0%{transform:translateY(-10px) rotate(0deg);opacity:0}80%{opacity:.8}100%{transform:translateY(20px) rotate(180deg);opacity:0}}
-@keyframes lightning{0%,90%,100%{opacity:0}92%,96%{opacity:1}}
-.sun-anim{animation:sunRay 2s ease-in-out infinite}
-.cloud-anim{animation:cloudDrift 3s ease-in-out infinite}
-.rain-drop{animation:rainFall 1.2s linear infinite}
-.snow-flake{animation:snowFall 2s linear infinite}
-.lightning-anim{animation:lightning 3s ease-in-out infinite}
+.daily-row.sel{background:linear-gradient(135deg,rgba(58,123,213,.12),rgba(58,123,213,.04));border-color:var(--accent);box-shadow:0 2px 16px rgba(58,123,213,.12)}
+.daily-row.today-row{background:var(--surface2)}
+
+.day-detail{
+  margin:2px 0 10px;
+  padding:16px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:14px;
+  animation:fadeInUp .25s ease both;
+}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sunRay{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes cloudDrift{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+@keyframes rainFall{0%{transform:translateY(-12px);opacity:0}70%{opacity:.8}100%{transform:translateY(24px);opacity:0}}
+@keyframes snowFall{0%{transform:translateY(-12px) rotate(0);opacity:0}70%{opacity:.7}100%{transform:translateY(24px) rotate(180deg);opacity:0}}
+@keyframes lightning{0%,88%,100%{opacity:0}90%,96%{opacity:1}}
 </style>
