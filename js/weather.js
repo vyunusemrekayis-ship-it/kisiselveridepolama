@@ -18,6 +18,17 @@ function weatherSVG(code, isDay, size=32){
       <defs><radialGradient id="moon${s}" cx="40%" cy="30%" r="60%"><stop offset="0%" stop-color="#e8f0ff"/><stop offset="100%" stop-color="#b0c4de"/></radialGradient></defs>
     </svg>`;
   }
+  // Gece kapalı bulutlu (code 3) - karanlık bulut
+  if(!isDay && code===3){
+    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
+      <path d="M${s*.08} ${s*.72} Q${s*.08} ${s*.48} ${s*.3} ${s*.46} Q${s*.33} ${s*.3} ${s*.52} ${s*.32} Q${s*.68} ${s*.22} ${s*.76} ${s*.38} Q${s*.9} ${s*.38} ${s*.88} ${s*.54} Q${s*.9} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#ngrey1${s})" style="animation:cloudDrift 5s ease-in-out infinite"/>
+      <path d="M${s*.2} ${s*.82} Q${s*.2} ${s*.64} ${s*.38} ${s*.62} Q${s*.4} ${s*.5} ${s*.55} ${s*.52} Q${s*.68} ${s*.44} ${s*.74} ${s*.56} Q${s*.84} ${s*.56} ${s*.82} ${s*.68} Q${s*.84} ${s*.82} ${s*.72} ${s*.84}Z" fill="url(#ngrey2${s})" style="animation:cloudDrift 5s ease-in-out .8s infinite"/>
+      <defs>
+        <linearGradient id="ngrey1${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a6878"/><stop offset="100%" stop-color="#3a4858"/></linearGradient>
+        <linearGradient id="ngrey2${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4a5868"/><stop offset="100%" stop-color="#2a3848"/></linearGradient>
+      </defs>
+    </svg>`;
+  }
   // Gece parçalı bulutlu (code 2) - ay + bulut
   if(!isDay && code===2){
     return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
@@ -113,10 +124,12 @@ function weatherSVG(code, isDay, size=32){
     </svg>`;
   }
   
-  // Default - bulutlu
+  // Default - gündüz/gece bulutlu
+  const dc1 = isDay ? '#d0e8f8' : '#4a5868';
+  const dc2 = isDay ? '#90b8d0' : '#2a3848';
   return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-    <path d="M${s*.12} ${s*.72} Q${s*.12} ${s*.48} ${s*.32} ${s*.46} Q${s*.35} ${s*.3} ${s*.52} ${s*.32} Q${s*.68} ${s*.22} ${s*.76} ${s*.38} Q${s*.9} ${s*.38} ${s*.88} ${s*.54} Q${s*.9} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#defCloud${s})" style="animation:cloudDrift 3s ease-in-out infinite"/>
-    <defs><linearGradient id="defCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#d0e8f8"/><stop offset="100%" stop-color="#90b8d0"/></linearGradient></defs>
+    <path d="M${s*.12} ${s*.72} Q${s*.12} ${s*.48} ${s*.32} ${s*.46} Q${s*.35} ${s*.3} ${s*.52} ${s*.32} Q${s*.68} ${s*.22} ${s*.76} ${s*.38} Q${s*.9} ${s*.38} ${s*.88} ${s*.54} Q${s*.9} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#defCloud${s}i${isDay})" style="animation:cloudDrift 3s ease-in-out infinite"/>
+    <defs><linearGradient id="defCloud${s}i${isDay}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${dc1}"/><stop offset="100%" stop-color="${dc2}"/></linearGradient></defs>
   </svg>`;
 }
 
