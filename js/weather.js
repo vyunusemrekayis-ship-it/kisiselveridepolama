@@ -38,10 +38,14 @@ function windDir(deg){
   return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
 }
 function uvLabel(v){
-  v=Math.round(v);
-  if(v<=2) return v+' Düşük'; if(v<=5) return v+' Orta';
-  if(v<=7) return v+' Yüksek'; if(v<=10) return v+' Çok Y.';
-  return v+' Aşırı';
+  if(v<=2) return v.toFixed(1)+' Düşük'; if(v<=5) return v.toFixed(1)+' Orta';
+  if(v<=7) return v.toFixed(1)+' Yüksek'; if(v<=10) return v.toFixed(1)+' Çok Yüksek';
+  return v.toFixed(1)+' Aşırı';
+}
+function uvCat(v){
+  if(v<=2) return 'Düşük'; if(v<=5) return 'Orta';
+  if(v<=7) return 'Yüksek'; if(v<=10) return 'Çok Yüksek';
+  return 'Aşırı';
 }
 function fmtTime(s){ const d=new Date(s); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
 
@@ -113,18 +117,18 @@ function renderWeather(d){
   document.getElementById('weather-temp-big').textContent = Math.round(c.temperature_2m)+'°';
   document.getElementById('weather-feels-lbl').textContent = `Hissedilen ${Math.round(c.apparent_temperature)}°C`;
   document.getElementById('weather-condition-big').textContent = info.t;
-  document.querySelector('#weather-location-big span').textContent = weatherCityName;
+  const locEl = document.querySelector('#weather-location-big span'); if(locEl) locEl.textContent = weatherCityName;
 
   // Hero istatistikler
-  heroStat('hs-humidity', '💧', c.relative_humidity_2m+'%', 'Nem');
-  heroStat('hs-wind', '💨', Math.round(c.wind_speed_10m)+' km/s '+windDir(c.wind_direction_10m), 'Rüzgar');
-  heroStat('hs-uv', '☀️', uvLabel(Math.round(daily.uv_index_max[0])), 'UV');
-  heroStat('hs-precip', '🌧️', c.precipitation+' mm', 'Yağış');
+  heroStat('hs-humidity', '💧', c.relative_humidity_2m+'%', 'Bağıl Nem');
+  heroStat('hs-wind', '💨', c.wind_speed_10m.toFixed(1)+' km/s '+windDir(c.wind_direction_10m), 'Rüzgar');
+  heroStat('hs-uv', '☀️', daily.uv_index_max[0].toFixed(1)+' — '+uvCat(daily.uv_index_max[0]), 'UV');
+  heroStat('hs-precip', '🌧️', c.precipitation.toFixed(1)+' mm', 'Yağış');
 
   document.getElementById('hs-sunrise').textContent = fmtTime(daily.sunrise[0]);
   document.getElementById('hs-sunset').textContent = fmtTime(daily.sunset[0]);
-  document.getElementById('hs-pressure').textContent = Math.round(c.surface_pressure)+' hPa';
-  document.getElementById('hs-visibility').textContent = c.visibility>=1000 ? Math.round(c.visibility/1000)+' km' : c.visibility+' m';
+  document.getElementById('hs-pressure').textContent = c.surface_pressure.toFixed(1)+' hPa';
+  document.getElementById('hs-visibility').textContent = c.visibility>=1000 ? (c.visibility/1000).toFixed(1)+' km' : c.visibility+' m';
 
   const now = new Date();
   document.getElementById('weather-updated').textContent = `Güncellendi: ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
@@ -175,7 +179,9 @@ function renderWeather(d){
 }
 
 function heroStat(id, icon, val, lbl){
-  document.getElementById(id).innerHTML = `<div class="hs-val">${icon} ${val}</div><div class="hs-lbl">${lbl}</div>`;
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = `<div class="ws-icon">${icon}</div><div class="ws-val">${val}</div><div class="ws-lbl">${lbl}</div>`;
 }
 
 // ── ARKAPLAn ANİMASYONU ───────────────────────────────────────────────
@@ -266,7 +272,7 @@ function renderDailyList(selectedIdx){
 
     html += `<div class="daily-row${isToday?' today':''}${isSel?' selected':''}" 
       onclick="selectDailyDay(${i})"
-      style="cursor:pointer;border-radius:12px;padding:11px 10px;transition:background .15s;${isSel?'background:var(--surface2);border:0.5px solid var(--border)':''};animation:fadeInUp .3s ease ${i*.04}s both">
+      style="cursor:pointer;border-radius:12px;padding:11px 10px;transition:all .2s;${isSel?'background:linear-gradient(135deg,rgba(58,123,213,.15),rgba(58,123,213,.05));border:1.5px solid var(--accent);box-shadow:0 2px 12px rgba(58,123,213,.15)':'border:1.5px solid transparent'};animation:fadeInUp .3s ease ${i*.04}s both">
       <div style="width:44px;font-size:12px;color:var(--muted);font-weight:${isToday||isSel?600:400}">${isToday?'Bugün':TR_DAYS[dt.getDay()]}</div>
       <div style="font-size:24px;width:32px">${di.e}</div>
       <div style="flex:1;font-size:12px;color:var(--muted);min-width:80px">${di.t}</div>
