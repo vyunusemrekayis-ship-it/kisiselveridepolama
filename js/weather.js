@@ -1,501 +1,493 @@
-// ── WEATHER.JS v2 ────────────────────────────────────────────────────
+// ── APPLE WEATHER STYLE JS ───────────────────────────────────────────
 
-let weatherLat = null, weatherLon = null, weatherCityName = '';
-let weatherRefreshTimer = null;
+// Şehir listesi state
+let awCities = [];
+let awActiveCityIdx = 0;
+let awCurrentData = null;
 
-
-// ── HAVA DURUMU SVG İKONLARI ─────────────────────────────────────────
-function weatherSVG(code, isDay, size=32){
-  const s = size;
-  const h = s * 0.9;
-  
-  // Gece kontrolü - açık veya az bulutlu gecelerde ay göster
-  if(!isDay && code<=1){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.62} ${s*.18} A${s*.28} ${s*.28} 0 1 1 ${s*.32} ${s*.68} A${s*.22} ${s*.22} 0 0 0 ${s*.62} ${s*.18}Z" fill="url(#moon${s})" style="filter:drop-shadow(0 2px 8px rgba(255,200,80,.6))"/>
-      <circle cx="${s*.72}" cy="${s*.22}" r="${s*.04}" fill="rgba(255,255,255,.5)"/>
-      <circle cx="${s*.6}" cy="${s*.12}" r="${s*.025}" fill="rgba(255,255,255,.4)"/>
-      <defs><radialGradient id="moon${s}" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#fffde0"/><stop offset="40%" stop-color="#ffd97a"/><stop offset="100%" stop-color="#c8a84b"/></radialGradient></defs>
-    </svg>`;
-  }
-  // Gece kapalı bulutlu (code 3) - karanlık bulut
-  if(!isDay && code===3){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.08} ${s*.72} Q${s*.08} ${s*.48} ${s*.3} ${s*.46} Q${s*.33} ${s*.3} ${s*.52} ${s*.32} Q${s*.68} ${s*.22} ${s*.76} ${s*.38} Q${s*.9} ${s*.38} ${s*.88} ${s*.54} Q${s*.9} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#ngrey1${s})" style="animation:cloudDrift 5s ease-in-out infinite"/>
-      <path d="M${s*.2} ${s*.82} Q${s*.2} ${s*.64} ${s*.38} ${s*.62} Q${s*.4} ${s*.5} ${s*.55} ${s*.52} Q${s*.68} ${s*.44} ${s*.74} ${s*.56} Q${s*.84} ${s*.56} ${s*.82} ${s*.68} Q${s*.84} ${s*.82} ${s*.72} ${s*.84}Z" fill="url(#ngrey2${s})" style="animation:cloudDrift 5s ease-in-out .8s infinite"/>
-      <defs>
-        <linearGradient id="ngrey1${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5a6878"/><stop offset="100%" stop-color="#3a4858"/></linearGradient>
-        <linearGradient id="ngrey2${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4a5868"/><stop offset="100%" stop-color="#2a3848"/></linearGradient>
-      </defs>
-    </svg>`;
-  }
-  // Gece parçalı bulutlu (code 2) - ay + bulut
-  if(!isDay && code===2){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.55} ${s*.15} A${s*.2} ${s*.2} 0 1 1 ${s*.3} ${s*.55} A${s*.18} ${s*.18} 0 0 0 ${s*.55} ${s*.15}Z" fill="url(#moonSmall)" opacity=".95"/>
-      <path d="M${s*.18} ${s*.72} Q${s*.18} ${s*.5} ${s*.36} ${s*.48} Q${s*.38} ${s*.36} ${s*.54} ${s*.38} Q${s*.68} ${s*.28} ${s*.76} ${s*.42} Q${s*.88} ${s*.42} ${s*.86} ${s*.56} Q${s*.88} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#ncloud${s})" style="animation:cloudDrift 4s ease-in-out infinite"/>
-      <defs><linearGradient id="ncloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c8d8e8"/><stop offset="100%" stop-color="#8898a8"/></linearGradient><radialGradient id="moonSmall" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#fffde0"/><stop offset="40%" stop-color="#ffd97a"/><stop offset="100%" stop-color="#c8a84b"/></radialGradient></defs>
-    </svg>`;
-  }
-  
-  // Güneş (açık)
-  if(code === 0){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <g style="animation:sunRay ${isDay?'2':'0'}s ease-in-out infinite;transform-origin:${s/2}px ${s/2}px">
-        ${[0,45,90,135,180,225,270,315].map(a=>{
-          const r=s/2, cx=s/2, cy=s/2, r1=s*.38, r2=s*.46;
-          const x1=cx+r1*Math.cos(a*Math.PI/180), y1=cy+r1*Math.sin(a*Math.PI/180);
-          const x2=cx+r2*Math.cos(a*Math.PI/180), y2=cy+r2*Math.sin(a*Math.PI/180);
-          return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,210,0,.9)" stroke-width="${s*.06}" stroke-linecap="round"/>`;
-        }).join('')}
-      </g>
-      <circle cx="${s/2}" cy="${s/2}" r="${s*.28}" fill="url(#sun${s})"/>
-      <defs><radialGradient id="sun${s}" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#fff8a0"/><stop offset="50%" stop-color="#ffd200"/><stop offset="100%" stop-color="#ff9500"/></radialGradient></defs>
-    </svg>`;
-  }
-  
-  // Parçalı bulutlu (1-2)
-  if(code === 1 || code === 2){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <g style="animation:sunRay 2.5s ease-in-out infinite;transform-origin:${s*.35}px ${s*.35}px">
-        <circle cx="${s*.35}" cy="${s*.35}" r="${s*.18}" fill="url(#psun${s})" opacity=".9"/>
-      </g>
-      <path d="M${s*.18} ${s*.72} Q${s*.18} ${s*.48} ${s*.38} ${s*.48} Q${s*.4} ${s*.36} ${s*.56} ${s*.38} Q${s*.7} ${s*.28} ${s*.78} ${s*.42} Q${s*.9} ${s*.42} ${s*.88} ${s*.56} Q${s*.9} ${s*.7} ${s*.78} ${s*.72}Z" fill="url(#cloud${s})" style="animation:cloudDrift 3s ease-in-out infinite"/>
-      <defs>
-        <radialGradient id="psun${s}" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#fff8a0"/><stop offset="100%" stop-color="#ffd200"/></radialGradient>
-        <linearGradient id="cloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f0f8ff"/><stop offset="100%" stop-color="#d0e8f0"/></linearGradient>
-      </defs>
-    </svg>`;
-  }
-  
-  // Kapalı (3)
-  if(code === 3){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.08} ${s*.75} Q${s*.08} ${s*.52} ${s*.3} ${s*.5} Q${s*.32} ${s*.35} ${s*.5} ${s*.36} Q${s*.65} ${s*.24} ${s*.74} ${s*.4} Q${s*.88} ${s*.4} ${s*.86} ${s*.56} Q${s*.9} ${s*.74} ${s*.76} ${s*.76}Z" fill="url(#grey1${s})" style="animation:cloudDrift 4s ease-in-out infinite"/>
-      <path d="M${s*.2} ${s*.85} Q${s*.2} ${s*.68} ${s*.36} ${s*.66} Q${s*.38} ${s*.54} ${s*.52} ${s*.55} Q${s*.64} ${s*.46} ${s*.7} ${s*.58} Q${s*.8} ${s*.58} ${s*.78} ${s*.7} Q${s*.8} ${s*.84} ${s*.7} ${s*.86}Z" fill="url(#grey2${s})" style="animation:cloudDrift 4s ease-in-out .5s infinite"/>
-      <defs>
-        <linearGradient id="grey1${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#c8d8e8"/><stop offset="100%" stop-color="#98b0c0"/></linearGradient>
-        <linearGradient id="grey2${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#b8c8d8"/><stop offset="100%" stop-color="#88a0b0"/></linearGradient>
-      </defs>
-    </svg>`;
-  }
-  
-  // Sis (45-48)
-  if(code === 45 || code === 48){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      ${[.3,.45,.6,.75].map((y,i)=>`<line x1="${s*.1}" y1="${s*y}" x2="${s*.9}" y2="${s*y}" stroke="rgba(180,190,200,.7)" stroke-width="${s*.04}" stroke-linecap="round" style="animation:windFlow 2s ease-in-out ${i*.2}s infinite"/>`).join('')}
-    </svg>`;
-  }
-  
-  // Yağmur (51-67, 80-82)
-  if((code>=51&&code<=67)||(code>=80&&code<=82)){
-    const heavy = code>=65||code===82;
-    const drops = heavy ? [.25,.42,.58,.75,.33,.67] : [.3,.5,.7];
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.12} ${s*.58} Q${s*.12} ${s*.35} ${s*.32} ${s*.33} Q${s*.35} ${s*.18} ${s*.52} ${s*.2} Q${s*.68} ${s*.1} ${s*.76} ${s*.26} Q${s*.9} ${s*.26} ${s*.88} ${s*.42} Q${s*.9} ${s*.58} ${s*.76} ${s*.6}Z" fill="url(#rainCloud${s})"/>
-      ${drops.map((x,i)=>`<line x1="${s*x}" y1="${s*.66}" x2="${s*(x-.04)}" y2="${s*.82}" stroke="url(#rainDrop${s})" stroke-width="${s*.05}" stroke-linecap="round" style="animation:rainDrop ${heavy?.9:1.2}s ease-in ${i*.15}s infinite"/>`).join('')}
-      <defs>
-        <linearGradient id="rainCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#b8d4e8"/><stop offset="100%" stop-color="#7898b0"/></linearGradient>
-        <linearGradient id="rainDrop${s}" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#4facfe"/><stop offset="100%" stop-color="#0066cc"/></linearGradient>
-      </defs>
-    </svg>`;
-  }
-  
-  // Kar (71-77, 85-86)
-  if((code>=71&&code<=77)||(code>=85&&code<=86)){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.1} ${s*.5} Q${s*.1} ${s*.28} ${s*.3} ${s*.26} Q${s*.33} ${s*.12} ${s*.5} ${s*.14} Q${s*.66} ${s*.04} ${s*.74} ${s*.2} Q${s*.88} ${s*.2} ${s*.86} ${s*.36} Q${s*.88} ${s*.5} ${s*.74} ${s*.52}Z" fill="url(#snowCloud${s})"/>
-      ${[.25,.42,.58,.75,.33,.67].map((x,i)=>`<text x="${s*x}" y="${s*(.68+((i%2)*.08))}" text-anchor="middle" font-size="${s*.14}" fill="rgba(180,220,255,.9)" style="animation:snowFall ${1.5+i*.2}s linear ${i*.25}s infinite">❄</text>`).join('')}
-      <defs>
-        <linearGradient id="snowCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ddeeff"/><stop offset="100%" stop-color="#aaccdd"/></linearGradient>
-      </defs>
-    </svg>`;
-  }
-  
-  // Fırtına (95-99)
-  if(code>=95){
-    return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-      <path d="M${s*.08} ${s*.55} Q${s*.08} ${s*.32} ${s*.28} ${s*.3} Q${s*.3} ${s*.15} ${s*.48} ${s*.16} Q${s*.64} ${s*.06} ${s*.72} ${s*.22} Q${s*.86} ${s*.22} ${s*.84} ${s*.38} Q${s*.86} ${s*.55} ${s*.72} ${s*.57}Z" fill="url(#stormCloud${s})"/>
-      <path d="M${s*.48} ${s*.58} L${s*.38} ${s*.76} L${s*.5} ${s*.74} L${s*.4} ${s*.92}" stroke="url(#lightning${s})" stroke-width="${s*.07}" stroke-linecap="round" stroke-linejoin="round" fill="none" style="animation:lightning 2.5s ease-in-out infinite"/>
-      <defs>
-        <linearGradient id="stormCloud${s}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7a8898"/><stop offset="100%" stop-color="#4a5868"/></linearGradient>
-        <linearGradient id="lightning${s}" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#ffe066"/><stop offset="100%" stop-color="#ff9900"/></linearGradient>
-      </defs>
-    </svg>`;
-  }
-  
-  // Default - gündüz/gece bulutlu
-  const dc1 = isDay ? '#d0e8f8' : '#4a5868';
-  const dc2 = isDay ? '#90b8d0' : '#2a3848';
-  return `<svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" fill="none">
-    <path d="M${s*.12} ${s*.72} Q${s*.12} ${s*.48} ${s*.32} ${s*.46} Q${s*.35} ${s*.3} ${s*.52} ${s*.32} Q${s*.68} ${s*.22} ${s*.76} ${s*.38} Q${s*.9} ${s*.38} ${s*.88} ${s*.54} Q${s*.9} ${s*.72} ${s*.76} ${s*.74}Z" fill="url(#defCloud${s}i${isDay})" style="animation:cloudDrift 3s ease-in-out infinite"/>
-    <defs><linearGradient id="defCloud${s}i${isDay}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${dc1}"/><stop offset="100%" stop-color="${dc2}"/></linearGradient></defs>
-  </svg>`;
+// Kayıtlı şehirleri yükle
+function awLoadCities(){
+  try{ awCities = JSON.parse(localStorage.getItem('gn_aw_cities')||'[]'); }
+  catch(e){ awCities = []; }
 }
+function awSaveCities(){ localStorage.setItem('gn_aw_cities', JSON.stringify(awCities)); }
 
-const WC = {
-  0:{e:'☀️',t:'Açık',grad:['#f7971e','#ffd200'],night:{e:'🌙',grad:['#1a1a2e','#16213e']}},
-  1:{e:'🌤️',t:'Çoğunlukla Açık',grad:['#f7971e','#ffd200'],night:{e:'🌙',grad:['#1a1a2e','#16213e']}},
-  2:{e:'⛅',t:'Parçalı Bulutlu',grad:['#4ca1af','#c4e0e5']},
-  3:{e:'☁️',t:'Kapalı',grad:['#757f9a','#d7dde8']},
-  45:{e:'🌫️',t:'Sisli',grad:['#bdc3c7','#2c3e50']},
-  48:{e:'🌫️',t:'Kırağı Sisi',grad:['#bdc3c7','#2c3e50']},
-  51:{e:'🌦️',t:'Hafif Çiseleyen',grad:['#4facfe','#00f2fe']},
-  53:{e:'🌦️',t:'Çiseleyen',grad:['#4facfe','#00f2fe']},
-  55:{e:'🌧️',t:'Yoğun Çiseleyen',grad:['#3a7bd5','#3a6073']},
-  61:{e:'🌧️',t:'Hafif Yağmur',grad:['#4facfe','#00f2fe']},
-  63:{e:'🌧️',t:'Yağmur',grad:['#3a7bd5','#3a6073']},
-  65:{e:'🌧️',t:'Yoğun Yağmur',grad:['#373b44','#4286f4']},
-  71:{e:'🌨️',t:'Hafif Kar',grad:['#e0eafc','#cfdef3']},
-  73:{e:'❄️',t:'Kar',grad:['#e0eafc','#cfdef3']},
-  75:{e:'❄️',t:'Yoğun Kar',grad:['#c9d6ff','#e2e2e2']},
-  80:{e:'🌦️',t:'Sağanak',grad:['#4facfe','#00f2fe']},
-  81:{e:'🌧️',t:'Kuvvetli Sağanak',grad:['#3a7bd5','#3a6073']},
-  82:{e:'⛈️',t:'Şiddetli Sağanak',grad:['#373b44','#4286f4']},
-  85:{e:'🌨️',t:'Kar Sağanağı',grad:['#e0eafc','#cfdef3']},
-  95:{e:'⛈️',t:'Fırtına',grad:['#232526','#414345']},
-  96:{e:'⛈️',t:'Dolu Fırtınası',grad:['#232526','#414345']},
-  99:{e:'⛈️',t:'Şiddetli Fırtına',grad:['#232526','#414345']},
+// Hava kodu bilgisi
+const AWC = {
+  0:{e:'☀️',t:'Açık',bg:['#1a3a5c','#2d6a9f','#f7971e']},
+  1:{e:'🌤️',t:'Az Bulutlu',bg:['#1a3a5c','#2d6a9f','#4a8ab0']},
+  2:{e:'⛅',t:'Parçalı Bulutlu',bg:['#2a3f5c','#3a5070','#5a7080']},
+  3:{e:'☁️',t:'Kapalı',bg:['#2a3240','#3a4250','#4a5260']},
+  45:{e:'🌫️',t:'Sisli',bg:['#3a4248','#5a6268','#7a8288']},
+  48:{e:'🌫️',t:'Kırağı',bg:['#3a4248','#5a6268','#7a8288']},
+  51:{e:'🌦️',t:'Hafif Çiseleyen',bg:['#1a2a40','#2a4060','#3a6070']},
+  53:{e:'🌦️',t:'Çiseleyen',bg:['#1a2a40','#2a4060','#3a6070']},
+  55:{e:'🌧️',t:'Yoğun Çise',bg:['#151f30','#253050','#354060']},
+  61:{e:'🌧️',t:'Yağmurlu',bg:['#151f30','#253050','#354060']},
+  63:{e:'🌧️',t:'Orta Yağmur',bg:['#101828','#202838','#303848']},
+  65:{e:'🌧️',t:'Şiddetli Yağmur',bg:['#0a1020','#1a2030','#2a3040']},
+  71:{e:'🌨️',t:'Hafif Kar',bg:['#2a3848','#3a4858','#8a9aaa']},
+  73:{e:'❄️',t:'Kar',bg:['#2a3848','#4a5868','#9aaaba']},
+  75:{e:'❄️',t:'Yoğun Kar',bg:['#3a4858','#5a6878','#aabaca']},
+  80:{e:'🌦️',t:'Sağanak',bg:['#151f30','#253050','#354060']},
+  81:{e:'🌧️',t:'Kuvvetli Sağanak',bg:['#101828','#202838','#303848']},
+  82:{e:'⛈️',t:'Şiddetli Sağanak',bg:['#0a1020','#1a2030','#2a3040']},
+  95:{e:'⛈️',t:'Fırtına',bg:['#0a0f18','#141922','#242932']},
+  96:{e:'⛈️',t:'Dolu',bg:['#0a0f18','#141922','#242932']},
+  99:{e:'⛈️',t:'Şiddetli Fırtına',bg:['#060a10','#101518','#1a1f24']},
 };
 
-function wcInfo(code, isDay=1){
-  const base = WC[code] || {e:'🌡️',t:'Bilinmiyor',grad:['#4ca1af','#c4e0e5']};
-  if(!isDay && base.night) return {...base, e:base.night.e, grad:base.night.grad};
-  return base;
+function awcInfo(code, isDay=1){
+  const b = AWC[code] || AWC[3];
+  if(!isDay) return {...b, e:'🌙', bg:['#0a0f20','#101828','#1a2238']};
+  return b;
 }
 
-function setStatText(id, val, lbl){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.innerHTML = `<div class="ws-val" style="margin-top:4px">${val}</div><div class="ws-lbl">${lbl}</div>`;
+function awWindDir(deg){
+  return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
 }
 
-function windDir(deg){
-  const dirs = ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'];
-  return dirs[Math.round(deg/22.5)%16];
+function awFmtTime(s){ const d=new Date(s); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+
+function awFmtDate(s){ 
+  const d=new Date(s+'T12:00:00');
+  const days=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+  return days[d.getDay()];
 }
-function windArrow(deg){
-  // Rüzgar yönü oku - rüzgar nereden esiyor
-  return '↓↙←↖↑↗→↘'[Math.round(deg/45)%8];
+
+// GPS ile konum al
+async function awUseGPS(){
+  if(!navigator.geolocation){ alert('Konum desteklenmiyor.'); return; }
+  awShowLoading();
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const d = await r.json();
+      const name = d.address?.city||d.address?.town||d.address?.village||'Konumum';
+      const city = {name, lat, lon, isGPS:true};
+      if(!awCities.find(c=>Math.abs(c.lat-lat)<0.01)){
+        awCities.unshift(city);
+        awSaveCities();
+      }
+      awActiveCityIdx = awCities.findIndex(c=>Math.abs(c.lat-lat)<0.01);
+      awRenderCityList();
+      awFetchCity(awActiveCityIdx);
+    } catch(e){ awHideLoading(); }
+  }, ()=> awHideLoading());
 }
-function uvLabel(v){
-  if(v<=2) return v.toFixed(1)+' Düşük'; if(v<=5) return v.toFixed(1)+' Orta';
-  if(v<=7) return v.toFixed(1)+' Yüksek'; if(v<=10) return v.toFixed(1)+' Çok Yüksek';
-  return v.toFixed(1)+' Aşırı';
+
+// Şehir arama önerisi
+let awSuggestTimer = null;
+async function awSearchSuggest(q){
+  clearTimeout(awSuggestTimer);
+  const el = document.getElementById('aw-suggest');
+  if(!q||q.length<2){ el.style.display='none'; return; }
+  awSuggestTimer = setTimeout(async()=>{
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr&format=json`);
+      const d = await r.json();
+      if(!d.results?.length){ el.style.display='none'; return; }
+      el.style.display='block';
+      el.innerHTML = d.results.map(c=>`
+        <div onclick="awSelectSuggest(${c.latitude},${c.longitude},'${c.name.replace(/'/g,"\\'")}','${(c.country||'').replace(/'/g,"\\'")}','${(c.admin1||'').replace(/'/g,"\\'")}' )" 
+          style="padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s;color:#fff;font-size:12px" 
+          onmouseenter="this.style.background='rgba(255,255,255,.1)'" 
+          onmouseleave="this.style.background='transparent'">
+          <div style="font-weight:600">${c.name}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.45)">${c.admin1?c.admin1+', ':''}${c.country||''}</div>
+        </div>`).join('');
+    } catch(e){}
+  }, 300);
 }
-function uvCat(v){
+
+function awSelectSuggest(lat, lon, name, country, admin1){
+  const fullName = admin1 && admin1!==name ? `${name}, ${admin1}` : name;
+  const city = {name:fullName, country, lat, lon};
+  if(!awCities.find(c=>Math.abs(c.lat-lat)<0.01 && Math.abs(c.lon-lon)<0.01)){
+    awCities.push(city);
+    awSaveCities();
+  }
+  awActiveCityIdx = awCities.findIndex(c=>Math.abs(c.lat-lat)<0.01);
+  document.getElementById('aw-search-input').value='';
+  document.getElementById('aw-suggest').style.display='none';
+  awRenderCityList();
+  awFetchCity(awActiveCityIdx);
+}
+
+async function awAddCity(){
+  const q = document.getElementById('aw-search-input').value.trim();
+  if(!q) return;
+  awShowLoading();
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=tr&format=json`);
+    const d = await r.json();
+    if(!d.results?.length){ awHideLoading(); return; }
+    const c = d.results[0];
+    awSelectSuggest(c.latitude, c.longitude, c.name, c.country||'', c.admin1||'');
+  } catch(e){ awHideLoading(); }
+}
+
+function awSelectCity(idx){
+  awActiveCityIdx = idx;
+  awRenderCityList();
+  awFetchCity(idx);
+}
+
+function awRemoveCity(idx, e){
+  e.stopPropagation();
+  awCities.splice(idx,1);
+  awSaveCities();
+  if(awActiveCityIdx >= awCities.length) awActiveCityIdx = Math.max(0, awCities.length-1);
+  awRenderCityList();
+  if(awCities.length) awFetchCity(awActiveCityIdx);
+  else {
+    document.getElementById('aw-welcome').style.display='flex';
+    document.getElementById('aw-weather-content').style.display='none';
+  }
+}
+
+function awRenderCityList(){
+  const el = document.getElementById('aw-city-list');
+  if(!awCities.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,.3)">Henüz şehir eklenmedi</div>';
+    return;
+  }
+  el.innerHTML = awCities.map((c,i)=>`
+    <div class="aw-city-card${i===awActiveCityIdx?' active':''}" onclick="awSelectCity(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="aw-city-name">${c.name}${c.isGPS?' 📍':''}</div>
+          <div class="aw-city-sub">${c.condition||''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="aw-city-temp">${c.temp!==undefined?Math.round(c.temp)+'°':'—'}</div>
+          <button onclick="awRemoveCity(${i},event)" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;padding:0;margin-top:4px">×</button>
+        </div>
+      </div>
+      ${c.high!==undefined?`<div class="aw-city-range" style="margin-top:4px">Y:${Math.round(c.high)}° D:${Math.round(c.low)}°</div>`:''}
+    </div>`).join('');
+}
+
+// Veri çek
+async function awFetchCity(idx){
+  const city = awCities[idx];
+  if(!city) return;
+  awShowLoading();
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}`
+    +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility,wind_gusts_10m`
+    +`&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,is_day,wind_speed_10m`
+    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,wind_speed_10m_max,precipitation_probability_max`
+    +`&timezone=auto&wind_speed_unit=kmh&forecast_days=10`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    awCurrentData = d;
+    // Şehir bilgilerini güncelle
+    awCities[idx].temp = d.current.temperature_2m;
+    awCities[idx].high = d.daily.temperature_2m_max[0];
+    awCities[idx].low = d.daily.temperature_2m_min[0];
+    awCities[idx].condition = awcInfo(d.current.weather_code, d.current.is_day).t;
+    awSaveCities();
+    awRenderCityList();
+    awHideLoading();
+    awRenderWeather(d, city);
+  } catch(e){ awHideLoading(); }
+}
+
+// Ana render
+function awRenderWeather(d, city){
+  const c = d.current, daily = d.daily, hourly = d.hourly;
+  const info = awcInfo(c.weather_code, c.is_day);
+  
+  // Arka plan
+  const bg = document.getElementById('aw-bg');
+  if(bg) bg.style.background = `linear-gradient(to bottom, ${info.bg[0]}, ${info.bg[1]} 40%, ${info.bg[2]})`;
+  
+  // Saatlik veri - gündoğumu/batımı ekle
+  const now = Date.now();
+  const hourlyItems = [];
+  let shown = 0;
+  for(let i=0; i<hourly.time.length && shown<24; i++){
+    const ht = new Date(hourly.time[i]);
+    if(ht.getTime() < now - 1800000) continue;
+    // Gündoğumu/batımı bu saate denk geliyor mu?
+    const hStr = ht.getHours().toString().padStart(2,'0')+':';
+    let special = null;
+    if(daily.sunrise[0] && daily.sunrise[0].includes('T'+hStr)) special = {type:'rise',time:awFmtTime(daily.sunrise[0])};
+    if(daily.sunset[0] && daily.sunset[0].includes('T'+hStr)) special = {type:'set',time:awFmtTime(daily.sunset[0])};
+    hourlyItems.push({hour:ht, code:hourly.weather_code[i], isDay:hourly.is_day[i], temp:hourly.temperature_2m[i], rain:hourly.precipitation_probability[i], special, isNow:shown===0});
+    shown++;
+  }
+
+  // Min/max sıcaklık (saatlik bar için)
+  const hTemps = hourlyItems.map(h=>h.temp);
+  const hMin = Math.min(...hTemps), hMax = Math.max(...hTemps), hRange = hMax-hMin||1;
+
+  // 10 günlük min/max (bar için)
+  const dMin = Math.min(...daily.temperature_2m_min);
+  const dMax = Math.max(...daily.temperature_2m_max);
+  const dRange = dMax-dMin||1;
+
+  const html = `
+  <div class="aw-fade">
+    <!-- Hero -->
+    <div class="aw-hero">
+      <div class="aw-hero-loc">KONUMUM</div>
+      <div class="aw-hero-city">${city.name}</div>
+      <div class="aw-hero-temp">${Math.round(c.temperature_2m)}°</div>
+      <div class="aw-hero-cond">${info.t}</div>
+      <div class="aw-hero-range">Y:${Math.round(daily.temperature_2m_max[0])}° D:${Math.round(daily.temperature_2m_min[0])}°</div>
+    </div>
+
+    <!-- Özet -->
+    <div class="aw-summary">
+      ${awGetSummary(d)}
+    </div>
+
+    <!-- Saatlik -->
+    <div class="aw-hourly-wrap">
+      <div class="aw-section-title">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        SAATLİK TAHMİN
+      </div>
+      <div class="aw-hourly-scroll">
+        ${hourlyItems.map((h,idx)=>h.special ? `
+          <div class="aw-h-item special">
+            <div class="aw-h-time">${h.special.time}</div>
+            <div class="aw-h-icon">${h.special.type==='rise'?'🌅':'🌇'}</div>
+            <div class="aw-h-rain"></div>
+            <div class="aw-h-temp">${h.special.type==='rise'?'Gün Doğumu':'Gün Batımı'}</div>
+          </div>` : `
+          <div class="aw-h-item${h.isNow?' now':''}">
+            <div class="aw-h-time">${h.isNow?'Şu An':h.hour.getHours().toString().padStart(2,'0')+':00'}</div>
+            <div class="aw-h-icon">${weatherSVG(h.code, h.isDay, 26)}</div>
+            <div class="aw-h-rain">${h.rain>20?'💧'+h.rain+'%':''}</div>
+            <div class="aw-h-temp">${Math.round(h.temp)}°</div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- 10 Günlük -->
+    <div class="aw-daily-wrap">
+      <div class="aw-section-title">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        ${daily.time.length} GÜNLÜK TAHMİN
+      </div>
+      ${daily.time.map((dt,i)=>{
+        const barL = ((daily.temperature_2m_min[i]-dMin)/dRange*100).toFixed(0);
+        const barW = ((daily.temperature_2m_max[i]-daily.temperature_2m_min[i])/dRange*100).toFixed(0);
+        const di = awcInfo(daily.weather_code[i]);
+        return `<div class="aw-d-row">
+          <div class="aw-d-day">${i===0?'Bugün':awFmtDate(dt)}</div>
+          <div class="aw-d-icon">${weatherSVG(daily.weather_code[i],1,22)}</div>
+          <div class="aw-d-rain">${daily.precipitation_probability_max[i]>20?'%'+daily.precipitation_probability_max[i]:''}</div>
+          <div class="aw-d-low">${Math.round(daily.temperature_2m_min[i])}°</div>
+          <div class="aw-d-bar"><div class="aw-d-bar-fill" style="left:${barL}%;width:${barW}%"></div></div>
+          <div class="aw-d-high">${Math.round(daily.temperature_2m_max[i])}°</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Detay kartları -->
+    <div class="aw-detail-grid">
+      <!-- UV -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2"/></svg>
+          UV İNDEKSİ
+        </div>
+        <div class="aw-d-card-val">${daily.uv_index_max[0].toFixed(1)}</div>
+        <div class="aw-uv-bar"><div class="aw-uv-marker" style="left:${Math.min(95,daily.uv_index_max[0]/11*100)}%"></div></div>
+        <div class="aw-d-card-sub">${awUvLabel(daily.uv_index_max[0])}</div>
+      </div>
+
+      <!-- Gündoğumu/Batımı -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg>
+          GÜN DOĞUMU
+        </div>
+        <div class="aw-d-card-val">${awFmtTime(daily.sunrise[0])}</div>
+        ${awSunArc(daily.sunrise[0], daily.sunset[0])}
+        <div class="aw-d-card-sub">Gün Batımı: ${awFmtTime(daily.sunset[0])}</div>
+      </div>
+
+      <!-- Rüzgar -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+          RÜZGAR
+        </div>
+        ${awWindDial(c.wind_direction_10m, c.wind_speed_10m)}
+        <div class="aw-d-card-sub">Ani rüzgarlar: ${c.wind_gusts_10m.toFixed(1)} km/sa</div>
+      </div>
+
+      <!-- Yağış -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" opacity=".7"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          YAĞIŞ
+        </div>
+        <div class="aw-d-card-val">${c.precipitation.toFixed(1)} mm</div>
+        <div class="aw-d-card-sub">Son 1 saat<br>24 saatte ${daily.precipitation_sum[0].toFixed(1)} mm bekleniyor.</div>
+      </div>
+
+      <!-- Hissedilen -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+          HİSSEDİLEN
+        </div>
+        <div class="aw-d-card-val">${Math.round(c.apparent_temperature)}°</div>
+        <div class="aw-d-card-sub">${c.apparent_temperature > c.temperature_2m ? 'Gerçek sıcaklıktan daha sıcak hissettiriyor.' : 'Gerçek sıcaklıktan daha soğuk hissettiriyor.'}</div>
+      </div>
+
+      <!-- Nem -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          NEM ORANI
+        </div>
+        <div class="aw-d-card-val">%${c.relative_humidity_2m}</div>
+        ${awHumidityBar(c.relative_humidity_2m)}
+        <div class="aw-d-card-sub">Çiğ noktası ${awDewPoint(c.temperature_2m, c.relative_humidity_2m)}°</div>
+      </div>
+
+      <!-- Görünürlük -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          GÖRÜŞ MESAFESİ
+        </div>
+        <div class="aw-d-card-val">${c.visibility>=1000?(c.visibility/1000).toFixed(1)+' km':c.visibility+' m'}</div>
+        <div class="aw-d-card-sub">${c.visibility>=10000?'Açık.':c.visibility>=5000?'Orta görüş.':'Düşük görüş.'}</div>
+      </div>
+
+      <!-- Basınç -->
+      <div class="aw-d-card">
+        <div class="aw-d-card-title">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          BASINÇ
+        </div>
+        ${awPressureDial(c.surface_pressure)}
+        <div style="display:flex;justify-content:space-between;margin-top:6px">
+          <span style="font-size:11px;color:rgba(255,255,255,.4)">↓</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.4)">↑</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.25);margin-top:8px">
+      Güncellendi: ${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')} · Open-Meteo
+    </div>
+  </div>`;
+
+  document.getElementById('aw-weather-content').innerHTML = html;
+  document.getElementById('aw-weather-content').style.display = 'block';
+  document.getElementById('aw-welcome').style.display = 'none';
+}
+
+// Yardımcı fonksiyonlar
+function awGetSummary(d){
+  const c = d.current;
+  const info = awcInfo(c.weather_code, c.is_day);
+  const tmr = awcInfo(d.daily.weather_code[1]).t;
+  return `${info.t}. Yarın ${tmr.toLowerCase()} bekleniyor. Yüksek sıcaklık ${Math.round(d.daily.temperature_2m_max[0])}°.`;
+}
+
+function awUvLabel(v){
   if(v<=2) return 'Düşük'; if(v<=5) return 'Orta';
   if(v<=7) return 'Yüksek'; if(v<=10) return 'Çok Yüksek';
   return 'Aşırı';
 }
-function fmtTime(s){ const d=new Date(s); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
 
-// ── KONUM ────────────────────────────────────────────────────────────
-async function getWeatherByGPS(){
-  if(!navigator.geolocation){ showWeatherError('Konum özelliği desteklenmiyor.'); return; }
-  showWeatherLoading();
-  navigator.geolocation.getCurrentPosition(async pos => {
-    weatherLat = pos.coords.latitude; weatherLon = pos.coords.longitude;
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${weatherLat}&lon=${weatherLon}&format=json`);
-      const d = await r.json();
-      weatherCityName = d.address?.city||d.address?.town||d.address?.village||d.address?.county||'Bilinmiyor';
-    } catch(e){ weatherCityName = `${weatherLat.toFixed(2)}, ${weatherLon.toFixed(2)}`; }
-    fetchWeatherData();
-  }, err => { hideWeatherLoading(); showWeatherError('Konum alınamadı: '+err.message); });
+function awDewPoint(T, RH){
+  return Math.round(T - (100-RH)/5);
 }
 
-async function searchWeatherCity(){
-  const q = document.getElementById('weather-city-input').value.trim();
-  if(!q) return;
-  showWeatherLoading();
-  try {
-    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=tr&format=json`);
-    const d = await r.json();
-    if(!d.results?.length){ hideWeatherLoading(); showWeatherError('Şehir bulunamadı.'); return; }
-    const city = d.results[0];
-    weatherLat = city.latitude; weatherLon = city.longitude;
-    weatherCityName = city.name + (city.country?', '+city.country:'');
-    fetchWeatherData();
-  } catch(e){ hideWeatherLoading(); showWeatherError('Arama başarısız: '+e.message); }
-}
-
-// ── VERİ ÇEKME ───────────────────────────────────────────────────────
-async function fetchWeatherData(){
-  if(!weatherLat||!weatherLon) return;
-  showWeatherLoading();
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${weatherLat}&longitude=${weatherLon}`
-    +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility`
-    +`&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,is_day`
-    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,wind_speed_10m_max`
-    +`&timezone=auto&wind_speed_unit=kmh&forecast_days=7`;
-  try {
-    const r = await fetch(url);
-    const d = await r.json();
-    hideWeatherLoading();
-    renderWeather(d);
-    localStorage.setItem('gn_weather_loc', JSON.stringify({lat:weatherLat,lon:weatherLon,name:weatherCityName}));
-    if(weatherRefreshTimer) clearInterval(weatherRefreshTimer);
-    weatherRefreshTimer = setInterval(fetchWeatherData, 15*60*1000);
-  } catch(e){ hideWeatherLoading(); showWeatherError('Veri alınamadı: '+e.message); }
-}
-
-function refreshWeather(){ if(weatherLat) fetchWeatherData(); else getWeatherByGPS(); }
-
-// ── RENDER ───────────────────────────────────────────────────────────
-function renderWeather(d){
-  const c = d.current, daily = d.daily, hourly = d.hourly;
-  const info = wcInfo(c.weather_code, c.is_day);
-
-  // Hero arka plan gradient + animasyon
-  const hero = document.getElementById('weather-hero');
-  if(!hero){ console.error('weather-hero bulunamadı'); return; }
-  hero.style.background = `linear-gradient(135deg, ${info.grad[0]}, ${info.grad[1]})`;
-  renderWeatherBgAnim(c.weather_code, c.is_day);
-
-  // Anlık bilgiler
-  document.getElementById('weather-icon-big').innerHTML = weatherSVG(c.weather_code, c.is_day, 64);
-  document.getElementById('weather-temp-big').textContent = Math.round(c.temperature_2m)+'°';
-  document.getElementById('weather-feels-lbl').textContent = `Hissedilen ${Math.round(c.apparent_temperature)}°C`;
-  document.getElementById('weather-condition-big').textContent = info.t;
-  const locEl = document.querySelector('#weather-location-big span'); if(locEl) locEl.textContent = weatherCityName;
-
-  // Hero istatistikler
-  heroStat('hs-humidity', 'humidity', c.relative_humidity_2m+'%', 'Bağıl Nem');
-  heroStat('hs-wind', 'wind', c.wind_speed_10m.toFixed(1)+' km/s', 'Rüzgar · '+windArrow(c.wind_direction_10m)+' '+windDir(c.wind_direction_10m));
-  heroStat('hs-uv', 'uv', daily.uv_index_max[0].toFixed(1)+' — '+uvCat(daily.uv_index_max[0]), 'UV');
-  heroStat('hs-precip', 'precip', c.precipitation.toFixed(1)+' mm', 'Yağış');
-
-  document.getElementById('hs-sunrise').textContent = fmtTime(daily.sunrise[0]);
-  document.getElementById('hs-sunset').textContent = fmtTime(daily.sunset[0]);
-  // Basınç - sadece değeri güncelle
-  const pressEl = document.getElementById('hs-pressure');
-  if(pressEl) pressEl.textContent = c.surface_pressure.toFixed(1)+' hPa';
-  // Görünürlük - sadece değeri güncelle
-  const visEl = document.getElementById('hs-visibility');
-  if(visEl) visEl.textContent = c.visibility>=1000 ? (c.visibility/1000).toFixed(1)+' km' : c.visibility+' m';
-
-  const now = new Date();
-  document.getElementById('weather-updated').textContent = `Güncellendi: ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-
-  // Saatlik - gelişmiş tasarım
-  const hourlyEl = document.getElementById('weather-hourly');
-  let hHtml = '';
-  let shown = 0;
-  const nowTs = Date.now();
-  // Sıcaklık aralığı için min/max bul (gösterilecek saatler)
-  const hTemps = [];
-  for(let i=0; i<hourly.time.length; i++){
-    const ht = new Date(hourly.time[i]);
-    if(ht.getTime() >= nowTs - 1800000 && hTemps.length < 24) hTemps.push(hourly.temperature_2m[i]);
-  }
-  const hMin = Math.min(...hTemps), hMax = Math.max(...hTemps), hRange = hMax-hMin||1;
-  
-  for(let i=0; i<hourly.time.length && shown<24; i++){
-    const ht = new Date(hourly.time[i]);
-    if(ht.getTime() < nowTs - 1800000) continue;
-    const hi = wcInfo(hourly.weather_code[i], hourly.is_day[i]);
-    const isCur = shown === 0;
-    const barH = Math.round(((hourly.temperature_2m[i]-hMin)/hRange)*28)+4;
-    const rainPct = hourly.precipitation_probability[i];
-    hHtml += `<div class="hourly-item${isCur?' now':''}" style="animation:fadeInUp .3s ease ${shown*.03}s both">
-      <div class="h-time">${ht.getHours().toString().padStart(2,'0')}:00</div>
-      <div class="h-icon">${weatherSVG(hourly.weather_code[i], hourly.is_day[i], 28)}</div>
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:36px;margin:3px 0">
-        <div style="width:4px;border-radius:2px;background:${isCur?'rgba(0,0,0,.25)':'var(--accent)'};opacity:.7;height:${barH}px;transition:height .3s"></div>
-      </div>
-      <div class="h-temp">${Math.round(hourly.temperature_2m[i])}°</div>
-      ${rainPct>20?`<div class="h-rain" style="color:${isCur?'rgba(0,0,0,.5)':'#4facfe'}">💧${rainPct}%</div>`:'<div class="h-rain"></div>'}
-    </div>`;
-    shown++;
-  }
-  hourlyEl.innerHTML = hHtml;
-
-  // 7 Günlük - tıklanabilir + detay paneli
-  window._weatherDaily = daily;
-  window._weatherHourly = hourly;
-  renderDailyList(0);
-
-  document.getElementById('weather-welcome').style.display = 'none';
-  document.getElementById('weather-main-card').style.display = 'block';
-  document.getElementById('weather-main-card').classList.add('weather-anim');
-
-  updateWeatherWidget(c, info, daily);
-}
-
-const WEATHER_SVGS = {'humidity': '<svg width="36" height="40" viewBox="0 0 36 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 6px rgba(74,175,254,.5))">\n  <path d="M18 4 C18 4 6 18 6 26 A12 12 0 0 0 30 26 C30 18 18 4 18 4Z" fill="url(#dropGrad)" style="animation:dropPulse 2s ease-in-out infinite;transform-origin:18px 26px"/>\n  <ellipse cx="14" cy="22" rx="3" ry="4" fill="rgba(255,255,255,.25)" transform="rotate(-20 14 22)"/>\n  <defs>\n    <radialGradient id="dropGrad" cx="40%" cy="40%" r="60%">\n      <stop offset="0%" stop-color="#a8edff"/>\n      <stop offset="60%" stop-color="#4facfe"/>\n      <stop offset="100%" stop-color="#0066cc"/>\n    </radialGradient>\n  </defs>\n  <style>@keyframes dropPulse{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.06)}}</style>\n</svg>', 'wind': '<svg width="44" height="36" viewBox="0 0 44 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 5px rgba(255,255,255,.3))">\n  <path d="M4 10 Q16 10 22 10 Q30 10 32 6 A6 6 0 1 1 32 18 Q28 18 4 18" stroke="rgba(255,255,255,.9)" stroke-width="2.5" stroke-linecap="round" fill="none" style="animation:windFlow 1.8s ease-in-out infinite"/>\n  <path d="M4 18 Q14 18 20 18 Q26 18 28 22 A5 5 0 1 0 28 32 Q24 32 4 26" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-linecap="round" fill="none" style="animation:windFlow 1.8s ease-in-out .3s infinite"/>\n  <path d="M4 28 Q10 28 16 28" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-linecap="round" fill="none" style="animation:windFlow 1.8s ease-in-out .6s infinite"/>\n  <style>@keyframes windFlow{0%{stroke-dashoffset:100;stroke-dasharray:120}50%{stroke-dashoffset:0;stroke-dasharray:120}100%{stroke-dashoffset:-100;stroke-dasharray:120}}</style>\n</svg>', 'uv': '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 8px rgba(255,200,0,.6))">\n  <g style="animation:uvSpin 4s linear infinite;transform-origin:20px 20px">\n    <line x1="20" y1="2" x2="20" y2="8" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="33" y1="7" x2="28.7" y2="11.2" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="38" y1="20" x2="32" y2="20" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="33" y1="33" x2="28.7" y2="28.8" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="20" y1="38" x2="20" y2="32" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="7" y1="33" x2="11.3" y2="28.8" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="2" y1="20" x2="8" y2="20" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n    <line x1="7" y1="7" x2="11.3" y2="11.2" stroke="rgba(255,230,0,.9)" stroke-width="2.5" stroke-linecap="round"/>\n  </g>\n  <circle cx="20" cy="20" r="9" fill="url(#uvGrad)"/>\n  <text x="20" y="25" text-anchor="middle" font-size="10" font-weight="800" fill="#1a1a00" font-family="sans-serif">UV</text>\n  <defs>\n    <radialGradient id="uvGrad" cx="40%" cy="35%" r="65%">\n      <stop offset="0%" stop-color="#fff9a0"/>\n      <stop offset="50%" stop-color="#ffd200"/>\n      <stop offset="100%" stop-color="#ff8c00"/>\n    </radialGradient>\n  </defs>\n  <style>@keyframes uvSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>\n</svg>', 'precip': '<svg width="38" height="42" viewBox="0 0 38 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 6px rgba(74,175,254,.4))">\n  <path d="M19 4 Q8 12 6 18 A13 13 0 0 0 32 18 Q30 12 19 4Z" fill="url(#cloudRainGrad)"/>\n  <line x1="13" y1="30" x2="11" y2="38" stroke="rgba(74,175,254,.9)" stroke-width="2" stroke-linecap="round" style="animation:rainDrop 1.2s ease-in infinite"/>\n  <line x1="19" y1="30" x2="17" y2="38" stroke="rgba(74,175,254,.9)" stroke-width="2" stroke-linecap="round" style="animation:rainDrop 1.2s ease-in .2s infinite"/>\n  <line x1="25" y1="30" x2="23" y2="38" stroke="rgba(74,175,254,.9)" stroke-width="2" stroke-linecap="round" style="animation:rainDrop 1.2s ease-in .4s infinite"/>\n  <defs>\n    <linearGradient id="cloudRainGrad" x1="0%" y1="0%" x2="100%" y2="100%">\n      <stop offset="0%" stop-color="rgba(200,230,255,.9)"/>\n      <stop offset="100%" stop-color="rgba(100,160,220,.9)"/>\n    </linearGradient>\n  </defs>\n  <style>@keyframes rainDrop{0%{opacity:0;transform:translateY(-4px)}30%{opacity:1}100%{opacity:0;transform:translateY(6px)}}</style>\n</svg>', 'pressure': '', 'visibility': ''};
-
-function heroStat(id, iconKey, val, lbl){
-  const el = document.getElementById(id);
-  if(!el) return;
-  const svg = WEATHER_SVGS[iconKey] || iconKey;
-  el.innerHTML = `<div class="ws-icon">${svg}</div><div class="ws-val">${val}</div><div class="ws-lbl">${lbl}</div>`;
-}
-
-// ── ARKAPLAn ANİMASYONU ───────────────────────────────────────────────
-function renderWeatherBgAnim(code, isDay){
-  const el = document.getElementById('weather-bg-anim');
-  if(!el) return;
-
-  if(!isDay){
-    el.innerHTML = `<div style="position:absolute;inset:0;overflow:hidden;opacity:.3">
-      ${Array.from({length:20},(_,i)=>`<div style="position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;top:${Math.random()*100}%;left:${Math.random()*100}%;opacity:${Math.random()*.7+.3};animation:sunRay ${1.5+Math.random()*2}s ease-in-out ${Math.random()}s infinite"></div>`).join('')}
-    </div>`;
-    return;
-  }
-
-  if(code===0||code===1){
-    el.innerHTML = `<div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;background:rgba(255,220,100,.3);border-radius:50%;animation:sunRay 2s ease-in-out infinite"></div>
-    <div style="position:absolute;top:10px;right:10px;width:80px;height:80px;background:rgba(255,230,100,.2);border-radius:50%;animation:sunRay 2.5s ease-in-out .5s infinite"></div>`;
-  } else if(code>=61&&code<=82){
-    const drops = Array.from({length:12},(_,i)=>`<div class="rain-drop" style="position:absolute;width:1.5px;height:12px;background:rgba(255,255,255,.5);border-radius:1px;left:${(i/12*100).toFixed(0)}%;top:${(Math.random()*50).toFixed(0)}%;animation-delay:${(Math.random()*1.2).toFixed(2)}s;animation-duration:${(.8+Math.random()*.4).toFixed(2)}s"></div>`).join('');
-    el.innerHTML = `<div style="position:absolute;inset:0;overflow:hidden">${drops}</div>`;
-  } else if(code>=71&&code<=75||code===85){
-    const flakes = Array.from({length:10},(_,i)=>`<div class="snow-flake" style="position:absolute;font-size:14px;left:${(i/10*100).toFixed(0)}%;top:${(Math.random()*40).toFixed(0)}%;opacity:.7;animation-delay:${(Math.random()*2).toFixed(2)}s;animation-duration:${(1.5+Math.random()*1).toFixed(2)}s">❄</div>`).join('');
-    el.innerHTML = `<div style="position:absolute;inset:0;overflow:hidden">${flakes}</div>`;
-  } else if(code>=95){
-    el.innerHTML = `<div class="lightning-anim" style="position:absolute;right:40px;top:10px;font-size:40px;opacity:0">⚡</div>`;
-  } else {
-    el.innerHTML = `<div class="cloud-anim" style="position:absolute;top:10px;right:20px;font-size:36px;opacity:.25">☁️</div>
-    <div class="cloud-anim" style="position:absolute;bottom:15px;left:15px;font-size:28px;opacity:.2;animation-delay:.8s">☁️</div>`;
-  }
-}
-
-// ── WIDGET ───────────────────────────────────────────────────────────
-function updateWeatherWidget(c, info, daily){
-  const el = document.getElementById('hw-weather-body');
-  if(!el) return;
-  el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-    <span style="font-size:26px">${info.e}</span>
-    <div><div style="font-size:20px;font-weight:700;line-height:1">${Math.round(c.temperature_2m)}°C</div>
-    <div style="font-size:10px;opacity:.7">${info.t}</div></div>
-  </div>
-  <div style="font-size:10px;opacity:.65;margin-bottom:3px">${weatherCityName}</div>
-  <div style="font-size:10px;opacity:.7">↑${Math.round(daily.temperature_2m_max[0])}° ↓${Math.round(daily.temperature_2m_min[0])}° · 💧${c.relative_humidity_2m}%</div>`;
-}
-
-// ── YARDIMCI ─────────────────────────────────────────────────────────
-function showWeatherLoading(){
-  document.getElementById('weather-loading').style.display='block';
-  document.getElementById('weather-main-card').style.display='none';
-  document.getElementById('weather-welcome').style.display='none';
-  document.getElementById('weather-error').style.display='none';
-}
-function hideWeatherLoading(){ document.getElementById('weather-loading').style.display='none'; }
-function showWeatherError(msg){
-  document.getElementById('weather-error').textContent='⚠️ '+msg;
-  document.getElementById('weather-error').style.display='block';
-  const ww=document.getElementById('weather-welcome'); if(ww) ww.style.display='none';
-  hideWeatherLoading();
-}
-
-window._weatherInit = function(){
-  const saved = localStorage.getItem('gn_weather_loc');
-  if(saved){ try{ const o=JSON.parse(saved); weatherLat=o.lat; weatherLon=o.lon; weatherCityName=o.name;
-    document.getElementById('weather-city-input').value=o.name; fetchWeatherData(); }catch(e){} }
-};
-
-// ── 7 GÜNLÜK LİST + DETAY ───────────────────────────────────────────
-const TR_DAYS = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
-const TR_DAYS_FULL = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
-
-function renderDailyList(selectedIdx){
-  const daily = window._weatherDaily;
-  if(!daily) return;
-  const dailyEl = document.getElementById('weather-daily');
-  if(!dailyEl) return;
-
-  const tMin = Math.min(...daily.temperature_2m_min);
-  const tMax = Math.max(...daily.temperature_2m_max);
-  const range = tMax - tMin || 1;
-
-  let html = '';
-  for(let i=0; i<daily.time.length; i++){
-    const dt = new Date(daily.time[i]+'T12:00:00');
-    const di = wcInfo(daily.weather_code[i]);
-    const isToday = i===0;
-    const isSel = i===selectedIdx;
-    const barLeft = ((daily.temperature_2m_min[i]-tMin)/range*100).toFixed(0);
-    const barWidth = ((daily.temperature_2m_max[i]-daily.temperature_2m_min[i])/range*100).toFixed(0);
-
-    html += `<div class="daily-row${isToday?' today':''}${isSel?' selected':''}" 
-      onclick="selectDailyDay(${i})"
-      style="cursor:pointer;border-radius:12px;padding:11px 10px;transition:all .2s;${isSel?'background:linear-gradient(135deg,rgba(58,123,213,.15),rgba(58,123,213,.05));border:1.5px solid var(--accent);box-shadow:0 2px 12px rgba(58,123,213,.15)':'border:1.5px solid transparent'};animation:fadeInUp .3s ease ${i*.04}s both">
-      <div style="width:44px;font-size:12px;color:var(--muted);font-weight:${isToday||isSel?600:400}">${isToday?'Bugün':TR_DAYS[dt.getDay()]}</div>
-      <div style="width:32px">${weatherSVG(daily.weather_code[i], 1, 28)}</div>
-      <div style="flex:1;font-size:12px;color:var(--muted);min-width:80px">${di.t}</div>
-      <div style="font-size:11px;color:#4facfe;width:48px;text-align:right">${daily.precipitation_sum[i]>0?'💧'+daily.precipitation_sum[i]+'mm':''}</div>
-      <div style="width:120px;display:flex;align-items:center;gap:5px;margin-left:8px">
-        <span style="font-size:12px;color:var(--muted);width:26px;text-align:right">${Math.round(daily.temperature_2m_min[i])}°</span>
-        <div style="flex:1;height:6px;border-radius:3px;background:var(--surface2);position:relative;overflow:hidden">
-          <div style="position:absolute;top:0;left:${barLeft}%;width:${barWidth}%;height:100%;border-radius:3px;background:linear-gradient(to right,#4facfe,#f7971e);transition:width .4s ease"></div>
-        </div>
-        <span style="font-size:13px;font-weight:600;color:var(--text);width:26px">${Math.round(daily.temperature_2m_max[i])}°</span>
-      </div>
-      <div style="width:16px;color:var(--muted);text-align:center;font-size:11px;margin-left:4px">${isSel?'▲':'▾'}</div>
-    </div>`;
-
-    // Seçili günün detay paneli
-    if(isSel){
-      html += renderDayDetail(i);
-    }
-  }
-  dailyEl.innerHTML = html;
-}
-
-function renderDayDetail(i){
-  const daily = window._weatherDaily;
-  const hourly = window._weatherHourly;
-  const dt = new Date(daily.time[i]+'T12:00:00');
-  const dayName = i===0 ? 'Bugün' : TR_DAYS_FULL[dt.getDay()]+', '+dt.getDate()+' '+['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][dt.getMonth()];
-
-  // O güne ait saatlik verileri bul
-  const dayStr = daily.time[i];
-  let hHtml = '';
-  if(hourly){
-    let shown = 0;
-    for(let j=0; j<hourly.time.length && shown<24; j++){
-      if(!hourly.time[j].startsWith(dayStr)) continue;
-      const ht = new Date(hourly.time[j]);
-      const hi = wcInfo(hourly.weather_code[j], hourly.is_day[j]);
-      const rainPct = hourly.precipitation_probability[j];
-      hHtml += `<div style="flex-shrink:0;text-align:center;padding:8px 7px;border-radius:10px;background:var(--surface2);min-width:48px">
-        <div style="font-size:10px;color:var(--muted)">${ht.getHours().toString().padStart(2,'0')}:00</div>
-        <div style="margin:3px 0">${weatherSVG(hourly.weather_code[j], hourly.is_day[j], 26)}</div>
-        <div style="font-size:12px;font-weight:600;color:var(--text)">${Math.round(hourly.temperature_2m[j])}°</div>
-        ${rainPct>20?`<div style="font-size:10px;color:#4facfe">💧${rainPct}%</div>`:''}
-      </div>`;
-      shown++;
-    }
-  }
-
-  return `<div style="margin:4px 0 8px;padding:14px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;animation:fadeInUp .25s ease both">
-    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">${dayName}</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">
-      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">En Yüksek</div>
-        <div style="font-size:16px;font-weight:700;color:#f7971e">${Math.round(daily.temperature_2m_max[i])}°</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">En Düşük</div>
-        <div style="font-size:16px;font-weight:700;color:#4facfe">${Math.round(daily.temperature_2m_min[i])}°</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">UV</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${uvLabel(daily.uv_index_max[i])}</div>
-      </div>
-      <div style="background:var(--surface2);border-radius:10px;padding:8px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Rüzgar</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${Math.round(daily.wind_speed_10m_max[i])} km/s</div>
-      </div>
-    </div>
-    ${hHtml?`<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Saatlik</div>
-    <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">${hHtml}</div>`:''}
+function awHumidityBar(v){
+  return `<div style="height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin:8px 0 4px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:0;left:0;height:100%;width:${v}%;border-radius:3px;background:linear-gradient(to right,#30d158,#5ac8fa)"></div>
   </div>`;
 }
 
-function selectDailyDay(i){
-  const current = window._selectedDailyDay;
-  window._selectedDailyDay = (current===i) ? -1 : i;
-  renderDailyList(window._selectedDailyDay);
+function awSunArc(sunrise, sunset){
+  const sr = new Date(sunrise), ss = new Date(sunset), now = new Date();
+  const total = ss-sr, elapsed = Math.min(Math.max(now-sr,0),total);
+  const pct = total>0 ? elapsed/total : 0;
+  const cx=90, cy=55, r=40;
+  const startAngle = Math.PI, endAngle = 0;
+  const angle = startAngle + pct*(endAngle-startAngle);
+  const sunX = cx + r*Math.cos(angle), sunY = cy + r*Math.sin(angle);
+  return `<svg width="180" height="65" viewBox="0 0 180 65" style="margin:4px 0">
+    <path d="M50 55 A40 40 0 0 1 130 55" stroke="rgba(255,255,255,.15)" stroke-width="2" fill="none"/>
+    <path d="M50 55 A40 40 0 0 1 ${sunX.toFixed(1)} ${sunY.toFixed(1)}" stroke="rgba(255,200,50,.7)" stroke-width="2" fill="none"/>
+    <circle cx="${sunX.toFixed(1)}" cy="${sunY.toFixed(1)}" r="5" fill="#ffd60a"/>
+    <line x1="50" y1="55" x2="50" y2="60" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+    <line x1="130" y1="55" x2="130" y2="60" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
+  </svg>`;
 }
+
+function awWindDial(deg, speed){
+  const cx=55, cy=45, r=28;
+  const rad = (deg-90)*Math.PI/180;
+  const nx = cx+r*Math.cos(rad), ny = cy+r*Math.sin(rad);
+  const sx = cx-r*0.6*Math.cos(rad), sy = cy-r*0.6*Math.sin(rad);
+  return `<div style="display:flex;align-items:center;gap:12px;margin:4px 0">
+    <svg width="110" height="90" viewBox="0 0 110 90">
+      <circle cx="55" cy="45" r="35" stroke="rgba(255,255,255,.1)" stroke-width="1.5" fill="rgba(0,0,0,.2)"/>
+      <circle cx="55" cy="45" r="28" stroke="rgba(255,255,255,.06)" stroke-width="1" fill="none"/>
+      <text x="55" y="14" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">K</text>
+      <text x="96" y="49" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">D</text>
+      <text x="55" y="86" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">G</text>
+      <text x="14" y="49" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">B</text>
+      <line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="3" fill="#ffd60a"/>
+      <text x="55" y="51" text-anchor="middle" fill="#fff" font-size="14" font-weight="600" font-family="sans-serif">${Math.round(speed)}</text>
+      <text x="55" y="62" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8" font-family="sans-serif">km/sa</text>
+    </svg>
+  </div>`;
+}
+
+function awPressureDial(hpa){
+  const min=980, max=1040, pct=Math.min(1,Math.max(0,(hpa-min)/(max-min)));
+  const angle = -130 + pct*260;
+  return `<div style="text-align:center;margin:4px 0">
+    <svg width="120" height="70" viewBox="0 0 120 70">
+      <path d="M15 65 A50 50 0 0 1 105 65" stroke="rgba(255,255,255,.1)" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M15 65 A50 50 0 0 1 105 65" stroke="url(#pressArc)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${pct*157} 157"/>
+      <g transform="rotate(${angle} 60 65)">
+        <line x1="60" y1="65" x2="60" y2="22" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </g>
+      <circle cx="60" cy="65" r="4" fill="rgba(255,255,255,.8)"/>
+      <text x="60" y="56" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" font-family="sans-serif">${hpa.toFixed(0)}</text>
+      <text x="60" y="67" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="8" font-family="sans-serif">hPa</text>
+      <text x="18" y="72" fill="rgba(255,255,255,.3)" font-size="8" font-family="sans-serif">Düşük</text>
+      <text x="72" y="72" fill="rgba(255,255,255,.3)" font-size="8" font-family="sans-serif">Yüksek</text>
+      <defs><linearGradient id="pressArc" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ac8fa"/><stop offset="100%" stop-color="#ffd60a"/></linearGradient></defs>
+    </svg>
+  </div>`;
+}
+
+// Loading
+function awShowLoading(){
+  document.getElementById('aw-loading').style.display='flex';
+  document.getElementById('aw-weather-content').style.display='none';
+  document.getElementById('aw-welcome').style.display='none';
+}
+function awHideLoading(){ document.getElementById('aw-loading').style.display='none'; }
+
+// Başlatma
+function refreshWeather(){ if(awCities.length) awFetchCity(awActiveCityIdx); }
+
+window._weatherInit = function(){
+  awLoadCities();
+  awRenderCityList();
+  if(awCities.length){
+    awFetchCity(awActiveCityIdx);
+  }
+};
+
+// 15 dakikada bir güncelle
+setInterval(()=>{ if(awCities.length) awFetchCity(awActiveCityIdx); }, 15*60*1000);
