@@ -1,348 +1,225 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
 
-/* ── RESET & ROOT ── */
 .wx-root *{box-sizing:border-box;margin:0;padding:0}
 .wx-root{
-  --wx-h: calc(100vh - 120px);
   font-family:'Outfit',sans-serif;
   color:#e8edf5;
-  display:flex;
-  height:var(--wx-h);
-  min-height:580px;
-  border-radius:18px;
-  overflow:hidden;
-  position:relative;
+  width:100%;
+  min-height:calc(100vh - 120px);
   background:#080c14;
+  position:relative;
+  overflow:hidden;
 }
 
-/* ── ATMOSFER ARKAPLAN ── */
-.wx-atmo{
-  position:absolute;inset:0;z-index:0;
-  transition:opacity 1.4s ease;
-  pointer-events:none;
-}
-.wx-atmo-orb{
-  position:absolute;border-radius:50%;
-  filter:blur(80px);opacity:0;
-  transition:all 1.6s ease;
-}
+/* ── ATMOSFER ── */
+.wx-atmo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.wx-orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:0;transition:all 1.8s ease}
 
-/* ── SOL PANEL ── */
-.wx-sidebar{
-  width:220px;flex-shrink:0;
-  border-right:1px solid rgba(255,255,255,.06);
-  display:flex;flex-direction:column;
-  background:rgba(255,255,255,.015);
-  backdrop-filter:blur(20px);
-  position:relative;z-index:2;
+/* ── ÜSTE ŞEHIR BARI ── */
+.wx-topbar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;gap:10px;
+  padding:18px 32px 0;
 }
-.wx-sb-top{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
-.wx-sb-search{
-  display:flex;align-items:center;gap:8px;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:10px;padding:8px 10px;
-  transition:border-color .2s;
+.wx-city-tabs{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+.wx-tab{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .2s;
+  border:1px solid rgba(255,255,255,.1);
+  color:rgba(232,237,245,.5);background:transparent;
+  display:flex;align-items:center;gap:6px;
 }
-.wx-sb-search:focus-within{border-color:rgba(255,255,255,.2)}
-.wx-sb-search svg{opacity:.4;flex-shrink:0}
-.wx-sb-search input{
-  background:transparent;border:none;outline:none;
-  color:#e8edf5;font-family:'Outfit',sans-serif;
-  font-size:12px;width:100%;
+.wx-tab:hover{background:rgba(255,255,255,.07);color:#e8edf5}
+.wx-tab.on{background:rgba(255,255,255,.12);color:#e8edf5;border-color:rgba(255,255,255,.2)}
+.wx-tab-del{
+  background:none;border:none;color:rgba(255,255,255,.25);
+  cursor:pointer;font-size:14px;line-height:1;padding:0;
+  transition:color .15s;margin-left:2px;
 }
-.wx-sb-search input::placeholder{color:rgba(232,237,245,.35)}
+.wx-tab-del:hover{color:rgba(255,100,100,.7)}
 
-.wx-suggest{
-  position:absolute;left:14px;right:14px;
-  background:#131928;border:1px solid rgba(255,255,255,.1);
-  border-radius:10px;overflow:hidden;z-index:200;
-  display:none;box-shadow:0 12px 32px rgba(0,0,0,.6);
-  top:70px;
+/* Arama butonu */
+.wx-add-btn{
+  padding:6px 14px;border-radius:20px;font-size:12px;
+  border:1px dashed rgba(255,255,255,.2);
+  background:transparent;color:rgba(232,237,245,.4);
+  cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:all .2s;font-family:'Outfit',sans-serif;
+  white-space:nowrap;
 }
-.wx-sug-item{
-  padding:9px 12px;cursor:pointer;
-  transition:background .1s;border-bottom:1px solid rgba(255,255,255,.04);
+.wx-add-btn:hover{border-color:rgba(255,255,255,.4);color:#e8edf5}
+
+/* Arama popup */
+.wx-search-popup{
+  position:absolute;top:calc(100% + 8px);right:32px;
+  width:280px;background:#131928;
+  border:1px solid rgba(255,255,255,.12);border-radius:14px;
+  padding:12px;z-index:200;display:none;
+  box-shadow:0 16px 48px rgba(0,0,0,.6);
 }
-.wx-sug-item:last-child{border:none}
+.wx-search-popup.vis{display:block}
+.wx-search-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 12px;margin-bottom:8px;transition:border-color .2s}
+.wx-search-row:focus-within{border-color:rgba(255,255,255,.25)}
+.wx-search-row input{background:transparent;border:none;outline:none;color:#e8edf5;font-family:'Outfit',sans-serif;font-size:13px;flex:1}
+.wx-search-row input::placeholder{color:rgba(232,237,245,.3)}
+.wx-search-suggest{display:none}
+.wx-sug-item{padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s}
 .wx-sug-item:hover{background:rgba(255,255,255,.07)}
 .wx-sug-name{font-size:12px;font-weight:500}
-.wx-sug-sub{font-size:10px;color:rgba(232,237,245,.4);margin-top:1px}
+.wx-sug-sub{font-size:10px;color:rgba(232,237,245,.35);margin-top:1px}
+.wx-search-gps{width:100%;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:transparent;color:rgba(232,237,245,.45);font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;margin-top:4px}
+.wx-search-gps:hover{background:rgba(255,255,255,.07);color:#e8edf5}
 
-.wx-cities{flex:1;overflow-y:auto;padding:8px;scrollbar-width:none}
-.wx-cities::-webkit-scrollbar{display:none}
-.wx-city{
-  padding:10px 12px;border-radius:10px;cursor:pointer;
-  transition:all .2s;margin-bottom:3px;
-  display:flex;justify-content:space-between;align-items:center;
-}
-.wx-city:hover{background:rgba(255,255,255,.05)}
-.wx-city.on{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.1)}
-.wx-city-l{}
-.wx-city-name{font-size:12px;font-weight:500;line-height:1.3}
-.wx-city-desc{font-size:10px;color:rgba(232,237,245,.4);margin-top:2px}
-.wx-city-r{text-align:right}
-.wx-city-temp{font-size:18px;font-weight:300;font-family:'Playfair Display',serif}
-.wx-city-del{
-  display:block;background:none;border:none;
-  color:rgba(255,255,255,.15);cursor:pointer;
-  font-size:14px;margin-top:2px;transition:color .15s;
-}
-.wx-city-del:hover{color:rgba(255,100,100,.6)}
-
-.wx-sb-foot{padding:10px 14px;border-top:1px solid rgba(255,255,255,.05)}
-.wx-gps{
-  width:100%;padding:8px;border-radius:9px;
-  border:1px solid rgba(255,255,255,.08);
-  background:transparent;color:rgba(232,237,245,.5);
-  font-family:'Outfit',sans-serif;font-size:11px;
-  cursor:pointer;display:flex;align-items:center;
-  justify-content:center;gap:6px;transition:all .2s;
-}
-.wx-gps:hover{background:rgba(255,255,255,.06);color:#e8edf5;border-color:rgba(255,255,255,.15)}
-
-/* ── SAĞ ANA PANEL ── */
-.wx-main{
-  flex:1;overflow-y:auto;position:relative;z-index:1;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent;
+/* ── ANA İÇERİK ── */
+.wx-body{
+  position:relative;z-index:1;
+  padding:24px 32px 48px;
+  overflow-y:auto;
+  max-height:calc(100vh - 180px);
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.07) transparent;
 }
 
 /* Hoşgeldin */
-.wx-welcome{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;height:100%;gap:14px;
-  color:rgba(232,237,245,.35);text-align:center;padding:40px;
-}
-.wx-welcome-ico{font-size:48px;opacity:.3;filter:grayscale(1)}
+.wx-welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:14px;color:rgba(232,237,245,.3);text-align:center}
 .wx-welcome h3{font-size:16px;font-weight:400;color:rgba(232,237,245,.6)}
 .wx-welcome p{font-size:12px;line-height:1.7;max-width:220px}
-.wx-welcome-btn{
-  margin-top:4px;padding:9px 20px;border-radius:9px;
-  border:1px solid rgba(255,255,255,.12);
-  background:rgba(255,255,255,.05);color:rgba(232,237,245,.7);
-  font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;
-  transition:all .2s;
-}
-.wx-welcome-btn:hover{background:rgba(255,255,255,.1);color:#e8edf5}
 
 /* Loading */
-.wx-loading{
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:center;height:100%;gap:12px;
-  color:rgba(232,237,245,.3);font-size:12px;
-}
-.wx-spin{
-  width:24px;height:24px;border-radius:50%;
-  border:2px solid rgba(255,255,255,.08);
-  border-top-color:rgba(255,255,255,.5);
-  animation:wxspin .7s linear infinite;
-}
+.wx-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:12px;color:rgba(232,237,245,.3);font-size:12px}
+.wx-spin{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.08);border-top-color:rgba(255,255,255,.5);animation:wxspin .7s linear infinite}
 @keyframes wxspin{to{transform:rotate(360deg)}}
 
-/* ── CONTENT STREAM ── */
-.wx-stream{padding:28px 32px 48px;animation:wxfadein .5s ease}
-@keyframes wxfadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-/* HERO — büyük sıcaklık + durum */
-.wx-hero{margin-bottom:36px}
-.wx-hero-loc{
-  font-size:10px;font-weight:600;letter-spacing:3px;
-  text-transform:uppercase;color:rgba(232,237,245,.4);
-  margin-bottom:8px;
-}
-.wx-hero-city{
-  font-family:'Playfair Display',serif;
-  font-size:38px;font-weight:700;line-height:1;
-  margin-bottom:16px;
-}
-.wx-hero-row{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap}
-.wx-hero-temp{
-  font-size:96px;font-weight:200;line-height:1;
-  letter-spacing:-4px;
-  background:linear-gradient(180deg,#fff 40%,rgba(255,255,255,.5));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.wx-hero-info{padding-bottom:10px}
-.wx-hero-cond{font-size:20px;font-weight:300;margin-bottom:6px}
+/* ── HERO ── */
+.wx-hero{margin-bottom:32px}
+.wx-hero-loc{font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(232,237,245,.35);margin-bottom:8px}
+.wx-hero-city{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;line-height:1;margin-bottom:18px}
+.wx-hero-row{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.wx-hero-temp{font-size:100px;font-weight:200;line-height:1;letter-spacing:-4px;background:linear-gradient(180deg,#fff 40%,rgba(255,255,255,.45));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.wx-hero-meta{padding-bottom:12px}
+.wx-hero-cond{font-size:22px;font-weight:300;margin-bottom:7px}
 .wx-hero-feels{font-size:13px;color:rgba(232,237,245,.45);margin-bottom:3px}
 .wx-hero-range{font-size:13px;color:rgba(232,237,245,.45)}
 
-/* ── DIVIDER ── */
-.wx-div{
-  height:1px;
-  background:linear-gradient(to right,rgba(255,255,255,.12),rgba(255,255,255,.03),transparent);
-  margin:28px 0;
-}
-
-/* ── SAATLIK BANT ── */
-.wx-hourly-label{
-  font-size:9px;font-weight:600;letter-spacing:2.5px;
-  text-transform:uppercase;color:rgba(232,237,245,.3);
-  margin-bottom:14px;
-}
-.wx-hourly-track{
-  display:flex;gap:2px;overflow-x:auto;
-  scrollbar-width:none;padding-bottom:4px;
-  margin:-4px;padding:4px;
-}
+/* ── SAATLİK ── */
+.wx-sec-lbl{font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(232,237,245,.28);margin-bottom:14px}
+.wx-hourly-track{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:4px 2px;margin-bottom:32px}
 .wx-hourly-track::-webkit-scrollbar{display:none}
-.wx-h{
-  flex-shrink:0;display:flex;flex-direction:column;
-  align-items:center;padding:12px 10px;border-radius:12px;
-  min-width:58px;gap:5px;cursor:default;
-  transition:background .15s;
-}
+.wx-h{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:12px 10px;border-radius:12px;min-width:58px;gap:5px;transition:background .15s;cursor:default}
 .wx-h:hover{background:rgba(255,255,255,.05)}
-.wx-h.now{
-  background:rgba(255,255,255,.08);
-  outline:1px solid rgba(255,255,255,.12);
-}
-.wx-h-t{font-size:10px;color:rgba(232,237,245,.4);font-weight:500}
-.wx-h.now .wx-h-t{color:rgba(232,237,245,.8);font-weight:600}
-.wx-h-ico{height:28px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.wx-h-rain{font-size:9px;color:#7ab8f5;font-weight:600;height:13px;line-height:13px}
+.wx-h.now{background:rgba(255,255,255,.09);outline:1px solid rgba(255,255,255,.13)}
+.wx-h-t{font-size:10px;color:rgba(232,237,245,.38);font-weight:500}
+.wx-h.now .wx-h-t{color:rgba(232,237,245,.85);font-weight:600}
+.wx-h-ico{height:26px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.wx-h-rain{font-size:9px;color:#7ab8f5;font-weight:600;height:12px;line-height:12px}
 .wx-h-temp{font-size:13px;font-weight:500}
-/* gündoğumu/batımı */
-.wx-h.sol .wx-h-t{color:rgba(255,195,80,.7);font-size:9px}
-.wx-h.sol .wx-h-temp{font-size:9px;color:rgba(255,195,80,.6);font-weight:400}
+.wx-h.sol .wx-h-t{color:rgba(255,190,70,.7);font-size:9px}
+.wx-h.sol .wx-h-temp{font-size:9px;color:rgba(255,190,70,.55);font-weight:400}
 
-/* ── GÜNEŞ SATIRI ── */
-.wx-sun-row{
-  display:flex;gap:0;
+/* ── GÜNEŞ ANİMASYONU ── */
+.wx-sun-row{display:flex;gap:12px;margin-bottom:32px}
+.wx-sun-card{
+  flex:1;padding:20px 24px;border-radius:16px;
   background:rgba(255,255,255,.025);
-  border-radius:14px;overflow:hidden;
-  margin-bottom:28px;
+  display:flex;align-items:center;gap:20px;
+  overflow:hidden;position:relative;
 }
-.wx-sun-half{
-  flex:1;padding:16px 20px;
-  display:flex;align-items:center;gap:14px;
-}
-.wx-sun-half:first-child{border-right:1px solid rgba(255,255,255,.05)}
-.wx-sun-ico{font-size:26px;opacity:.85}
-.wx-sun-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(232,237,245,.35);margin-bottom:4px}
-.wx-sun-val{font-size:22px;font-weight:300;font-family:'Playfair Display',serif}
+.wx-sun-anim{width:64px;height:64px;position:relative;flex-shrink:0}
+/* Gündoğumu SVG animasyonu */
+.wx-rise-svg .sun-body{animation:wx-rise 2.5s ease-out forwards}
+@keyframes wx-rise{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.wx-rise-svg .ray{animation:wx-ray 2s ease-out .5s both;transform-origin:center}
+@keyframes wx-ray{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+.wx-rise-svg .horizon{animation:wx-horizon .8s ease-out forwards}
+@keyframes wx-horizon{from{opacity:0}to{opacity:.7}}
+/* Gün batımı */
+.wx-set-svg .sun-body{animation:wx-set 2.5s ease-out forwards}
+@keyframes wx-set{from{transform:translateY(-8px);opacity:1}to{transform:translateY(18px);opacity:.5}}
+.wx-set-svg .ray{animation:wx-rayf 2s ease-out .2s both;transform-origin:center}
+@keyframes wx-rayf{from{opacity:1;transform:scale(1)}to{opacity:.2;transform:scale(.6)}}
+.wx-set-svg .sky-glow{animation:wx-glow 2s ease-out .3s both}
+@keyframes wx-glow{from{opacity:0}to{opacity:.8}}
+.wx-sun-info{}
+.wx-sun-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(232,237,245,.32);margin-bottom:5px}
+.wx-sun-val{font-size:28px;font-weight:200;font-family:'Playfair Display',serif;letter-spacing:-1px}
+.wx-sun-sub{font-size:11px;color:rgba(232,237,245,.35);margin-top:4px}
 
-/* ── DETAY SATIRI ── */
-.wx-details-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:1px;
-  background:rgba(255,255,255,.05);
-  border-radius:14px;overflow:hidden;
-  margin-bottom:28px;
-}
-.wx-det{
-  background:#080c14;
-  padding:18px 16px;
-  transition:background .15s;
-}
-.wx-det:hover{background:#0d1120}
-.wx-det-ico{font-size:16px;margin-bottom:8px;opacity:.6}
-.wx-det-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,237,245,.3);margin-bottom:6px}
-.wx-det-val{font-size:22px;font-weight:300;line-height:1;margin-bottom:4px}
-.wx-det-sub{font-size:10px;color:rgba(232,237,245,.35);line-height:1.5}
-
-/* UV BAR */
-.wx-uv-bar{
-  height:3px;border-radius:2px;
-  background:linear-gradient(to right,#22c55e,#eab308,#f97316,#ef4444,#a855f7);
-  margin:8px 0 4px;position:relative;
-}
-.wx-uv-pin{
-  position:absolute;top:-4px;
-  width:3px;height:11px;background:#fff;border-radius:2px;
-  transform:translateX(-50%);transition:left .6s ease;
-  box-shadow:0 0 6px rgba(0,0,0,.5);
-}
-
-/* NEM BAR */
-.wx-hum-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:8px 0 4px;overflow:hidden}
+/* ── DETAY GRID ── */
+.wx-det-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.04);border-radius:16px;overflow:hidden;margin-bottom:32px}
+.wx-det{background:#080c14;padding:20px 18px;transition:background .15s;cursor:default}
+.wx-det:hover{background:#0c1020}
+.wx-det-ico{font-size:15px;margin-bottom:9px;opacity:.55}
+.wx-det-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,237,245,.28);margin-bottom:7px}
+.wx-det-val{font-size:24px;font-weight:300;line-height:1;margin-bottom:5px}
+.wx-det-sub{font-size:10px;color:rgba(232,237,245,.33);line-height:1.55}
+.wx-uv-bar{height:3px;border-radius:2px;background:linear-gradient(to right,#22c55e,#eab308,#f97316,#ef4444,#a855f7);margin:9px 0 5px;position:relative}
+.wx-uv-pin{position:absolute;top:-4px;width:3px;height:11px;background:#fff;border-radius:2px;transform:translateX(-50%);transition:left .6s ease;box-shadow:0 0 5px rgba(0,0,0,.5)}
+.wx-hum-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.07);margin:9px 0 5px;overflow:hidden}
 .wx-hum-fill{height:100%;border-radius:2px;background:linear-gradient(to right,#38bdf8,#818cf8);transition:width .6s}
 
-/* ── GÜNLÜK TAHMİN ── */
-.wx-daily-wrap{margin-bottom:28px}
-.wx-daily-row{
-  display:flex;align-items:center;gap:12px;
-  padding:13px 0;
-  border-bottom:1px solid rgba(255,255,255,.04);
-  cursor:pointer;transition:opacity .15s;
-  position:relative;
-}
-.wx-daily-row:last-child{border:none}
-.wx-daily-row:hover{opacity:.8}
-.wx-daily-row.open{opacity:1}
-.wx-day-name{width:38px;font-size:12px;font-weight:400;color:rgba(232,237,245,.6)}
+/* ── GÜNLÜK ── */
+.wx-daily-wrap{margin-bottom:8px}
+.wx-day-row{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:opacity .15s}
+.wx-day-row:last-child{border:none}
+.wx-day-row:hover{opacity:.75}
+.wx-day-name{width:40px;font-size:12px;font-weight:400;color:rgba(232,237,245,.55)}
 .wx-day-name.today{color:#e8edf5;font-weight:600}
-.wx-day-ico{width:26px;font-size:18px;text-align:center}
-.wx-day-rain{font-size:10px;color:#7ab8f5;width:34px;font-weight:500}
-.wx-day-lo{font-size:12px;color:rgba(232,237,245,.35);width:28px;text-align:right}
-.wx-day-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,.07);border-radius:2px;position:relative;overflow:hidden;margin:0 8px}
+.wx-day-ico{width:24px;font-size:16px}
+.wx-day-rain{font-size:10px;color:#7ab8f5;width:36px;font-weight:500}
+.wx-day-lo{font-size:12px;color:rgba(232,237,245,.32);width:28px;text-align:right}
+.wx-day-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,.06);border-radius:2px;position:relative;overflow:hidden;margin:0 8px}
 .wx-day-bar-fill{position:absolute;top:0;height:100%;border-radius:2px;background:linear-gradient(to right,#38bdf8,#fbbf24)}
 .wx-day-hi{font-size:13px;font-weight:600;width:28px;text-align:right}
-.wx-day-arr{font-size:10px;color:rgba(232,237,245,.2);margin-left:4px;transition:transform .2s}
-.wx-daily-row.open .wx-day-arr{transform:rotate(90deg)}
-
-/* Gün saatlik detayı */
-.wx-day-expand{
-  display:none;padding:10px 0 14px;
-  border-bottom:1px solid rgba(255,255,255,.04);
-}
+.wx-day-arr{font-size:11px;color:rgba(232,237,245,.18);margin-left:6px;transition:transform .2s}
+.wx-day-row.open .wx-day-arr{transform:rotate(90deg)}
+.wx-day-expand{display:none;padding:8px 0 14px;border-bottom:1px solid rgba(255,255,255,.04)}
 .wx-day-expand.vis{display:block}
-.wx-day-exp-track{
-  display:flex;gap:2px;overflow-x:auto;
-  scrollbar-width:none;padding:2px;
-}
+.wx-day-exp-track{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px}
 .wx-day-exp-track::-webkit-scrollbar{display:none}
 
-/* ── FOOTER ── */
-.wx-foot{
-  font-size:10px;color:rgba(232,237,245,.15);
-  text-align:right;margin-top:4px;
-}
+.wx-foot{font-size:10px;color:rgba(232,237,245,.12);text-align:right;margin-top:8px}
+
+@keyframes wxfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.wx-stream{animation:wxfade .4s ease}
 </style>
 
 <div class="wx-root" id="wx-root">
-
-  <!-- ATMOSFER -->
   <div class="wx-atmo" id="wx-atmo">
-    <div class="wx-atmo-orb" id="wx-orb1" style="width:500px;height:500px;top:-100px;right:-100px"></div>
-    <div class="wx-atmo-orb" id="wx-orb2" style="width:300px;height:300px;bottom:-80px;left:100px"></div>
+    <div class="wx-orb" id="wx-orb1" style="width:600px;height:600px;top:-150px;right:-150px"></div>
+    <div class="wx-orb" id="wx-orb2" style="width:350px;height:350px;bottom:-100px;left:80px"></div>
   </div>
 
-  <!-- SOL: ŞEHİRLER -->
-  <div class="wx-sidebar">
-    <div class="wx-sb-top" style="position:relative">
-      <div class="wx-sb-search">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="wx-inp" placeholder="Şehir ara..."
-          oninput="wxSuggest(this.value)"
-          onkeydown="if(event.key==='Enter')wxAddByEnter()">
+  <!-- ÜSTTE ŞEHİR TABLARI + EKLE -->
+  <div class="wx-topbar" style="position:relative">
+    <div class="wx-city-tabs" id="wx-tabs"></div>
+    <button class="wx-add-btn" onclick="wxToggleSearch(event)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Şehir Ekle
+    </button>
+    <!-- Arama Popup -->
+    <div class="wx-search-popup" id="wx-popup">
+      <div class="wx-search-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity=".4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="wx-inp" placeholder="Şehir adı..." oninput="wxSuggest(this.value)" onkeydown="if(event.key==='Enter')wxAddByEnter()" autofocus>
       </div>
-      <div class="wx-suggest" id="wx-suggest"></div>
-    </div>
-    <div class="wx-cities" id="wx-cities"></div>
-    <div class="wx-sb-foot">
-      <button class="wx-gps" onclick="wxGPS()">
+      <div class="wx-search-suggest" id="wx-suggest"></div>
+      <button class="wx-search-gps" onclick="wxGPS()">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-        Konumumu Kullan
+        Mevcut Konumumu Kullan
       </button>
     </div>
   </div>
 
-  <!-- SAĞ: ANA İÇERİK -->
-  <div class="wx-main" id="wx-main">
+  <!-- İÇERİK -->
+  <div class="wx-body" id="wx-body">
     <div class="wx-welcome" id="wx-welcome">
-      <div class="wx-welcome-ico">🌍</div>
+      <div style="font-size:44px;opacity:.2">🌍</div>
       <h3>Hava Durumu</h3>
-      <p>Soldan bir şehir ekle ya da GPS konumunu kullan.</p>
-      <button class="wx-welcome-btn" onclick="wxGPS()">📍 Konumumu Kullan</button>
+      <p>Üstten şehir ekle ya da GPS konumunu kullan.</p>
     </div>
     <div class="wx-loading" id="wx-loading" style="display:none">
-      <div class="wx-spin"></div>
-      <span>Yükleniyor...</span>
+      <div class="wx-spin"></div><span>Yükleniyor...</span>
     </div>
     <div id="wx-content" style="display:none"></div>
   </div>
-
 </div>
