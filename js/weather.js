@@ -1,515 +1,426 @@
-// ── APPLE WEATHER STYLE JS ───────────────────────────────────────────
+// ── WEATHER v3 ────────────────────────────────────────────────────────
 
-// Şehir listesi state
-let awCities = [];
-let awActiveCityIdx = 0;
-let awCurrentData = null;
+let wxCities = [], wxActive = 0, wxData = null;
 
-// Kayıtlı şehirleri yükle
-function awLoadCities(){
-  try{ awCities = JSON.parse(localStorage.getItem('gn_aw_cities')||'[]'); }
-  catch(e){ awCities = []; }
-}
-function awSaveCities(){ localStorage.setItem('gn_aw_cities', JSON.stringify(awCities)); }
+function wxLoadSave(){ try{ wxCities = JSON.parse(localStorage.getItem('wx_v3')||'[]'); }catch(e){ wxCities=[]; } }
+function wxSave(){ localStorage.setItem('wx_v3', JSON.stringify(wxCities)); }
 
-// Hava kodu bilgisi
-const AWC = {
-  0:{e:'☀️',t:'Açık',bg:['#1a3a5c','#2d6a9f','#f7971e']},
-  1:{e:'🌤️',t:'Az Bulutlu',bg:['#1a3a5c','#2d6a9f','#4a8ab0']},
-  2:{e:'⛅',t:'Parçalı Bulutlu',bg:['#2a3f5c','#3a5070','#5a7080']},
-  3:{e:'☁️',t:'Kapalı',bg:['#2a3240','#3a4250','#4a5260']},
-  45:{e:'🌫️',t:'Sisli',bg:['#3a4248','#5a6268','#7a8288']},
-  48:{e:'🌫️',t:'Kırağı',bg:['#3a4248','#5a6268','#7a8288']},
-  51:{e:'🌦️',t:'Hafif Çiseleyen',bg:['#1a2a40','#2a4060','#3a6070']},
-  53:{e:'🌦️',t:'Çiseleyen',bg:['#1a2a40','#2a4060','#3a6070']},
-  55:{e:'🌧️',t:'Yoğun Çise',bg:['#151f30','#253050','#354060']},
-  61:{e:'🌧️',t:'Yağmurlu',bg:['#151f30','#253050','#354060']},
-  63:{e:'🌧️',t:'Orta Yağmur',bg:['#101828','#202838','#303848']},
-  65:{e:'🌧️',t:'Şiddetli Yağmur',bg:['#0a1020','#1a2030','#2a3040']},
-  71:{e:'🌨️',t:'Hafif Kar',bg:['#2a3848','#3a4858','#8a9aaa']},
-  73:{e:'❄️',t:'Kar',bg:['#2a3848','#4a5868','#9aaaba']},
-  75:{e:'❄️',t:'Yoğun Kar',bg:['#3a4858','#5a6878','#aabaca']},
-  80:{e:'🌦️',t:'Sağanak',bg:['#151f30','#253050','#354060']},
-  81:{e:'🌧️',t:'Kuvvetli Sağanak',bg:['#101828','#202838','#303848']},
-  82:{e:'⛈️',t:'Şiddetli Sağanak',bg:['#0a1020','#1a2030','#2a3040']},
-  95:{e:'⛈️',t:'Fırtına',bg:['#0a0f18','#141922','#242932']},
-  96:{e:'⛈️',t:'Dolu',bg:['#0a0f18','#141922','#242932']},
-  99:{e:'⛈️',t:'Şiddetli Fırtına',bg:['#060a10','#101518','#1a1f24']},
+// ── HAVA KODLARI ──────────────────────────────────────────────────────
+const WXC = {
+  0:{t:'Açık',e:'☀️',orb:['#c86820','#1a4a7a']},
+  1:{t:'Az Bulutlu',e:'🌤️',orb:['#c86820','#1a4570']},
+  2:{t:'Parçalı Bulutlu',e:'⛅',orb:['#607090','#2a3a50']},
+  3:{t:'Kapalı',e:'☁️',orb:['#404860','#1a2030']},
+  45:{t:'Sisli',e:'🌫️',orb:['#606870','#353840']},
+  48:{t:'Kırağılı Sis',e:'🌫️',orb:['#606870','#353840']},
+  51:{t:'Hafif Çiseleme',e:'🌦️',orb:['#305070','#101820']},
+  53:{t:'Çiseleme',e:'🌦️',orb:['#305070','#101820']},
+  55:{t:'Yoğun Çise',e:'🌧️',orb:['#204060','#080e18']},
+  61:{t:'Yağmurlu',e:'🌧️',orb:['#204060','#080e18']},
+  63:{t:'Orta Yağmur',e:'🌧️',orb:['#182838','#060c12']},
+  65:{t:'Şiddetli Yağmur',e:'🌧️',orb:['#102030','#040810']},
+  71:{t:'Hafif Kar',e:'🌨️',orb:['#6080a0','#2a3848']},
+  73:{t:'Kar',e:'❄️',orb:['#7090b0','#303e50']},
+  75:{t:'Yoğun Kar',e:'❄️',orb:['#80a0c0','#404e60']},
+  77:{t:'Kar Taneleri',e:'❄️',orb:['#6888a8','#303848']},
+  80:{t:'Sağanak',e:'🌦️',orb:['#254560','#0a1018']},
+  81:{t:'Kuvvetli Sağanak',e:'🌧️',orb:['#1a3050','#060c10']},
+  82:{t:'Şiddetli Sağanak',e:'⛈️',orb:['#102030','#040810']},
+  85:{t:'Kar Sağanağı',e:'🌨️',orb:['#5070a0','#202a3a']},
+  86:{t:'Yoğun Kar Sağanağı',e:'🌨️',orb:['#6080b0','#283040']},
+  95:{t:'Fırtına',e:'⛈️',orb:['#1a1e28','#060810']},
+  96:{t:'Dolulu Fırtına',e:'⛈️',orb:['#14181e','#040608']},
+  99:{t:'Şiddetli Fırtına',e:'⛈️',orb:['#10141a','#030508']},
 };
-
-function awcInfo(code, isDay=1){
-  const b = AWC[code] || AWC[3];
-  if(!isDay) return {...b, e:'🌙', bg:['#0a0f20','#101828','#1a2238']};
+function wxc(code,isDay=1){
+  const b = WXC[code]||WXC[3];
+  if(!isDay) return {...b, e:'🌙', orb:['#1a2050','#050810']};
   return b;
 }
 
-// Hava durumu SVG ikonları
-function weatherSVG(code, isDay=1, size=28){
-  const c = code;
-  const s = size;
-  const half = s/2;
-  // Gece
-  if(!isDay && c<=3) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#c8d8f0" stroke="none"/></svg>`;
-  if(c===0) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#ffd60a"/><g stroke="#ffd60a" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></g></svg>`;
-  if(c===1) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="9" cy="12" r="4" fill="#ffd60a"/><rect x="10" y="8" width="10" height="7" rx="3.5" fill="#d0d8e8"/><rect x="8" y="11" width="13" height="7" rx="3.5" fill="#e8eef8"/></svg>`;
-  if(c===2) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="8" cy="13" r="3.5" fill="#ffd60a" opacity=".8"/><rect x="7" y="9" width="12" height="8" rx="4" fill="#c0cad8"/><rect x="5" y="12" width="14" height="8" rx="4" fill="#d8e0f0"/></svg>`;
-  if(c===3) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="8" width="13" height="8" rx="4" fill="#9aa4b8"/><rect x="1" y="11" width="16" height="9" rx="4.5" fill="#b8c2d4"/></svg>`;
-  if(c===45||c===48) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="1" y="10" width="22" height="3" rx="1.5" fill="#9aa4b8" opacity=".6"/><rect x="3" y="14" width="18" height="3" rx="1.5" fill="#9aa4b8" opacity=".5"/><rect x="1" y="7" width="15" height="3" rx="1.5" fill="#9aa4b8" opacity=".4"/></svg>`;
-  if(c>=51&&c<=55) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="8" rx="4" fill="#8090a8"/><rect x="1" y="9" width="18" height="8" rx="4" fill="#9aa8bc"/><g fill="#5ac8fa" opacity=".8"><circle cx="7" cy="20" r="1"/><circle cx="12" cy="22" r="1"/><circle cx="17" cy="20" r="1"/></g></svg>`;
-  if(c>=61&&c<=65||c>=80&&c<=82) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="8" rx="4" fill="#607080"/><rect x="1" y="8" width="18" height="8" rx="4" fill="#788898"/><g stroke="#5ac8fa" stroke-width="1.5" stroke-linecap="round"><line x1="7" y1="18" x2="6" y2="22"/><line x1="12" y1="18" x2="11" y2="22"/><line x1="17" y1="18" x2="16" y2="22"/></g></svg>`;
-  if(c>=71&&c<=77) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="8" rx="4" fill="#8090a8"/><rect x="1" y="8" width="18" height="8" rx="4" fill="#a0b0c8"/><g fill="#fff"><circle cx="7" cy="20" r="1.2"/><circle cx="12" cy="22" r="1.2"/><circle cx="17" cy="20" r="1.2"/></g></svg>`;
-  if(c>=95) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="2" y="4" width="15" height="8" rx="4" fill="#404858"/><rect x="0" y="8" width="18" height="8" rx="4" fill="#505868"/><polyline points="11,18 8,22 13,22 10,26" fill="none" stroke="#ffd60a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  // Default
-  return `<span style="font-size:${size*0.85}px">${awcInfo(code,isDay).e}</span>`;
+// ── EMOJİ İKON (saatlik/günlük) ──────────────────────────────────────
+function wxIco(code, isDay=1){
+  const c = wxc(code, isDay);
+  return `<span style="font-size:1em">${c.e}</span>`;
 }
 
-
-
-function awWindDir(deg){
-  return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
+// ── ATMOSFERİ GÜNCELLE ───────────────────────────────────────────────
+function wxSetAtmo(code, isDay){
+  const {orb} = wxc(code, isDay);
+  const o1 = document.getElementById('wx-orb1');
+  const o2 = document.getElementById('wx-orb2');
+  if(o1){ o1.style.background = orb[0]; o1.style.opacity = '0.18'; }
+  if(o2){ o2.style.background = orb[1]; o2.style.opacity = '0.14'; }
 }
 
-function awFmtTime(s){ const d=new Date(s); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
-
-function awFmtDate(s){ 
-  const d=new Date(s+'T12:00:00');
-  const days=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
-  return days[d.getDay()];
+// ── ŞEHİR LİSTESİ ────────────────────────────────────────────────────
+function wxRenderList(){
+  const el = document.getElementById('wx-cities');
+  if(!wxCities.length){
+    el.innerHTML = '<div style="padding:20px 12px;font-size:11px;color:rgba(232,237,245,.25);text-align:center">Henüz şehir eklenmedi</div>';
+    return;
+  }
+  el.innerHTML = wxCities.map((c,i) => `
+    <div class="wx-city${i===wxActive?' on':''}" onclick="wxSelect(${i})">
+      <div class="wx-city-l">
+        <div class="wx-city-name">${c.name}${c.gps?' 📍':''}</div>
+        <div class="wx-city-desc">${c.cond||''}</div>
+      </div>
+      <div class="wx-city-r">
+        <div class="wx-city-temp">${c.temp!==undefined?Math.round(c.temp)+'°':'—'}</div>
+        <button class="wx-city-del" onclick="wxDel(${i},event)">×</button>
+      </div>
+    </div>`).join('');
 }
 
-// GPS ile konum al
-async function awUseGPS(){
-  if(!navigator.geolocation){ alert('Konum desteklenmiyor.'); return; }
-  awShowLoading();
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const lat = pos.coords.latitude, lon = pos.coords.longitude;
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-      const d = await r.json();
-      const name = d.address?.city||d.address?.town||d.address?.village||'Konumum';
-      const city = {name, lat, lon, isGPS:true};
-      if(!awCities.find(c=>Math.abs(c.lat-lat)<0.01)){
-        awCities.unshift(city);
-        awSaveCities();
-      }
-      awActiveCityIdx = awCities.findIndex(c=>Math.abs(c.lat-lat)<0.01);
-      awRenderCityList();
-      awFetchCity(awActiveCityIdx);
-    } catch(e){ awHideLoading(); }
-  }, ()=> awHideLoading());
+function wxSelect(i){
+  wxActive = i;
+  wxRenderList();
+  wxFetch(i);
 }
 
-// Şehir arama önerisi
-let awSuggestTimer = null;
-async function awSearchSuggest(q){
-  clearTimeout(awSuggestTimer);
-  const el = document.getElementById('aw-suggest');
+function wxDel(i, e){
+  e.stopPropagation();
+  wxCities.splice(i,1);
+  wxSave();
+  if(wxActive >= wxCities.length) wxActive = Math.max(0,wxCities.length-1);
+  wxRenderList();
+  if(wxCities.length) wxFetch(wxActive);
+  else { document.getElementById('wx-welcome').style.display='flex'; document.getElementById('wx-content').style.display='none'; }
+}
+
+// ── ARAMA ────────────────────────────────────────────────────────────
+let wxSugT = null;
+async function wxSuggest(q){
+  clearTimeout(wxSugT);
+  const el = document.getElementById('wx-suggest');
   if(!q||q.length<2){ el.style.display='none'; return; }
-  awSuggestTimer = setTimeout(async()=>{
-    try {
+  wxSugT = setTimeout(async()=>{
+    try{
       const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=tr&format=json`);
       const d = await r.json();
       if(!d.results?.length){ el.style.display='none'; return; }
       el.style.display='block';
       el.innerHTML = d.results.map(c=>`
-        <div onclick="awSelectSuggest(${c.latitude},${c.longitude},'${c.name.replace(/'/g,"\\'")}','${(c.country||'').replace(/'/g,"\\'")}','${(c.admin1||'').replace(/'/g,"\\'")}' )" 
-          style="padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s;color:#fff;font-size:12px" 
-          onmouseenter="this.style.background='rgba(255,255,255,.1)'" 
-          onmouseleave="this.style.background='transparent'">
-          <div style="font-weight:600">${c.name}</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.45)">${c.admin1?c.admin1+', ':''}${c.country||''}</div>
+        <div class="wx-sug-item" onclick="wxPickSug(${c.latitude},${c.longitude},'${(c.name||'').replace(/'/g,"\\'")}','${(c.country||'').replace(/'/g,"\\'")}','${(c.admin1||'').replace(/'/g,"\\'")}')">
+          <div class="wx-sug-name">${c.name}</div>
+          <div class="wx-sug-sub">${[c.admin1,c.country].filter(Boolean).join(', ')}</div>
         </div>`).join('');
-    } catch(e){}
-  }, 300);
+    }catch(e){}
+  }, 280);
 }
 
-function awSelectSuggest(lat, lon, name, country, admin1){
-  const fullName = admin1 && admin1!==name ? `${name}, ${admin1}` : name;
-  const city = {name:fullName, country, lat, lon};
-  if(!awCities.find(c=>Math.abs(c.lat-lat)<0.01 && Math.abs(c.lon-lon)<0.01)){
-    awCities.push(city);
-    awSaveCities();
-  }
-  awActiveCityIdx = awCities.findIndex(c=>Math.abs(c.lat-lat)<0.01);
-  document.getElementById('aw-search-input').value='';
-  document.getElementById('aw-suggest').style.display='none';
-  awRenderCityList();
-  awFetchCity(awActiveCityIdx);
+function wxPickSug(lat,lon,name,country,admin1){
+  const full = (admin1&&admin1!==name) ? `${name}, ${admin1}` : name;
+  wxAddCity({name:full, country, lat, lon});
+  document.getElementById('wx-inp').value='';
+  document.getElementById('wx-suggest').style.display='none';
 }
 
-async function awAddCity(){
-  const q = document.getElementById('aw-search-input').value.trim();
+async function wxAddByEnter(){
+  const q = document.getElementById('wx-inp').value.trim();
   if(!q) return;
-  awShowLoading();
-  try {
+  try{
     const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=tr&format=json`);
     const d = await r.json();
-    if(!d.results?.length){ awHideLoading(); return; }
+    if(!d.results?.length) return;
     const c = d.results[0];
-    awSelectSuggest(c.latitude, c.longitude, c.name, c.country||'', c.admin1||'');
-  } catch(e){ awHideLoading(); }
+    wxPickSug(c.latitude,c.longitude,c.name,c.country||'',c.admin1||'');
+  }catch(e){}
 }
 
-function awSelectCity(idx){
-  awActiveCityIdx = idx;
-  awRenderCityList();
-  awFetchCity(idx);
+function wxAddCity(city){
+  const exists = wxCities.findIndex(c=>Math.abs(c.lat-city.lat)<0.01&&Math.abs(c.lon-city.lon)<0.01);
+  if(exists>=0){ wxActive=exists; wxRenderList(); wxFetch(exists); return; }
+  wxCities.push(city);
+  wxSave();
+  wxActive = wxCities.length-1;
+  wxRenderList();
+  wxFetch(wxActive);
 }
 
-function awRemoveCity(idx, e){
-  e.stopPropagation();
-  awCities.splice(idx,1);
-  awSaveCities();
-  if(awActiveCityIdx >= awCities.length) awActiveCityIdx = Math.max(0, awCities.length-1);
-  awRenderCityList();
-  if(awCities.length) awFetchCity(awActiveCityIdx);
-  else {
-    document.getElementById('aw-welcome').style.display='flex';
-    document.getElementById('aw-weather-content').style.display='none';
-  }
+async function wxGPS(){
+  if(!navigator.geolocation){ alert('Konum desteklenmiyor.'); return; }
+  wxShowLoad();
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
+    try{
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+      const d = await r.json();
+      const name = d.address?.city||d.address?.town||d.address?.village||'Konumum';
+      wxAddCity({name, lat, lon, gps:true});
+    }catch(e){ wxHideLoad(); }
+  }, ()=>wxHideLoad());
 }
 
-function awRenderCityList(){
-  const el = document.getElementById('aw-city-list');
-  if(!awCities.length){
-    el.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:rgba(255,255,255,.3)">Henüz şehir eklenmedi</div>';
-    return;
-  }
-  el.innerHTML = awCities.map((c,i)=>`
-    <div class="aw-city-card${i===awActiveCityIdx?' active':''}" onclick="awSelectCity(${i})">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div class="aw-city-name">${c.name}${c.isGPS?' 📍':''}</div>
-          <div class="aw-city-sub">${c.condition||''}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="aw-city-temp">${c.temp!==undefined?Math.round(c.temp)+'°':'—'}</div>
-          <button onclick="awRemoveCity(${i},event)" style="background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:16px;padding:0;margin-top:4px">×</button>
-        </div>
-      </div>
-      ${c.high!==undefined?`<div class="aw-city-range" style="margin-top:4px">Y:${Math.round(c.high)}° D:${Math.round(c.low)}°</div>`:''}
-    </div>`).join('');
+// ── LOADING ───────────────────────────────────────────────────────────
+function wxShowLoad(){
+  document.getElementById('wx-welcome').style.display='none';
+  document.getElementById('wx-content').style.display='none';
+  document.getElementById('wx-loading').style.display='flex';
 }
+function wxHideLoad(){ document.getElementById('wx-loading').style.display='none'; }
 
-// Veri çek
-async function awFetchCity(idx){
-  const city = awCities[idx];
+// ── VERİ ÇEKME ────────────────────────────────────────────────────────
+async function wxFetch(idx){
+  const city = wxCities[idx];
   if(!city) return;
-  awShowLoading();
+  wxShowLoad();
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}`
-    +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility,wind_gusts_10m`
-    +`&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,is_day,wind_speed_10m`
-    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,wind_speed_10m_max,precipitation_probability_max`
-    +`&timezone=auto&wind_speed_unit=kmh&forecast_days=10`;
-  try {
+    + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility,wind_gusts_10m`
+    + `&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,is_day,wind_speed_10m`
+    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max,wind_speed_10m_max`
+    + `&timezone=auto&wind_speed_unit=kmh&forecast_days=10`;
+  try{
     const r = await fetch(url);
     const d = await r.json();
-    awCurrentData = d;
-    // Şehir bilgilerini güncelle
-    awCities[idx].temp = d.current.temperature_2m;
-    awCities[idx].high = d.daily.temperature_2m_max[0];
-    awCities[idx].low = d.daily.temperature_2m_min[0];
-    awCities[idx].condition = awcInfo(d.current.weather_code, d.current.is_day).t;
-    awSaveCities();
-    awRenderCityList();
-    awHideLoading();
-    awRenderWeather(d, city);
-  } catch(e){ awHideLoading(); }
+    wxData = d;
+    wxCities[idx].temp = d.current.temperature_2m;
+    wxCities[idx].cond = wxc(d.current.weather_code, d.current.is_day).t;
+    wxSave();
+    wxRenderList();
+    wxHideLoad();
+    wxRender(d, city);
+  }catch(e){ wxHideLoad(); }
 }
 
-// Ana render
-function awRenderWeather(d, city){
-  const c = d.current, daily = d.daily, hourly = d.hourly;
-  const info = awcInfo(c.weather_code, c.is_day);
-  
-  // Arka plan
-  const bg = document.getElementById('aw-bg');
-  if(bg) bg.style.background = `linear-gradient(to bottom, ${info.bg[0]}, ${info.bg[1]} 40%, ${info.bg[2]})`;
-  
-  // Saatlik veri - gündoğumu/batımı ekle
+// ── FORMAT YARDIMCILARI ───────────────────────────────────────────────
+function wxFmtTime(s){
+  const d=new Date(s);
+  return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
+function wxFmtDay(s){
+  const d=new Date(s+'T12:00:00');
+  return ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'][d.getDay()];
+}
+function wxWindDir(deg){
+  return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
+}
+function wxUvLabel(v){
+  if(v<=2)return'Düşük';if(v<=5)return'Orta';if(v<=7)return'Yüksek';if(v<=10)return'Çok Yüksek';return'Aşırı';
+}
+function wxDewPt(T,RH){ return Math.round(T-(100-RH)/5); }
+function wxHumDesc(h){ if(h<30)return'Kuru hava'; if(h<60)return'Konforlu'; if(h<80)return'Nemli'; return'Çok Nemli'; }
+function wxVisDesc(v){ if(v>=10000)return'Mükemmel'; if(v>=5000)return'İyi'; if(v>=2000)return'Orta'; return'Düşük'; }
+function wxPresDesc(p){ if(p>1020)return'Yüksek basınç'; if(p>1013)return'Normal'; return'Düşük basınç'; }
+
+// ── SAATLİK HTML (bugün veya seçili gün) ─────────────────────────────
+function wxHourlyHTML(hourly, daily, dayIdx, isToday){
   const now = Date.now();
-  const hourlyItems = [];
+  const items = [];
+  const sunrise = daily.sunrise[dayIdx], sunset = daily.sunset[dayIdx];
+  const dayStr = daily.time[dayIdx]; // "2024-05-15"
+
   let shown = 0;
   for(let i=0; i<hourly.time.length && shown<24; i++){
     const ht = new Date(hourly.time[i]);
-    if(ht.getTime() < now - 1800000) continue;
-    // Gündoğumu/batımı bu saate denk geliyor mu?
-    const hStr = ht.getHours().toString().padStart(2,'0')+':';
-    let special = null;
-    if(daily.sunrise[0] && daily.sunrise[0].includes('T'+hStr)) special = {type:'rise',time:awFmtTime(daily.sunrise[0])};
-    if(daily.sunset[0] && daily.sunset[0].includes('T'+hStr)) special = {type:'set',time:awFmtTime(daily.sunset[0])};
-    hourlyItems.push({hour:ht, code:hourly.weather_code[i], isDay:hourly.is_day[i], temp:hourly.temperature_2m[i], rain:hourly.precipitation_probability[i], special, isNow:shown===0});
+    const htDay = hourly.time[i].split('T')[0];
+    if(htDay !== dayStr) continue;
+    if(isToday && ht.getTime() < now - 1800000) continue;
+    const hStr = ht.getHours().toString().padStart(2,'0');
+    const isSol = (sunrise&&sunrise.includes('T'+hStr+':')) || (sunset&&sunset.includes('T'+hStr+':'));
+    items.push({
+      time: ht,
+      code: hourly.weather_code[i],
+      isDay: hourly.is_day[i],
+      temp: hourly.temperature_2m[i],
+      rain: hourly.precipitation_probability[i],
+      isSol,
+      solType: sunrise?.includes('T'+hStr+':') ? 'rise' : 'set',
+      isNow: isToday && shown===0
+    });
     shown++;
   }
 
-  // Min/max sıcaklık (saatlik bar için)
-  const hTemps = hourlyItems.map(h=>h.temp);
-  const hMin = Math.min(...hTemps), hMax = Math.max(...hTemps), hRange = hMax-hMin||1;
+  // Gündoğumu/batımı ekle
+  const extras = [];
+  if(sunrise){ extras.push({isSolSpecial:true, type:'rise', time:sunrise}); }
+  if(sunset){ extras.push({isSolSpecial:true, type:'set', time:sunset}); }
 
-  // 10 günlük min/max (bar için)
+  // Karıştır ve sırala
+  const merged = [...items.map(h=>({...h, ts:h.time.getTime()})), ...extras.map(e=>({...e, ts:new Date(e.time).getTime()}))];
+  merged.sort((a,b)=>a.ts-b.ts);
+
+  return merged.map(h => {
+    if(h.isSolSpecial){
+      return `<div class="wx-h sol">
+        <div class="wx-h-t">${wxFmtTime(h.time)}</div>
+        <div class="wx-h-ico">${h.type==='rise'?'🌅':'🌇'}</div>
+        <div class="wx-h-rain"></div>
+        <div class="wx-h-temp">${h.type==='rise'?'Doğuyor':'Batıyor'}</div>
+      </div>`;
+    }
+    return `<div class="wx-h${h.isNow?' now':''}">
+      <div class="wx-h-t">${h.isNow?'Şu An':h.time.getHours().toString().padStart(2,'0')+':00'}</div>
+      <div class="wx-h-ico">${wxIco(h.code,h.isDay)}</div>
+      <div class="wx-h-rain">${h.rain>15?'💧'+h.rain+'%':''}</div>
+      <div class="wx-h-temp">${Math.round(h.temp)}°</div>
+    </div>`;
+  }).join('');
+}
+
+// ── ANA RENDER ────────────────────────────────────────────────────────
+function wxRender(d, city){
+  const c = d.current, daily = d.daily, hourly = d.hourly;
+  const info = wxc(c.weather_code, c.is_day);
+
+  // Atmosfer
+  wxSetAtmo(c.weather_code, c.is_day);
+
+  // Min/max (günlük bar için)
   const dMin = Math.min(...daily.temperature_2m_min);
   const dMax = Math.max(...daily.temperature_2m_max);
-  const dRange = dMax-dMin||1;
+  const dRange = dMax - dMin || 1;
 
-  const html = `
-  <div class="aw-fade">
-    <!-- Hero -->
-    <div class="aw-hero">
-      <div class="aw-hero-loc">KONUMUM</div>
-      <div class="aw-hero-city">${city.name}</div>
-      <div class="aw-hero-temp">${Math.round(c.temperature_2m)}°</div>
-      <div class="aw-hero-cond">${info.t}</div>
-      <div class="aw-hero-range">Y:${Math.round(daily.temperature_2m_max[0])}° D:${Math.round(daily.temperature_2m_min[0])}°</div>
-    </div>
-
-    <!-- Özet -->
-    <div class="aw-summary">
-      ${awGetSummary(d)}
-    </div>
-
-    <!-- Saatlik -->
-    <div class="aw-hourly-wrap">
-      <div class="aw-section-title">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        SAATLİK TAHMİN
+  // Günlük satırlar HTML'i
+  const dailyRowsHTML = daily.time.map((dt,i) => {
+    const barL = ((daily.temperature_2m_min[i]-dMin)/dRange*100).toFixed(1);
+    const barW = ((daily.temperature_2m_max[i]-daily.temperature_2m_min[i])/dRange*100).toFixed(1);
+    const rain = daily.precipitation_probability_max[i];
+    return `
+      <div class="wx-daily-row${i===0?' open':''}" onclick="wxToggleDay(this,${i})" id="wxdr-${i}">
+        <div class="wx-day-name${i===0?' today':''}">${i===0?'Bugün':wxFmtDay(dt)}</div>
+        <div class="wx-day-ico">${wxIco(daily.weather_code[i],1)}</div>
+        <div class="wx-day-rain">${rain>15?'💧'+rain+'%':''}</div>
+        <div class="wx-day-lo">${Math.round(daily.temperature_2m_min[i])}°</div>
+        <div class="wx-day-bar-wrap"><div class="wx-day-bar-fill" style="left:${barL}%;width:${barW}%"></div></div>
+        <div class="wx-day-hi">${Math.round(daily.temperature_2m_max[i])}°</div>
+        <div class="wx-day-arr">›</div>
       </div>
-      <div class="aw-hourly-scroll">
-        ${hourlyItems.map((h,idx)=>h.special ? `
-          <div class="aw-h-item special">
-            <div class="aw-h-time">${h.special.time}</div>
-            <div class="aw-h-icon">${h.special.type==='rise'?'🌅':'🌇'}</div>
-            <div class="aw-h-rain"></div>
-            <div class="aw-h-temp">${h.special.type==='rise'?'Gün Doğumu':'Gün Batımı'}</div>
-          </div>` : `
-          <div class="aw-h-item${h.isNow?' now':''}">
-            <div class="aw-h-time">${h.isNow?'Şu An':h.hour.getHours().toString().padStart(2,'0')+':00'}</div>
-            <div class="aw-h-icon">${weatherSVG(h.code, h.isDay, 26)}</div>
-            <div class="aw-h-rain">${h.rain>20?'💧'+h.rain+'%':''}</div>
-            <div class="aw-h-temp">${Math.round(h.temp)}°</div>
-          </div>`).join('')}
-      </div>
-    </div>
+      <div class="wx-day-expand${i===0?' vis':''}" id="wxde-${i}">
+        <div class="wx-day-exp-track">${wxHourlyHTML(hourly, daily, i, i===0)}</div>
+      </div>`;
+  }).join('');
 
-    <!-- 10 Günlük -->
-    <div class="aw-daily-wrap">
-      <div class="aw-section-title">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        ${daily.time.length} GÜNLÜK TAHMİN
-      </div>
-      ${daily.time.map((dt,i)=>{
-        const barL = ((daily.temperature_2m_min[i]-dMin)/dRange*100).toFixed(0);
-        const barW = ((daily.temperature_2m_max[i]-daily.temperature_2m_min[i])/dRange*100).toFixed(0);
-        const di = awcInfo(daily.weather_code[i]);
-        return `<div class="aw-d-row">
-          <div class="aw-d-day">${i===0?'Bugün':awFmtDate(dt)}</div>
-          <div class="aw-d-icon">${weatherSVG(daily.weather_code[i],1,22)}</div>
-          <div class="aw-d-rain">${daily.precipitation_probability_max[i]>20?'%'+daily.precipitation_probability_max[i]:''}</div>
-          <div class="aw-d-low">${Math.round(daily.temperature_2m_min[i])}°</div>
-          <div class="aw-d-bar"><div class="aw-d-bar-fill" style="left:${barL}%;width:${barW}%"></div></div>
-          <div class="aw-d-high">${Math.round(daily.temperature_2m_max[i])}°</div>
-        </div>`;
-      }).join('')}
-    </div>
-
-    <!-- Detay kartları -->
-    <div class="aw-detail-grid">
-      <!-- UV -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2"/><line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2"/><line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2"/><line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2"/></svg>
-          UV İNDEKSİ
-        </div>
-        <div class="aw-d-card-val">${daily.uv_index_max[0].toFixed(1)}</div>
-        <div class="aw-uv-bar"><div class="aw-uv-marker" style="left:${Math.min(95,daily.uv_index_max[0]/11*100)}%"></div></div>
-        <div class="aw-d-card-sub">${awUvLabel(daily.uv_index_max[0])}</div>
-      </div>
-
-      <!-- Gündoğumu/Batımı -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/></svg>
-          GÜN DOĞUMU
-        </div>
-        <div class="aw-d-card-val">${awFmtTime(daily.sunrise[0])}</div>
-        ${awSunArc(daily.sunrise[0], daily.sunset[0])}
-        <div class="aw-d-card-sub">Gün Batımı: ${awFmtTime(daily.sunset[0])}</div>
-      </div>
-
-      <!-- Rüzgar -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
-          RÜZGAR
-        </div>
-        ${awWindDial(c.wind_direction_10m, c.wind_speed_10m)}
-        <div class="aw-d-card-sub">Ani rüzgarlar: ${c.wind_gusts_10m.toFixed(1)} km/sa</div>
-      </div>
-
-      <!-- Yağış -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" opacity=".7"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-          YAĞIŞ
-        </div>
-        <div class="aw-d-card-val">${c.precipitation.toFixed(1)} mm</div>
-        <div class="aw-d-card-sub">Son 1 saat<br>24 saatte ${daily.precipitation_sum[0].toFixed(1)} mm bekleniyor.</div>
-      </div>
-
-      <!-- Hissedilen -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
-          HİSSEDİLEN
-        </div>
-        <div class="aw-d-card-val">${Math.round(c.apparent_temperature)}°</div>
-        <div class="aw-d-card-sub">${c.apparent_temperature > c.temperature_2m ? 'Gerçek sıcaklıktan daha sıcak hissettiriyor.' : 'Gerçek sıcaklıktan daha soğuk hissettiriyor.'}</div>
-      </div>
-
-      <!-- Nem -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-          NEM ORANI
-        </div>
-        <div class="aw-d-card-val">%${c.relative_humidity_2m}</div>
-        ${awHumidityBar(c.relative_humidity_2m)}
-        <div class="aw-d-card-sub">Çiğ noktası ${awDewPoint(c.temperature_2m, c.relative_humidity_2m)}°</div>
-      </div>
-
-      <!-- Görünürlük -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          GÖRÜŞ MESAFESİ
-        </div>
-        <div class="aw-d-card-val">${c.visibility>=1000?(c.visibility/1000).toFixed(1)+' km':c.visibility+' m'}</div>
-        <div class="aw-d-card-sub">${c.visibility>=10000?'Açık.':c.visibility>=5000?'Orta görüş.':'Düşük görüş.'}</div>
-      </div>
-
-      <!-- Basınç -->
-      <div class="aw-d-card">
-        <div class="aw-d-card-title">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          BASINÇ
-        </div>
-        ${awPressureDial(c.surface_pressure)}
-        <div style="display:flex;justify-content:space-between;margin-top:6px">
-          <span style="font-size:11px;color:rgba(255,255,255,.4)">↓</span>
-          <span style="font-size:11px;color:rgba(255,255,255,.4)">↑</span>
+  const html = `<div class="wx-stream">
+    <!-- HERO -->
+    <div class="wx-hero">
+      <div class="wx-hero-loc">Hava Durumu</div>
+      <div class="wx-hero-city">${city.name}</div>
+      <div class="wx-hero-row">
+        <div class="wx-hero-temp">${Math.round(c.temperature_2m)}°</div>
+        <div class="wx-hero-info">
+          <div class="wx-hero-cond">${info.t}</div>
+          <div class="wx-hero-feels">Hissedilen ${Math.round(c.apparent_temperature)}°</div>
+          <div class="wx-hero-range">En yüksek ${Math.round(daily.temperature_2m_max[0])}° / En düşük ${Math.round(daily.temperature_2m_min[0])}°</div>
         </div>
       </div>
     </div>
 
-    <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.25);margin-top:8px">
-      Güncellendi: ${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')} · Open-Meteo
+    <!-- SAATLİK (bugün) -->
+    <div class="wx-hourly-label">Saatlik Tahmin</div>
+    <div class="wx-hourly-track" style="margin-bottom:28px">
+      ${wxHourlyHTML(hourly, daily, 0, true)}
     </div>
+
+    <!-- GÜNEŞ -->
+    <div class="wx-sun-row">
+      <div class="wx-sun-half">
+        <div class="wx-sun-ico">🌅</div>
+        <div>
+          <div class="wx-sun-lbl">Gün Doğumu</div>
+          <div class="wx-sun-val">${wxFmtTime(daily.sunrise[0])}</div>
+        </div>
+      </div>
+      <div class="wx-sun-half">
+        <div class="wx-sun-ico">🌇</div>
+        <div>
+          <div class="wx-sun-lbl">Gün Batımı</div>
+          <div class="wx-sun-val">${wxFmtTime(daily.sunset[0])}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAYLAR -->
+    <div class="wx-details-grid">
+
+      <div class="wx-det">
+        <div class="wx-det-ico">💧</div>
+        <div class="wx-det-lbl">Nem</div>
+        <div class="wx-det-val">%${c.relative_humidity_2m}</div>
+        <div class="wx-hum-bar"><div class="wx-hum-fill" style="width:${c.relative_humidity_2m}%"></div></div>
+        <div class="wx-det-sub">${wxHumDesc(c.relative_humidity_2m)}<br>Çiğ noktası ${wxDewPt(c.temperature_2m,c.relative_humidity_2m)}°</div>
+      </div>
+
+      <div class="wx-det">
+        <div class="wx-det-ico">💨</div>
+        <div class="wx-det-lbl">Rüzgar</div>
+        <div class="wx-det-val">${Math.round(c.wind_speed_10m)}<span style="font-size:12px;opacity:.5"> km/sa</span></div>
+        <div class="wx-det-sub">${wxWindDir(c.wind_direction_10m)} yönünden<br>Ani: ${c.wind_gusts_10m?.toFixed(0)||'—'} km/sa</div>
+      </div>
+
+      <div class="wx-det">
+        <div class="wx-det-ico">🌡️</div>
+        <div class="wx-det-lbl">Basınç</div>
+        <div class="wx-det-val">${Math.round(c.surface_pressure)}<span style="font-size:12px;opacity:.5"> hPa</span></div>
+        <div class="wx-det-sub">${wxPresDesc(c.surface_pressure)}<br>&nbsp;</div>
+      </div>
+
+      <div class="wx-det">
+        <div class="wx-det-ico">👁️</div>
+        <div class="wx-det-lbl">Görüş Mesafesi</div>
+        <div class="wx-det-val">${c.visibility>=1000?(c.visibility/1000).toFixed(0)+'<span style="font-size:12px;opacity:.5"> km</span>':c.visibility+'<span style="font-size:12px;opacity:.5"> m</span>'}</div>
+        <div class="wx-det-sub">${wxVisDesc(c.visibility)}<br>&nbsp;</div>
+      </div>
+
+      <div class="wx-det">
+        <div class="wx-det-ico">🌧️</div>
+        <div class="wx-det-lbl">Yağış</div>
+        <div class="wx-det-val">${c.precipitation.toFixed(1)}<span style="font-size:12px;opacity:.5"> mm</span></div>
+        <div class="wx-det-sub">Son 1 saat<br>Bugün toplam: ${daily.precipitation_sum[0].toFixed(1)} mm</div>
+      </div>
+
+      <div class="wx-det">
+        <div class="wx-det-ico">☀️</div>
+        <div class="wx-det-lbl">UV İndeksi</div>
+        <div class="wx-det-val">${daily.uv_index_max[0].toFixed(1)}</div>
+        <div class="wx-uv-bar"><div class="wx-uv-pin" style="left:${Math.min(95,daily.uv_index_max[0]/11*100)}%"></div></div>
+        <div class="wx-det-sub">${wxUvLabel(daily.uv_index_max[0])}<br>&nbsp;</div>
+      </div>
+
+      <div class="wx-det" style="grid-column:span 2">
+        <div class="wx-det-ico">🌡️</div>
+        <div class="wx-det-lbl">Hissedilen Sıcaklık</div>
+        <div class="wx-det-val">${Math.round(c.apparent_temperature)}°</div>
+        <div class="wx-det-sub">${c.apparent_temperature > c.temperature_2m ? 'Gerçek sıcaklıktan daha sıcak hissettiriyor.' : 'Gerçek sıcaklıktan daha serin hissettiriyor.'}</div>
+      </div>
+
+    </div>
+
+    <!-- GÜNLÜK TAHMİN -->
+    <div class="wx-hourly-label">10 Günlük Tahmin</div>
+    <div class="wx-daily-wrap">${dailyRowsHTML}</div>
+
+    <div class="wx-foot">Güncellendi ${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')} · Open-Meteo</div>
   </div>`;
 
-  document.getElementById('aw-weather-content').innerHTML = html;
-  document.getElementById('aw-weather-content').style.display = 'block';
-  document.getElementById('aw-welcome').style.display = 'none';
+  const el = document.getElementById('wx-content');
+  el.innerHTML = html;
+  el.style.display = 'block';
 }
 
-// Yardımcı fonksiyonlar
-function awGetSummary(d){
-  const c = d.current;
-  const info = awcInfo(c.weather_code, c.is_day);
-  const tmr = awcInfo(d.daily.weather_code[1]).t;
-  return `${info.t}. Yarın ${tmr.toLowerCase()} bekleniyor. Yüksek sıcaklık ${Math.round(d.daily.temperature_2m_max[0])}°.`;
-}
-
-function awUvLabel(v){
-  if(v<=2) return 'Düşük'; if(v<=5) return 'Orta';
-  if(v<=7) return 'Yüksek'; if(v<=10) return 'Çok Yüksek';
-  return 'Aşırı';
-}
-
-function awDewPoint(T, RH){
-  return Math.round(T - (100-RH)/5);
-}
-
-function awHumidityBar(v){
-  return `<div style="height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin:8px 0 4px;position:relative;overflow:hidden">
-    <div style="position:absolute;top:0;left:0;height:100%;width:${v}%;border-radius:3px;background:linear-gradient(to right,#30d158,#5ac8fa)"></div>
-  </div>`;
-}
-
-function awSunArc(sunrise, sunset){
-  const sr = new Date(sunrise), ss = new Date(sunset), now = new Date();
-  const total = ss-sr, elapsed = Math.min(Math.max(now-sr,0),total);
-  const pct = total>0 ? elapsed/total : 0;
-  const cx=90, cy=55, r=40;
-  const startAngle = Math.PI, endAngle = 0;
-  const angle = startAngle + pct*(endAngle-startAngle);
-  const sunX = cx + r*Math.cos(angle), sunY = cy + r*Math.sin(angle);
-  return `<svg width="180" height="65" viewBox="0 0 180 65" style="margin:4px 0">
-    <path d="M50 55 A40 40 0 0 1 130 55" stroke="rgba(255,255,255,.15)" stroke-width="2" fill="none"/>
-    <path d="M50 55 A40 40 0 0 1 ${sunX.toFixed(1)} ${sunY.toFixed(1)}" stroke="rgba(255,200,50,.7)" stroke-width="2" fill="none"/>
-    <circle cx="${sunX.toFixed(1)}" cy="${sunY.toFixed(1)}" r="5" fill="#ffd60a"/>
-    <line x1="50" y1="55" x2="50" y2="60" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
-    <line x1="130" y1="55" x2="130" y2="60" stroke="rgba(255,255,255,.2)" stroke-width="1"/>
-  </svg>`;
-}
-
-function awWindDial(deg, speed){
-  const cx=55, cy=45, r=28;
-  const rad = (deg-90)*Math.PI/180;
-  const nx = cx+r*Math.cos(rad), ny = cy+r*Math.sin(rad);
-  const sx = cx-r*0.6*Math.cos(rad), sy = cy-r*0.6*Math.sin(rad);
-  return `<div style="display:flex;align-items:center;gap:12px;margin:4px 0">
-    <svg width="110" height="90" viewBox="0 0 110 90">
-      <circle cx="55" cy="45" r="35" stroke="rgba(255,255,255,.1)" stroke-width="1.5" fill="rgba(0,0,0,.2)"/>
-      <circle cx="55" cy="45" r="28" stroke="rgba(255,255,255,.06)" stroke-width="1" fill="none"/>
-      <text x="55" y="14" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">K</text>
-      <text x="96" y="49" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">D</text>
-      <text x="55" y="86" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">G</text>
-      <text x="14" y="49" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9" font-family="sans-serif">B</text>
-      <line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="3" fill="#ffd60a"/>
-      <text x="55" y="51" text-anchor="middle" fill="#fff" font-size="14" font-weight="600" font-family="sans-serif">${Math.round(speed)}</text>
-      <text x="55" y="62" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8" font-family="sans-serif">km/sa</text>
-    </svg>
-  </div>`;
-}
-
-function awPressureDial(hpa){
-  const min=980, max=1040, pct=Math.min(1,Math.max(0,(hpa-min)/(max-min)));
-  const angle = -130 + pct*260;
-  return `<div style="text-align:center;margin:4px 0">
-    <svg width="120" height="70" viewBox="0 0 120 70">
-      <path d="M15 65 A50 50 0 0 1 105 65" stroke="rgba(255,255,255,.1)" stroke-width="6" fill="none" stroke-linecap="round"/>
-      <path d="M15 65 A50 50 0 0 1 105 65" stroke="url(#pressArc)" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="${pct*157} 157"/>
-      <g transform="rotate(${angle} 60 65)">
-        <line x1="60" y1="65" x2="60" y2="22" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-      </g>
-      <circle cx="60" cy="65" r="4" fill="rgba(255,255,255,.8)"/>
-      <text x="60" y="56" text-anchor="middle" fill="#fff" font-size="13" font-weight="600" font-family="sans-serif">${hpa.toFixed(0)}</text>
-      <text x="60" y="67" text-anchor="middle" fill="rgba(255,255,255,.4)" font-size="8" font-family="sans-serif">hPa</text>
-      <text x="18" y="72" fill="rgba(255,255,255,.3)" font-size="8" font-family="sans-serif">Düşük</text>
-      <text x="72" y="72" fill="rgba(255,255,255,.3)" font-size="8" font-family="sans-serif">Yüksek</text>
-      <defs><linearGradient id="pressArc" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5ac8fa"/><stop offset="100%" stop-color="#ffd60a"/></linearGradient></defs>
-    </svg>
-  </div>`;
-}
-
-// Loading
-function awShowLoading(){
-  document.getElementById('aw-loading').style.display='flex';
-  document.getElementById('aw-weather-content').style.display='none';
-  document.getElementById('aw-welcome').style.display='none';
-}
-function awHideLoading(){ document.getElementById('aw-loading').style.display='none'; }
-
-// Başlatma
-function refreshWeather(){ if(awCities.length) awFetchCity(awActiveCityIdx); }
-
-window._weatherInit = function(){
-  awLoadCities();
-  awRenderCityList();
-  if(awCities.length){
-    awFetchCity(awActiveCityIdx);
+// ── GÜNLÜK AÇILIR/KAPANIR ─────────────────────────────────────────────
+function wxToggleDay(row, idx){
+  const exp = document.getElementById('wxde-'+idx);
+  const isOpen = exp.classList.contains('vis');
+  // tüm açıkları kapat
+  document.querySelectorAll('.wx-day-expand').forEach(e=>e.classList.remove('vis'));
+  document.querySelectorAll('.wx-daily-row').forEach(e=>e.classList.remove('open'));
+  if(!isOpen){
+    exp.classList.add('vis');
+    row.classList.add('open');
   }
+}
+
+// ── BAŞLATMA ─────────────────────────────────────────────────────────
+window._weatherInit = function(){
+  wxLoadSave();
+  wxRenderList();
+  if(wxCities.length) wxFetch(wxActive);
 };
 
-// 15 dakikada bir güncelle
-setInterval(()=>{ if(awCities.length) awFetchCity(awActiveCityIdx); }, 15*60*1000);
+function refreshWeather(){
+  if(wxCities.length) wxFetch(wxActive);
+}
+
+setInterval(()=>{ if(wxCities.length) wxFetch(wxActive); }, 15*60*1000);
