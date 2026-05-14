@@ -43,6 +43,28 @@ function awcInfo(code, isDay=1){
   return b;
 }
 
+// Hava durumu SVG ikonları
+function weatherSVG(code, isDay=1, size=28){
+  const c = code;
+  const s = size;
+  const half = s/2;
+  // Gece
+  if(!isDay && c<=3) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#c8d8f0" stroke="none"/></svg>`;
+  if(c===0) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="#ffd60a"/><g stroke="#ffd60a" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></g></svg>`;
+  if(c===1) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="9" cy="12" r="4" fill="#ffd60a"/><rect x="10" y="8" width="10" height="7" rx="3.5" fill="#d0d8e8"/><rect x="8" y="11" width="13" height="7" rx="3.5" fill="#e8eef8"/></svg>`;
+  if(c===2) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><circle cx="8" cy="13" r="3.5" fill="#ffd60a" opacity=".8"/><rect x="7" y="9" width="12" height="8" rx="4" fill="#c0cad8"/><rect x="5" y="12" width="14" height="8" rx="4" fill="#d8e0f0"/></svg>`;
+  if(c===3) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="8" width="13" height="8" rx="4" fill="#9aa4b8"/><rect x="1" y="11" width="16" height="9" rx="4.5" fill="#b8c2d4"/></svg>`;
+  if(c===45||c===48) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="1" y="10" width="22" height="3" rx="1.5" fill="#9aa4b8" opacity=".6"/><rect x="3" y="14" width="18" height="3" rx="1.5" fill="#9aa4b8" opacity=".5"/><rect x="1" y="7" width="15" height="3" rx="1.5" fill="#9aa4b8" opacity=".4"/></svg>`;
+  if(c>=51&&c<=55) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="5" width="14" height="8" rx="4" fill="#8090a8"/><rect x="1" y="9" width="18" height="8" rx="4" fill="#9aa8bc"/><g fill="#5ac8fa" opacity=".8"><circle cx="7" cy="20" r="1"/><circle cx="12" cy="22" r="1"/><circle cx="17" cy="20" r="1"/></g></svg>`;
+  if(c>=61&&c<=65||c>=80&&c<=82) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="8" rx="4" fill="#607080"/><rect x="1" y="8" width="18" height="8" rx="4" fill="#788898"/><g stroke="#5ac8fa" stroke-width="1.5" stroke-linecap="round"><line x1="7" y1="18" x2="6" y2="22"/><line x1="12" y1="18" x2="11" y2="22"/><line x1="17" y1="18" x2="16" y2="22"/></g></svg>`;
+  if(c>=71&&c<=77) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="3" y="4" width="14" height="8" rx="4" fill="#8090a8"/><rect x="1" y="8" width="18" height="8" rx="4" fill="#a0b0c8"/><g fill="#fff"><circle cx="7" cy="20" r="1.2"/><circle cx="12" cy="22" r="1.2"/><circle cx="17" cy="20" r="1.2"/></g></svg>`;
+  if(c>=95) return `<svg width="${s}" height="${s}" viewBox="0 0 24 24"><rect x="2" y="4" width="15" height="8" rx="4" fill="#404858"/><rect x="0" y="8" width="18" height="8" rx="4" fill="#505868"/><polyline points="11,18 8,22 13,22 10,26" fill="none" stroke="#ffd60a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // Default
+  return `<span style="font-size:${size*0.85}px">${awcInfo(code,isDay).e}</span>`;
+}
+
+
+
 function awWindDir(deg){
   return ['K','KKD','KD','DKD','D','DGD','GD','GGD','G','GGB','GB','BGB','B','BKB','KB','KKB'][Math.round(deg/22.5)%16];
 }
