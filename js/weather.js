@@ -169,12 +169,7 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
   if(sunrise)extras.push({ts:new Date(sunrise).getTime(),isSol:true,type:'rise',time:sunrise});
   if(sunset) extras.push({ts:new Date(sunset).getTime(),isSol:true,type:'set',time:sunset});
   return [...items,...extras].sort((a,b)=>a.ts-b.ts).map(h=>{
-    if(h.isSol) return `<div class="wx-h sol sol-${h.type}">
-      <div class="wx-h-t">${wxFmtTime(h.time)}</div>
-      <div class="wx-h-ico">${wxMiniSun(h.type)}</div>
-      <div class="wx-h-rain"></div>
-      <div class="wx-h-temp">${h.type==='rise'?'Doğuyor':'Batıyor'}</div>
-    </div>`;
+    if(h.isSol) return '';
     return `<div class="wx-h${h.isNow?' now':''}">
       <div class="wx-h-t">${h.isNow?'Şu An':h.time.getHours().toString().padStart(2,'0')+':00'}</div>
       <div class="wx-h-ico">${wxc(h.code,h.isDay).e}</div>
@@ -280,18 +275,7 @@ function wxRender(d,city){
         <div class="wx-det-val">${Math.round(c.wind_speed_10m)}<span style="font-size:13px;opacity:.4"> km/sa</span></div>
         <div class="wx-det-sub">${wxWindDir(c.wind_direction_10m)} yönünden<br>Ani: ${(c.wind_gusts_10m||0).toFixed(0)} km/sa</div>
       </div>
-      <div class="wx-det">
-        ${wxIcoPress}
-        <div class="wx-det-lbl">Basınç</div>
-        <div class="wx-det-val">${Math.round(c.surface_pressure)}<span style="font-size:13px;opacity:.4"> hPa</span></div>
-        <div class="wx-det-sub">${wxPresD(c.surface_pressure)}</div>
-      </div>
-      <div class="wx-det">
-        ${wxIcoVis}
-        <div class="wx-det-lbl">Görüş Mesafesi</div>
-        <div class="wx-det-val">${c.visibility>=1000?(c.visibility/1000).toFixed(0)+'<span style="font-size:13px;opacity:.4"> km</span>':c.visibility+'<span style="font-size:13px;opacity:.4"> m</span>'}</div>
-        <div class="wx-det-sub">${wxVisD(c.visibility)}</div>
-      </div>
+
       <div class="wx-det">
         ${wxIcoRain}
         <div class="wx-det-lbl">Yağış</div>
@@ -305,7 +289,7 @@ function wxRender(d,city){
         <div class="wx-uv-bar"><div class="wx-uv-pin" style="left:${Math.min(94,daily.uv_index_max[0]/11*100)}%"></div></div>
         <div class="wx-det-sub">${wxUvLbl(daily.uv_index_max[0])}</div>
       </div>
-      <div class="wx-det" style="grid-column:span 2">
+      <div class="wx-det" >
         ${wxIcoFeels}
         <div class="wx-det-lbl">Hissedilen Sıcaklık</div>
         <div class="wx-det-val">${Math.round(c.apparent_temperature)}°</div>
