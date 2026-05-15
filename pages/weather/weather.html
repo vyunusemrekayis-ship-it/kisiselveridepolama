@@ -303,3 +303,27 @@
     <div id="wx-content" style="display:none"></div>
   </div>
 </div>
+
+<script>
+(function(){
+  function wxFixHeight(){
+    const pc = document.getElementById('page-container');
+    const main = document.getElementById('main-content');
+    if(pc && main){
+      const mh = main.getBoundingClientRect().height;
+      pc.style.height = mh + 'px';
+      pc.style.overflow = 'hidden';
+    }
+  }
+  // Sayfa yüklenince ve resize'da çalıştır
+  setTimeout(wxFixHeight, 50);
+  window.addEventListener('resize', wxFixHeight);
+  // weather sekmesine geçilince de çalıştır
+  const _origInit = window._weatherInit;
+  window._weatherInit = function(){
+    wxFixHeight();
+    if(_origInit) _origInit();
+  };
+})();
+</script>
+
