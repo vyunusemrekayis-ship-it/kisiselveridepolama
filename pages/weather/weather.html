@@ -264,6 +264,30 @@
 .wx-foot{font-size:10px;color:rgba(232,237,245,.12);text-align:right;margin-top:8px}
 @keyframes wxfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .wx-stream{animation:wxfade .4s ease}
+/* ── CANLI SAHNE ── */
+.wx-scene-wrap{
+  position:relative;width:100%;height:160px;
+  border-radius:14px;overflow:hidden;
+  margin-bottom:16px;
+  border:1px solid rgba(255,255,255,.06);
+}
+@keyframes wxCloudDrift{from{transform:translateX(-20px)}to{transform:translateX(120px)}}
+@keyframes wxCloudDrift2{from{transform:translateX(120px)}to{transform:translateX(-120px)}}
+@keyframes wxRainDrop{from{transform:translateY(0)}to{transform:translateY(200px)}}
+@keyframes wxSnowFall{from{transform:translateY(0) rotate(0)}to{transform:translateY(200px) rotate(360deg)}}
+@keyframes wxStarTwinkle{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes wxMoonGlow{0%,100%{box-shadow:0 0 20px rgba(255,213,79,.3)}50%{box-shadow:0 0 35px rgba(255,213,79,.6)}}
+@keyframes wxSunPulse{0%,100%{box-shadow:0 0 25px rgba(255,214,0,.4)}50%{box-shadow:0 0 45px rgba(255,214,0,.7)}}
+@keyframes wxLightning{0%,85%,100%{opacity:0}87%,89%{opacity:1}88%,90%{opacity:0}91%{opacity:.8}92%{opacity:0}}
+
+/* ── YAĞIŞ GRAFİĞİ ── */
+.wx-precip-wrap{
+  background:var(--wd-surface,rgba(255,255,255,.04));
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;padding:14px 16px;
+  margin-bottom:16px;
+}
+
 </style>
 
 <div class="wx-root" id="wx-root">
