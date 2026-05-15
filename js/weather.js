@@ -123,8 +123,8 @@ async function wxFetch(idx){
   wxShowLoad();
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}`
     +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility,wind_gusts_10m`
-    +`&hourly=temperature_2m,weather_code,precipitation_probability,is_day`
-    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max`
+    +`&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,showers,is_day`
+    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max,snowfall_sum`
     +`&timezone=auto&wind_speed_unit=kmh&forecast_days=10`;
   try{
     const r=await fetch(url);const d=await r.json();
@@ -202,6 +202,242 @@ function wxSunAnim(type){
   </div>`;
 }
 
+
+// ── UYARI MOTORU ─────────────────────────────────────────────────────
+function wxAlerts(current, hourly, daily){
+  const alerts = [];
+  const ws = current.wind_speed_10m, wg = current.wind_gusts_10m||0;
+  const code = current.weather_code;
+  // Önümüzdeki 6 saat max yağış
+  const now = Date.now();
+  let maxRain6h = 0, maxSnow6h = 0;
+  for(let i=0;i<hourly.time.length;i++){
+    const ht = new Date(hourly.time[i]).getTime();
+    if(ht < now || ht > now + 6*3600000) continue;
+    maxRain6h = Math.max(maxRain6h, (hourly.rain||[])[i]||0);
+    maxSnow6h = Math.max(maxSnow6h, (hourly.snowfall||[])[i]||0);
+  }
+  if(code>=95) alerts.push({lvl:'red',ico:'⚡',msg:'Şiddetli fırtına aktif — dışarı çıkmayın'});
+  if(maxRain6h>=10) alerts.push({lvl:'orange',ico:'🌊',msg:`Önümüzdeki 6 saatte yoğun yağış — sel riski (${maxRain6h.toFixed(1)} mm)`});
+  else if(maxRain6h>=5) alerts.push({lvl:'yellow',ico:'🌧️',msg:`Kuvvetli yağış bekleniyor (${maxRain6h.toFixed(1)} mm)`});
+  if(maxSnow6h>=5) alerts.push({lvl:'blue',ico:'❄️',msg:`Yoğun kar bekleniyor (${maxSnow6h.toFixed(1)} cm) — yollar kaygan olabilir`});
+  if(wg>=75) alerts.push({lvl:'red',ico:'💨',msg:`Tehlikeli fırtına — ani rüzgar ${wg} km/sa`});
+  else if(ws>=50) alerts.push({lvl:'orange',ico:'💨',msg:`Kuvvetli rüzgar ${ws} km/sa — dikkatli olun`});
+  if(daily.uv_index_max[0]>=8) alerts.push({lvl:'yellow',ico:'☀️',msg:`UV indeksi çok yüksek (${daily.uv_index_max[0].toFixed(1)}) — güneş kremi kullanın`});
+  return alerts;
+}
+const WX_ALERT_COLORS = {
+  red:    {bg:'rgba(239,68,68,.15)',  border:'rgba(239,68,68,.4)',   text:'#fca5a5'},
+  orange: {bg:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.35)', text:'#fdba74'},
+  yellow: {bg:'rgba(234,179,8,.1)',   border:'rgba(234,179,8,.3)',   text:'#fde047'},
+  blue:   {bg:'rgba(96,165,250,.12)', border:'rgba(96,165,250,.35)', text:'#93c5fd'},
+};
+function wxAlertHTML(alerts){
+  if(!alerts.length) return '';
+  return alerts.map(a=>{
+    const col = WX_ALERT_COLORS[a.lvl]||WX_ALERT_COLORS.yellow;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:${col.bg};border:1px solid ${col.border};margin-bottom:6px">
+      <span style="font-size:18px">${a.ico}</span>
+      <span style="font-size:12px;font-weight:500;color:${col.text}">${a.msg}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── YAĞIŞ GRAFİĞİ ────────────────────────────────────────────────────
+function wxPrecipChart(hourly, daily){
+  const now = Date.now();
+  const dayStr = daily.time[0];
+  const bars = [];
+  let maxMm = 0;
+  for(let i=0;i<hourly.time.length;i++){
+    if(hourly.time[i].split('T')[0] !== dayStr) continue;
+    const rain = (hourly.rain||[])[i]||0;
+    const snow = (hourly.snowfall||[])[i]||0;
+    const total = rain + snow;
+    maxMm = Math.max(maxMm, total);
+    bars.push({h: hourly.time[i], rain, snow, total, prob: hourly.precipitation_probability[i]||0});
+  }
+  if(maxMm === 0 && bars.every(b=>b.prob<10)) return '';
+  const scale = maxMm>0 ? maxMm : 1;
+  const barsHTML = bars.map(b=>{
+    const hour = new Date(b.h).getHours().toString().padStart(2,'0');
+    const rainH = Math.max(b.rain/scale*52, b.rain>0?3:0);
+    const snowH = Math.max(b.snow/scale*52, b.snow>0?3:0);
+    const isNow = new Date(b.h).getTime() <= now && now < new Date(b.h).getTime()+3600000;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:0">
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:52px;gap:0">
+        ${snowH>0?`<div style="width:70%;margin:0 auto;height:${snowH}px;border-radius:2px 2px 0 0;background:rgba(147,197,253,.7)"></div>`:''}
+        ${rainH>0?`<div style="width:70%;margin:0 auto;height:${rainH}px;border-radius:${snowH>0?'0':'2px 2px'} 0 0;background:rgba(56,189,248,.8)"></div>`:''}
+        ${rainH===0&&snowH===0&&b.prob>15?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.2)"></div>`:''}
+      </div>
+      ${b.prob>15?`<div style="font-size:8px;color:rgba(96,165,250,.7)">${b.prob}%</div>`:'<div style="height:11px"></div>'}
+      <div style="font-size:9px;color:${isNow?'rgba(232,237,245,.9)':'rgba(232,237,245,.35)'};font-weight:${isNow?'600':'400'}">${isNow?'Şu An':hour}</div>
+    </div>`;
+  }).join('');
+
+  const totalToday = (daily.precipitation_sum||[])[0]||0;
+  const hasSnow = bars.some(b=>b.snow>0.1);
+  const hasRain = bars.some(b=>b.rain>0.1);
+  const typeLabel = hasSnow&&hasRain?'Kar + Yağmur':hasSnow?'Kar':hasRain?'Yağmur':'Yağış olasılığı';
+
+  return `<div class="wx-precip-wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="wx-sec-lbl" style="margin:0">${typeLabel}</div>
+      <div style="font-size:11px;color:rgba(232,237,245,.35)">Bugün toplam: ${totalToday.toFixed(1)} mm</div>
+    </div>
+    ${hasSnow?`<div style="display:flex;gap:12px;margin-bottom:8px;font-size:10px;color:rgba(232,237,245,.4)">
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:rgba(56,189,248,.8);margin-right:4px"></span>Yağmur</span>
+      <span><span style="display:inline-block;width:8px;height:8px;border-radius:1px;background:rgba(147,197,253,.7);margin-right:4px"></span>Kar</span>
+    </div>`:''}
+    <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
+  </div>`;
+}
+
+// ── CANLI HAVA SAHNESİ ────────────────────────────────────────────────
+function wxSceneHTML(code, isDay, temp, city){
+  // Zemin & gökyüzü renkleri
+  const scenes = {
+    day_clear:    {sky:['#1a4a8a','#4a90d9','#87ceeb'], label:'Açık Hava'},
+    day_cloud:    {sky:['#2a3a4a','#4a5a6a','#7a8a9a'], label:'Bulutlu'},
+    day_rain:     {sky:['#1a2535','#2a3545','#3a4555'], label:'Yağmurlu'},
+    day_storm:    {sky:['#0e1520','#1a2030','#252e38'], label:'Fırtına'},
+    day_snow:     {sky:['#2a3848','#4a5868','#6a7888'], label:'Karlı'},
+    night_clear:  {sky:['#020510','#04091a','#060e24'], label:'Açık Gece'},
+    night_cloud:  {sky:['#0a0e18','#121620','#1a1e28'], label:'Bulutlu Gece'},
+    night_rain:   {sky:['#080c14','#0e121c','#141820'], label:'Yağmurlu Gece'},
+    night_storm:  {sky:['#040608','#080c10','#0c1014'], label:'Fırtınalı Gece'},
+    night_snow:   {sky:['#0c1020','#141828','#1c2030'], label:'Karlı Gece'},
+  };
+  let key;
+  if(code>=95) key = isDay?'day_storm':'night_storm';
+  else if(code>=71&&code<=77||code===85||code===86) key = isDay?'day_snow':'night_snow';
+  else if(code>=61) key = isDay?'day_rain':'night_rain';
+  else if(code>=3) key = isDay?'day_cloud':'night_cloud';
+  else key = isDay?'day_clear':'night_clear';
+
+  const s = scenes[key];
+  const [c1,c2,c3] = s.sky;
+
+  // Elementler
+  let elements = '';
+
+  // Yıldızlar (gece)
+  if(!isDay){
+    const stars = Array.from({length:40},(_,i)=>{
+      const x=Math.random()*100, y=Math.random()*70;
+      const sz=Math.random()*1.5+0.5;
+      const dur=2+Math.random()*3;
+      return `<circle cx="${x}%" cy="${y}%" r="${sz}" fill="white" opacity="${0.4+Math.random()*0.6}" style="animation:wxStarTwinkle ${dur}s ease-in-out ${Math.random()*3}s infinite"/>`;
+    }).join('');
+    elements += `<svg style="position:absolute;inset:0;width:100%;height:100%">${stars}</svg>`;
+  }
+
+  // Ay (gece açık)
+  if(!isDay && code<=2){
+    elements += `<div style="position:absolute;top:14px;right:18%;width:36px;height:36px">
+      <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffde7,#ffd54f);box-shadow:0 0 20px rgba(255,213,79,.4);animation:wxMoonGlow 4s ease-in-out infinite"></div>
+      <div style="position:absolute;top:4px;left:4px;width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.1)"></div>
+      <div style="position:absolute;top:14px;left:8px;width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,.08)"></div>
+    </div>`;
+  }
+
+  // Güneş (gündüz açık/az bulutlu)
+  if(isDay && code<=2){
+    elements += `<div style="position:absolute;top:12px;right:14%;width:44px;height:44px">
+      <div style="width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#fff9c4,#ffd600);box-shadow:0 0 30px rgba(255,214,0,.5);animation:wxSunPulse 3s ease-in-out infinite"></div>
+    </div>`;
+  }
+
+  // Bulutlar
+  if(code>=1){
+    const opacity = code>=3?0.6:0.35;
+    elements += `<div style="position:absolute;top:18px;left:8%;animation:wxCloudDrift 20s linear infinite">
+      <div style="width:70px;height:22px;background:rgba(255,255,255,${opacity});border-radius:11px;position:relative">
+        <div style="position:absolute;top:-10px;left:12px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,${opacity})"></div>
+        <div style="position:absolute;top:-6px;left:30px;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,${opacity})"></div>
+      </div>
+    </div>
+    <div style="position:absolute;top:36px;left:45%;animation:wxCloudDrift2 28s linear infinite">
+      <div style="width:90px;height:26px;background:rgba(255,255,255,${opacity*.8});border-radius:13px;position:relative">
+        <div style="position:absolute;top:-12px;left:18px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,${opacity*.8})"></div>
+        <div style="position:absolute;top:-7px;left:40px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,${opacity*.8})"></div>
+      </div>
+    </div>`;
+  }
+
+  // Yağmur damlaları
+  if(code>=51&&code<=82){
+    const drops = Array.from({length:18},(_,i)=>{
+      const x=4+i*5.5+Math.random()*4;
+      const dur=0.7+Math.random()*0.6;
+      const delay=Math.random()*1.5;
+      return `<div style="position:absolute;left:${x}%;top:-8px;width:1.5px;height:${8+Math.random()*6}px;background:linear-gradient(to bottom,transparent,rgba(120,190,255,.8));border-radius:2px;animation:wxRainDrop ${dur}s linear ${delay}s infinite"></div>`;
+    }).join('');
+    elements += `<div style="position:absolute;inset:0;overflow:hidden">${drops}</div>`;
+  }
+
+  // Kar
+  if((code>=71&&code<=77)||code===85||code===86){
+    const flakes = Array.from({length:20},(_,i)=>{
+      const x=Math.random()*100;
+      const sz=4+Math.random()*5;
+      const dur=2+Math.random()*3;
+      return `<div style="position:absolute;left:${x}%;top:-10px;width:${sz}px;height:${sz}px;border-radius:50%;background:rgba(255,255,255,.8);animation:wxSnowFall ${dur}s linear ${Math.random()*4}s infinite"></div>`;
+    }).join('');
+    elements += `<div style="position:absolute;inset:0;overflow:hidden">${flakes}</div>`;
+  }
+
+  // Şimşek
+  if(code>=95){
+    elements += `<div style="position:absolute;top:20%;left:40%;animation:wxLightning 4s ease-in-out 2s infinite;opacity:0">
+      <svg width="20" height="40" viewBox="0 0 20 40"><polyline points="12,0 4,20 10,20 2,40" fill="none" stroke="#fde047" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </div>`;
+  }
+
+  // Altta şehir silueti
+  elements += `<div style="position:absolute;bottom:0;left:0;right:0">
+    <svg viewBox="0 0 400 60" preserveAspectRatio="none" style="width:100%;height:50px;display:block">
+      <rect x="0" y="30" width="400" height="30" fill="rgba(0,0,0,.35)"/>
+      <rect x="10" y="18" width="18" height="42" fill="rgba(0,0,0,.4)"/>
+      <rect x="14" y="22" width="4" height="4" fill="rgba(255,255,200,.15)"/>
+      <rect x="14" y="28" width="4" height="4" fill="rgba(255,255,200,.1)"/>
+      <rect x="35" y="10" width="22" height="50" fill="rgba(0,0,0,.45)"/>
+      <rect x="39" y="15" width="5" height="5" fill="rgba(255,255,200,.2)"/>
+      <rect x="47" y="15" width="5" height="5" fill="rgba(255,255,200,.12)"/>
+      <rect x="39" y="24" width="5" height="5" fill="rgba(255,255,200,.08)"/>
+      <rect x="65" y="22" width="16" height="38" fill="rgba(0,0,0,.35)"/>
+      <rect x="85" y="14" width="28" height="46" fill="rgba(0,0,0,.42)"/>
+      <rect x="88" y="18" width="6" height="6" fill="rgba(255,255,200,.18)"/>
+      <rect x="98" y="18" width="6" height="6" fill="rgba(255,255,200,.1)"/>
+      <rect x="120" y="26" width="14" height="34" fill="rgba(0,0,0,.3)"/>
+      <rect x="140" y="8" width="32" height="52" fill="rgba(0,0,0,.48)"/>
+      <rect x="144" y="12" width="7" height="7" fill="rgba(255,255,200,.22)"/>
+      <rect x="155" y="12" width="7" height="7" fill="rgba(255,255,200,.15)"/>
+      <rect x="144" y="23" width="7" height="7" fill="rgba(255,255,200,.1)"/>
+      <rect x="180" y="20" width="20" height="40" fill="rgba(0,0,0,.36)"/>
+      <rect x="208" y="16" width="26" height="44" fill="rgba(0,0,0,.44)"/>
+      <rect x="240" y="24" width="18" height="36" fill="rgba(0,0,0,.32)"/>
+      <rect x="265" y="12" width="30" height="48" fill="rgba(0,0,0,.46)"/>
+      <rect x="268" y="16" width="6" height="6" fill="rgba(255,255,200,.2)"/>
+      <rect x="278" y="16" width="6" height="6" fill="rgba(255,255,200,.14)"/>
+      <rect x="302" y="22" width="20" height="38" fill="rgba(0,0,0,.34)"/>
+      <rect x="328" y="10" width="28" height="50" fill="rgba(0,0,0,.44)"/>
+      <rect x="362" y="26" width="16" height="34" fill="rgba(0,0,0,.3)"/>
+    </svg>
+  </div>`;
+
+  return `<div class="wx-scene-wrap">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,${c1} 0%,${c2} 55%,${c3} 100%)"></div>
+    ${elements}
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(to right,transparent,rgba(255,255,255,.06),transparent)"></div>
+    <div style="position:absolute;top:10px;left:14px;z-index:10">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:2px">${city.name.toUpperCase()}</div>
+      <div style="font-size:22px;font-weight:200;color:#fff">${Math.round(temp)}°</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:1px">${s.label}</div>
+    </div>
+  </div>`;
+}
+
 // ── ANA RENDER ────────────────────────────────────────────────────────
 function wxRender(d,city){
   const c=d.current,daily=d.daily,hourly=d.hourly;
@@ -225,8 +461,16 @@ function wxRender(d,city){
       </div>`;
   }).join('');
 
+  // Uyarılar
+  const alerts = wxAlerts(c, hourly, daily);
+  const alertHTML = wxAlertHTML(alerts);
+  // Yağış grafiği
+  const precipHTML = wxPrecipChart(hourly, daily);
+  // Sahne
+  const sceneHTML = wxSceneHTML(c.weather_code, c.is_day, c.temperature_2m, city);
+
   document.getElementById('wx-content').innerHTML=`<div class="wx-stream">
-    <div class="wx-hero">
+    ${alertHTML}<div class="wx-hero">
       <div class="wx-hero-loc">Hava Durumu</div>
       <div class="wx-hero-city">${city.name}</div>
       <div class="wx-hero-row">
@@ -297,7 +541,7 @@ function wxRender(d,city){
       </div>
     </div>
 
-    <div class="wx-sec-lbl">10 Günlük Tahmin</div>
+    ${sceneHTML}${precipHTML}<div class="wx-sec-lbl">10 Günlük Tahmin</div>
     <div class="wx-daily-wrap">${dailyHTML}</div>
     <div class="wx-foot">Güncellendi ${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')} · Open-Meteo</div>
   </div>`;
