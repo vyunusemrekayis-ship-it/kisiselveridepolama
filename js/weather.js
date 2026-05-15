@@ -1,3 +1,46 @@
+
+// ── YAĞIŞ — SAHNE İÇİ MİNİ GRAFİK ──────────────────────────────────
+function wxPrecipInner(hourly, daily){
+  const dayStr = daily.time[0];
+  const now = Date.now();
+  const bars = [];
+  let maxMm = 0;
+  for(let i=0;i<hourly.time.length;i++){
+    if(hourly.time[i].split('T')[0]!==dayStr) continue;
+    const rain=(hourly.rain||[])[i]||0;
+    const snow=(hourly.snowfall||[])[i]||0;
+    const prob=hourly.precipitation_probability[i]||0;
+    maxMm=Math.max(maxMm,rain+snow);
+    bars.push({h:hourly.time[i],rain,snow,prob,isNow:new Date(hourly.time[i]).getTime()<=now&&now<new Date(hourly.time[i]).getTime()+3600000});
+  }
+  if(maxMm<0.1 && bars.every(b=>b.prob<15)) return '';
+  const scale=maxMm>0?maxMm:1;
+  const maxBarH=36;
+  const barsHTML=bars.map(b=>{
+    const hour=new Date(b.h).getHours().toString().padStart(2,'0');
+    const rainH=Math.max(b.rain/scale*maxBarH,b.rain>0?2:0);
+    const snowH=Math.max(b.snow/scale*maxBarH,b.snow>0?2:0);
+    const totalH=rainH+snowH;
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:2px">
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${maxBarH}px">
+        ${snowH>0?`<div style="width:60%;margin:0 auto;height:${snowH}px;background:rgba(180,220,255,.75);border-radius:1px"></div>`:''}
+        ${rainH>0?`<div style="width:60%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.85);border-radius:${snowH?'0':'1px'} ${snowH?'0':'1px'} 0 0"></div>`:''}
+        ${totalH===0&&b.prob>10?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.15)"></div>`:''}
+      </div>
+      <div style="font-size:8px;color:rgba(255,255,255,${b.isNow?'.9':'.4'});font-weight:${b.isNow?'600':'400'}">${b.isNow?'•':hour}</div>
+    </div>`;
+  }).join('');
+  const totalToday=(daily.precipitation_sum||[])[0]||0;
+  const hasSnow=bars.some(b=>b.snow>0.1);
+  return `<div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5)">${hasSnow?'Kar / Yağmur':'Yağış'}</div>
+      <div style="font-size:9px;color:rgba(255,255,255,.4)">${totalToday.toFixed(1)} mm bugün</div>
+    </div>
+    <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
+  </div>`;
+}
+
 let wxCities=[],wxActive=0,wxData=null;
 function wxLS(){try{wxCities=JSON.parse(localStorage.getItem('wx_v4')||'[]')}catch(e){wxCities=[]}}
 function wxSave(){localStorage.setItem('wx_v4',JSON.stringify(wxCities))}
@@ -294,7 +337,7 @@ function wxPrecipChart(hourly, daily){
 }
 
 // ── CANLI HAVA SAHNESİ ────────────────────────────────────────────────
-function wxSceneHTML(code, isDay, temp, city){
+function wxSceneHTML(code, isDay, temp, city, precipInner){
   // Zemin & gökyüzü renkleri
   const scenes = {
     day_clear:    {sky:['#1a4a8a','#4a90d9','#87ceeb'], label:'Açık Hava'},
@@ -435,6 +478,7 @@ function wxSceneHTML(code, isDay, temp, city){
       <div style="font-size:22px;font-weight:200;color:#fff">${Math.round(temp)}°</div>
       <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:1px">${s.label}</div>
     </div>
+    ${precipInner?`<div style="position:absolute;bottom:0;left:0;right:0;z-index:10;padding:10px 14px 8px;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)">${precipInner}</div>`:''}
   </div>`;
 }
 
@@ -464,23 +508,27 @@ function wxRender(d,city){
   // Uyarılar
   const alerts = wxAlerts(c, hourly, daily);
   const alertHTML = wxAlertHTML(alerts);
-  // Yağış grafiği
-  const precipHTML = wxPrecipChart(hourly, daily);
-  // Sahne
-  const sceneHTML = wxSceneHTML(c.weather_code, c.is_day, c.temperature_2m, city);
+
+  // Sahneye gömülü yağış (sadece çubuklar, başlık sahnenin içinde)
+  const precipInner = wxPrecipInner(hourly, daily);
+  const sceneHTML2 = wxSceneHTML(c.weather_code, c.is_day, c.temperature_2m, city, precipInner);
 
   document.getElementById('wx-content').innerHTML=`<div class="wx-stream">
-    ${alertHTML}<div class="wx-hero">
-      <div class="wx-hero-loc">Hava Durumu</div>
-      <div class="wx-hero-city">${city.name}</div>
-      <div class="wx-hero-row">
-        <div class="wx-hero-temp">${Math.round(c.temperature_2m)}°</div>
-        <div class="wx-hero-meta">
-          <div class="wx-hero-cond">${info.t}</div>
-          <div class="wx-hero-feels">Hissedilen ${Math.round(c.apparent_temperature)}°</div>
-          <div class="wx-hero-range">En yüksek ${Math.round(daily.temperature_2m_max[0])}° · En düşük ${Math.round(daily.temperature_2m_min[0])}°</div>
+    ${alertHTML}
+    <div class="wx-hero-scene-row">
+      <div class="wx-hero">
+        <div class="wx-hero-loc">Hava Durumu</div>
+        <div class="wx-hero-city">${city.name}</div>
+        <div class="wx-hero-row">
+          <div class="wx-hero-temp">${Math.round(c.temperature_2m)}°</div>
+          <div class="wx-hero-meta">
+            <div class="wx-hero-cond">${info.t}</div>
+            <div class="wx-hero-feels">Hissedilen ${Math.round(c.apparent_temperature)}°</div>
+            <div class="wx-hero-range">En yüksek ${Math.round(daily.temperature_2m_max[0])}° · En düşük ${Math.round(daily.temperature_2m_min[0])}°</div>
+          </div>
         </div>
       </div>
+      ${sceneHTML2}
     </div>
 
     <div class="wx-sec-lbl">Saatlik Tahmin</div>
@@ -541,7 +589,7 @@ function wxRender(d,city){
       </div>
     </div>
 
-    ${sceneHTML}${precipHTML}<div class="wx-sec-lbl">10 Günlük Tahmin</div>
+    <div class="wx-sec-lbl">10 Günlük Tahmin</div>
     <div class="wx-daily-wrap">${dailyHTML}</div>
     <div class="wx-foot">Güncellendi ${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')} · Open-Meteo</div>
   </div>`;
