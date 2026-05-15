@@ -20,6 +20,15 @@
   <link rel="stylesheet" href="css/calendar.css?v=3">
   <link rel="stylesheet" href="css/clock.css?v=3">
   <link rel="stylesheet" href="css/chain.css?v=3">
+<style>
+/* Tam ekran layout zinciri */
+html,body{height:100%;margin:0}
+#app-wrapper{height:100vh!important;display:flex!important;flex-direction:row!important;overflow:hidden!important}
+#app-wrapper aside.sidebar{flex-shrink:0}
+#app-wrapper .main{flex:1;min-width:0;display:flex!important;flex-direction:column!important;overflow:hidden!important;height:100%!important}
+#page-container{flex:1;min-height:0;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#page-container>*{flex:1;min-height:0}
+</style>
 </head>
 <body>
 
@@ -166,6 +175,6 @@
 <script src="js/calendar.js?v=11"></script>
 <script src="js/clock.js?v=3"></script>
 <script src="js/chain.js?v=5"></script>
-<script src="js/weather.js?v=20"></script>
+<script src="js/weather.js?v=21"></script>
 </body>
 </html>
