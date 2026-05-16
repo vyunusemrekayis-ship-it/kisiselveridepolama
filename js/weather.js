@@ -1,46 +1,3 @@
-
-// ── YAĞIŞ — SAHNE İÇİ MİNİ GRAFİK ──────────────────────────────────
-function wxPrecipInner(hourly, daily){
-  const dayStr = daily.time[0];
-  const now = Date.now();
-  const bars = [];
-  let maxMm = 0;
-  for(let i=0;i<hourly.time.length;i++){
-    if(hourly.time[i].split('T')[0]!==dayStr) continue;
-    const rain=(hourly.rain||[])[i]||0;
-    const snow=(hourly.snowfall||[])[i]||0;
-    const prob=hourly.precipitation_probability[i]||0;
-    maxMm=Math.max(maxMm,rain+snow);
-    bars.push({h:hourly.time[i],rain,snow,prob,isNow:new Date(hourly.time[i]).getTime()<=now&&now<new Date(hourly.time[i]).getTime()+3600000});
-  }
-  if(maxMm<0.1 && bars.every(b=>b.prob<15)) return '';
-  const scale=maxMm>0?maxMm:1;
-  const maxBarH=36;
-  const barsHTML=bars.map(b=>{
-    const hour=new Date(b.h).getHours().toString().padStart(2,'0');
-    const rainH=Math.max(b.rain/scale*maxBarH,b.rain>0?2:0);
-    const snowH=Math.max(b.snow/scale*maxBarH,b.snow>0?2:0);
-    const totalH=rainH+snowH;
-    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:2px">
-      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${maxBarH}px">
-        ${snowH>0?`<div style="width:60%;margin:0 auto;height:${snowH}px;background:rgba(180,220,255,.75);border-radius:1px"></div>`:''}
-        ${rainH>0?`<div style="width:60%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.85);border-radius:${snowH?'0':'1px'} ${snowH?'0':'1px'} 0 0"></div>`:''}
-        ${totalH===0&&b.prob>10?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.15)"></div>`:''}
-      </div>
-      <div style="font-size:8px;color:rgba(255,255,255,${b.isNow?'.9':'.4'});font-weight:${b.isNow?'600':'400'}">${b.isNow?'•':hour}</div>
-    </div>`;
-  }).join('');
-  const totalToday=(daily.precipitation_sum||[])[0]||0;
-  const hasSnow=bars.some(b=>b.snow>0.1);
-  return `<div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5)">${hasSnow?'Kar / Yağmur':'Yağış'}</div>
-      <div style="font-size:9px;color:rgba(255,255,255,.4)">${totalToday.toFixed(1)} mm bugün</div>
-    </div>
-    <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
-  </div>`;
-}
-
 let wxCities=[],wxActive=0,wxData=null;
 function wxLS(){try{wxCities=JSON.parse(localStorage.getItem('wx_v4')||'[]')}catch(e){wxCities=[]}}
 function wxSave(){localStorage.setItem('wx_v4',JSON.stringify(wxCities))}
@@ -167,7 +124,7 @@ async function wxFetch(idx){
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}`
     +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility,wind_gusts_10m`
     +`&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,showers,is_day`
-    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max,snowfall_sum`
+    +`&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max,snowfall_sum`
     +`&timezone=auto&wind_speed_unit=kmh&forecast_days=10`;
   try{
     const r=await fetch(url);const d=await r.json();
@@ -249,26 +206,185 @@ function wxSunAnim(type){
 // ── UYARI MOTORU ─────────────────────────────────────────────────────
 function wxAlerts(current, hourly, daily){
   const alerts = [];
-  const ws = current.wind_speed_10m, wg = current.wind_gusts_10m||0;
+  const ws  = current.wind_speed_10m;
+  const wg  = current.wind_gusts_10m || 0;
   const code = current.weather_code;
-  // Önümüzdeki 6 saat max yağış
-  const now = Date.now();
-  let maxRain6h = 0, maxSnow6h = 0;
-  for(let i=0;i<hourly.time.length;i++){
-    const ht = new Date(hourly.time[i]).getTime();
-    if(ht < now || ht > now + 6*3600000) continue;
-    maxRain6h = Math.max(maxRain6h, (hourly.rain||[])[i]||0);
-    maxSnow6h = Math.max(maxSnow6h, (hourly.snowfall||[])[i]||0);
+  const vis  = current.visibility ?? 10000;   // metre
+  const now  = Date.now();
+
+  // ─── Saatlik önizleme yardımcıları ─────────────────────────────
+  // Önümüzdeki N saat için max/sum hesapla
+  function hourlyWindow(arr, hours, fn){
+    let result = null;
+    for(let i=0;i<hourly.time.length;i++){
+      const ht = new Date(hourly.time[i]).getTime();
+      if(ht < now || ht > now + hours*3600000) continue;
+      const v = (arr||[])[i] ?? 0;
+      result = result===null ? fn(result,v) : fn(result,v);
+    }
+    return result ?? 0;
   }
-  if(code>=95) alerts.push({lvl:'red',ico:'⚡',msg:'Şiddetli fırtına aktif — dışarı çıkmayın'});
-  if(maxRain6h>=10) alerts.push({lvl:'orange',ico:'🌊',msg:`Önümüzdeki 6 saatte yoğun yağış — sel riski (${maxRain6h.toFixed(1)} mm)`});
-  else if(maxRain6h>=5) alerts.push({lvl:'yellow',ico:'🌧️',msg:`Kuvvetli yağış bekleniyor (${maxRain6h.toFixed(1)} mm)`});
-  if(maxSnow6h>=5) alerts.push({lvl:'blue',ico:'❄️',msg:`Yoğun kar bekleniyor (${maxSnow6h.toFixed(1)} cm) — yollar kaygan olabilir`});
-  if(wg>=75) alerts.push({lvl:'red',ico:'💨',msg:`Tehlikeli fırtına — ani rüzgar ${wg} km/sa`});
-  else if(ws>=50) alerts.push({lvl:'orange',ico:'💨',msg:`Kuvvetli rüzgar ${ws} km/sa — dikkatli olun`});
-  if(daily.uv_index_max[0]>=8) alerts.push({lvl:'yellow',ico:'☀️',msg:`UV indeksi çok yüksek (${daily.uv_index_max[0].toFixed(1)}) — güneş kremi kullanın`});
+  function hourMax(arr, hours){ return hourlyWindow(arr, hours, (a,v)=>a===null?v:Math.max(a,v)); }
+  function hourSum(arr, hours){
+    let s=0;
+    for(let i=0;i<hourly.time.length;i++){
+      const ht=new Date(hourly.time[i]).getTime();
+      if(ht<now||ht>now+hours*3600000) continue;
+      s+=(arr||[])[i]??0;
+    }
+    return s;
+  }
+
+  const maxRain6h  = hourMax(hourly.rain,      6);
+  const maxSnow6h  = hourMax(hourly.snowfall,   6);
+  const maxRain24h = hourMax(hourly.rain,      24);
+  const sumRain24h = hourSum(hourly.precipitation, 24);
+
+  // Hava bozulma tespiti: şu an açık/az bulutlu ama 3 saat içinde yağış kodu
+  let deteriorating = false;
+  if(code<=3){
+    for(let i=0;i<hourly.time.length;i++){
+      const ht=new Date(hourly.time[i]).getTime();
+      if(ht<now||ht>now+3*3600000) continue;
+      if((hourly.weather_code||[])[i]>=51){ deteriorating=true; break; }
+    }
+  }
+
+  // Yağmur başlama: şu an yağmur yok ama 2 saat içinde başlıyor
+  let rainStartsIn = null;
+  if(code<51){
+    for(let i=0;i<hourly.time.length;i++){
+      const ht=new Date(hourly.time[i]).getTime();
+      if(ht<now||ht>now+2*3600000) continue;
+      if((hourly.rain||[])[i]>=0.5){
+        rainStartsIn = Math.round((ht-now)/60000); // dakika
+        break;
+      }
+    }
+  }
+
+  // Önümüzdeki 6 saatte min görüş mesafesi (saatlik visibility yok —
+  // mevcut değeri ve hava kodunu birlikte kullanıyoruz)
+  const isFogCode = code===45||code===48;
+
+  // Sıcaklık değişimi bugün → yarın
+  const tempDiff = (daily.temperature_2m_max?.length>=2)
+    ? daily.temperature_2m_max[1] - daily.temperature_2m_max[0]
+    : 0;
+
+  // Günlük veriler
+  const feelsMax = (daily.apparent_temperature_max||[])[0] ?? null;
+  const feelsMin = (daily.apparent_temperature_min||[])[0] ?? null;
+  const minTemp  = daily.temperature_2m_min?.[0] ?? null;
+  const maxTemp  = daily.temperature_2m_max?.[0] ?? null;
+  const uv       = daily.uv_index_max?.[0] ?? 0;
+  const next3DayRain = (daily.precipitation_sum||[]).slice(0,3).reduce((a,b)=>a+(b||0),0);
+  const rainyDays    = (daily.precipitation_sum||[]).slice(0,5).filter(v=>(v||0)>=3).length;
+  const snowSum3d    = (daily.snowfall_sum||[]).slice(0,3).reduce((a,b)=>a+(b||0),0);
+
+  // ══════════════════════════════════════════════════════════════
+  //  UYARILAR — öncelik sırasıyla (kırmızı → turuncu → sarı → mavi)
+  // ══════════════════════════════════════════════════════════════
+
+  // 1. Şiddetli fırtına / yıldırım
+  if(code>=95)
+    alerts.push({lvl:'red', ico:'⚡', msg:'Şiddetli fırtına ve yıldırım aktif — dışarı çıkmayın'});
+  else if(code===96||code===99)
+    alerts.push({lvl:'red', ico:'⛈', msg:'Dolulu fırtına — araç ve cam yüzeyleri koruyun'});
+
+  // 2. Dolu (kod 96/99 zaten yukarıda; ek: hafif dolu)
+  // Open-Meteo'da dolu ayrı kod yok, 96/99 kapsamında — yukarıda ele alındı.
+
+  // 3. SEL riski
+  if(maxRain6h>=20)
+    alerts.push({lvl:'red',   ico:'🌊', msg:`SEL RİSKİ — 6 saatte ${maxRain6h.toFixed(1)} mm yağış bekleniyor`});
+  else if(maxRain6h>=12||sumRain24h>=40)
+    alerts.push({lvl:'orange',ico:'🌧', msg:`Kuvvetli yağış — sel ihtimali (6sa: ${maxRain6h.toFixed(1)} mm)`});
+  else if(maxRain6h>=5)
+    alerts.push({lvl:'yellow',ico:'🌧', msg:`Yağış yoğunlaşıyor (${maxRain6h.toFixed(1)} mm/6sa)`});
+
+  // 4. Yağmur başlama bildirimi
+  if(rainStartsIn!==null)
+    alerts.push({lvl:'yellow',ico:'🌂', msg:`Yaklaşık ${rainStartsIn} dakika içinde yağmur başlayabilir`});
+
+  // 5. Uzun süreli / süregelen yağış
+  if(next3DayRain>=60)
+    alerts.push({lvl:'orange',ico:'☔', msg:`Uzun süreli yoğun yağış — 3 günde toplam ${next3DayRain.toFixed(0)} mm`});
+  else if(rainyDays>=4)
+    alerts.push({lvl:'yellow',ico:'☔', msg:`${rainyDays} gün boyunca yağışlı hava bekleniyor`});
+
+  // 6. Kuvvetli rüzgar / fırtına
+  if(wg>=90)
+    alerts.push({lvl:'red',   ico:'🌪', msg:`Tayfun şiddetinde rüzgar — ani esinti ${wg} km/sa`});
+  else if(wg>=75||ws>=60)
+    alerts.push({lvl:'orange',ico:'💨', msg:`Tehlikeli rüzgar — ani esinti ${wg} km/sa, ortalama ${Math.round(ws)} km/sa`});
+  else if(wg>=55||ws>=45)
+    alerts.push({lvl:'yellow',ico:'💨', msg:`Kuvvetli rüzgar ${Math.round(ws)} km/sa — ani ${wg} km/sa`});
+
+  // 7. Hızlı hava bozulması
+  if(deteriorating)
+    alerts.push({lvl:'yellow',ico:'⚠', msg:'Önümüzdeki 3 saatte hava bozulacak — yağış başlıyor'});
+
+  // 8. Kar yağışı
+  if(maxSnow6h>=10)
+    alerts.push({lvl:'blue',  ico:'❄', msg:`Yoğun kar — 6 saatte ${maxSnow6h.toFixed(1)} cm bekleniyor`});
+  else if(maxSnow6h>=3)
+    alerts.push({lvl:'blue',  ico:'🌨', msg:`Kar yağışı bekleniyor (${maxSnow6h.toFixed(1)} cm/6sa) — yollar kaygan`});
+
+  // 9. Kar erimesi / çığ riski (3 günde yüksek kar birikimi + yüksek max sıcaklık)
+  if(snowSum3d>=20 && (maxTemp??0)>=5)
+    alerts.push({lvl:'orange',ico:'🏔', msg:`Kar erimesi / çığ riski — ${snowSum3d.toFixed(0)} cm kar + sıcaklık yükseliyor`});
+
+  // 10. Buzlanma / don
+  if(minTemp!=null && minTemp<=-5)
+    alerts.push({lvl:'blue',  ico:'🧊', msg:`Şiddetli don — gece ${Math.round(minTemp)}°C · buzlanma tehlikesi`});
+  else if(minTemp!=null && minTemp<=0)
+    alerts.push({lvl:'blue',  ico:'🧊', msg:`Don riski — gece ${Math.round(minTemp)}°C'ye düşecek`});
+  else if(minTemp!=null && minTemp<=3)
+    alerts.push({lvl:'yellow',ico:'🧊', msg:`Gece sıfıra yakın — ${Math.round(minTemp)}°C bekleniyor`});
+
+  // 11. Sis / düşük görüş
+  if(isFogCode && vis<500)
+    alerts.push({lvl:'orange',ico:'🌫', msg:`Yoğun sis — görüş mesafesi ${vis} m · sürüş tehlikeli`});
+  else if(isFogCode || vis<1000)
+    alerts.push({lvl:'yellow',ico:'🌫', msg:`Sis / düşük görüş — ${(vis/1000).toFixed(1)} km`});
+
+  // 12. Ani sıcaklık düşüşü / yükselişi
+  if(tempDiff<=-12)
+    alerts.push({lvl:'blue',  ico:'🌡', msg:`Yarın ani soğuma — ${Math.abs(tempDiff).toFixed(0)}°C düşüş bekleniyor`});
+  else if(tempDiff<=-7)
+    alerts.push({lvl:'yellow',ico:'🌡', msg:`Yarın sıcaklık ${Math.abs(tempDiff).toFixed(0)}°C düşecek`});
+  else if(tempDiff>=12)
+    alerts.push({lvl:'orange',ico:'🌡', msg:`Yarın ani ısınma — ${tempDiff.toFixed(0)}°C artış bekleniyor`});
+  else if(tempDiff>=7)
+    alerts.push({lvl:'yellow',ico:'🌡', msg:`Yarın sıcaklık ${tempDiff.toFixed(0)}°C yükselecek`});
+
+  // 13. Aşırı sıcak / sıcak hava dalgası
+  if(feelsMax!=null && feelsMax>=40)
+    alerts.push({lvl:'red',   ico:'🔥', msg:`Tehlikeli sıcak — hissedilen ${Math.round(feelsMax)}°C · dışarı çıkmayın`});
+  else if(feelsMax!=null && feelsMax>=35)
+    alerts.push({lvl:'orange',ico:'🔥', msg:`Aşırı sıcak — hissedilen ${Math.round(feelsMax)}°C · bol su için`});
+  else if(feelsMax!=null && feelsMax>=32)
+    alerts.push({lvl:'yellow',ico:'🔥', msg:`Sıcak hava dalgası — hissedilen ${Math.round(feelsMax)}°C`});
+
+  // 14. Yüksek UV
+  if(uv>=11)
+    alerts.push({lvl:'red',   ico:'☀', msg:`Aşırı UV (${uv.toFixed(1)}) — güneş kremi ve gölge zorunlu`});
+  else if(uv>=8)
+    alerts.push({lvl:'orange',ico:'☀', msg:`Yüksek UV indeksi (${uv.toFixed(1)}) — güneş kremi kullanın`});
+  else if(uv>=6)
+    alerts.push({lvl:'yellow',ico:'☀', msg:`Orta-yüksek UV (${uv.toFixed(1)}) — öğlen saatlerinde dikkat`});
+
+  // 15. Toz taşınımı (visibility düşük + rüzgar yüksek + kuru hava)
+  const humidity = current.relative_humidity_2m ?? 50;
+  if(vis<3000 && ws>=30 && humidity<30 && code<=3)
+    alerts.push({lvl:'orange',ico:'🏜', msg:`Toz fırtınası ihtimali — düşük nem, görüş ${(vis/1000).toFixed(1)} km`});
+  else if(vis<5000 && ws>=20 && humidity<25 && code<=3)
+    alerts.push({lvl:'yellow',ico:'🏜', msg:`Toz taşınımı olabilir — kuru ve rüzgarlı hava`});
+
   return alerts;
 }
+
 const WX_ALERT_COLORS = {
   red:    {bg:'rgba(239,68,68,.15)',  border:'rgba(239,68,68,.4)',   text:'#fca5a5'},
   orange: {bg:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.35)', text:'#fdba74'},
@@ -305,10 +421,9 @@ function wxPrecipChart(hourly, daily){
     bars.push({h: hourly.time[i], rain: rainDisp, snow: snowDisp, total, prob: hourly.precipitation_probability[i]||0});
   }
   const hasData = maxMm>0 || bars.some(b=>b.prob>=10);
-  const BAR_H = 44; // grafik yüksekliği px
+  const BAR_H = 44;
   const scale = maxMm>0 ? maxMm : 1;
 
-  // Y-ekseni için güzel referans değerleri seç (en fazla 2 çizgi)
   function niceRef(max){
     if(max<=0) return [];
     const candidates=[0.5,1,2,5,10,20,50];
@@ -340,7 +455,6 @@ function wxPrecipChart(hourly, daily){
     </div>`;
   }).join('');
 
-  // Referans çizgileri: pozisyon = (1 - v/maxMm) * BAR_H
   const refHTML = refLines.map(v=>{
     const bottom = v/scale*BAR_H;
     return `<div style="position:absolute;left:0;right:0;bottom:${bottom}px;display:flex;align-items:center;pointer-events:none">
@@ -373,9 +487,50 @@ function wxPrecipChart(hourly, daily){
   </div>`;
 }
 
+// ── YAĞIŞ — SAHNE İÇİ MİNİ GRAFİK ──────────────────────────────────
+function wxPrecipInner(hourly, daily){
+  const dayStr = daily.time[0];
+  const now = Date.now();
+  const bars = [];
+  let maxMm = 0;
+  for(let i=0;i<hourly.time.length;i++){
+    if(hourly.time[i].split('T')[0]!==dayStr) continue;
+    const rain=(hourly.rain||[])[i]||0;
+    const snow=(hourly.snowfall||[])[i]||0;
+    const prob=hourly.precipitation_probability[i]||0;
+    maxMm=Math.max(maxMm,rain+snow);
+    bars.push({h:hourly.time[i],rain,snow,prob,isNow:new Date(hourly.time[i]).getTime()<=now&&now<new Date(hourly.time[i]).getTime()+3600000});
+  }
+  if(maxMm<0.1 && bars.every(b=>b.prob<15)) return '';
+  const scale=maxMm>0?maxMm:1;
+  const maxBarH=36;
+  const barsHTML=bars.map(b=>{
+    const hour=new Date(b.h).getHours().toString().padStart(2,'0');
+    const rainH=Math.max(b.rain/scale*maxBarH,b.rain>0?2:0);
+    const snowH=Math.max(b.snow/scale*maxBarH,b.snow>0?2:0);
+    const totalH=rainH+snowH;
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:2px">
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${maxBarH}px">
+        ${snowH>0?`<div style="width:60%;margin:0 auto;height:${snowH}px;background:rgba(180,220,255,.75);border-radius:1px"></div>`:''}
+        ${rainH>0?`<div style="width:60%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.85);border-radius:${snowH?'0':'1px'} ${snowH?'0':'1px'} 0 0"></div>`:''}
+        ${totalH===0&&b.prob>10?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.15)"></div>`:''}
+      </div>
+      <div style="font-size:8px;color:rgba(255,255,255,${b.isNow?'.9':'.4'});font-weight:${b.isNow?'600':'400'}">${b.isNow?'•':hour}</div>
+    </div>`;
+  }).join('');
+  const totalToday=(daily.precipitation_sum||[])[0]||0;
+  const hasSnow=bars.some(b=>b.snow>0.1);
+  return `<div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5)">${hasSnow?'Kar / Yağmur':'Yağış'}</div>
+      <div style="font-size:9px;color:rgba(255,255,255,.4)">${totalToday.toFixed(1)} mm bugün</div>
+    </div>
+    <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
+  </div>`;
+}
+
 // ── CANLI HAVA SAHNESİ ────────────────────────────────────────────────
 function wxSceneHTML(code, isDay, temp, city){
-  // Zemin & gökyüzü renkleri
   const scenes = {
     day_clear:    {sky:['#1a4a8a','#4a90d9','#87ceeb'], label:'Açık Hava'},
     day_cloud:    {sky:['#2a3a4a','#4a5a6a','#7a8a9a'], label:'Bulutlu'},
@@ -398,7 +553,6 @@ function wxSceneHTML(code, isDay, temp, city){
   const s = scenes[key];
   const [c1,c2,c3] = s.sky;
 
-  // Elementler
   let elements = '';
 
   // Yıldızlar (gece)
@@ -602,7 +756,6 @@ function wxRender(d,city){
         <div class="wx-det-val">${Math.round(c.wind_speed_10m)}<span style="font-size:13px;opacity:.4"> km/sa</span></div>
         <div class="wx-det-sub">${wxWindDir(c.wind_direction_10m)} yönünden<br>Ani: ${(c.wind_gusts_10m||0).toFixed(0)} km/sa</div>
       </div>
-
       <div class="wx-det">
         ${wxIcoRain}
         <div class="wx-det-lbl">Yağış</div>
@@ -619,7 +772,7 @@ function wxRender(d,city){
         <div class="wx-uv-bar"><div class="wx-uv-pin" style="left:${Math.min(94,daily.uv_index_max[0]/11*100)}%"></div></div>
         <div class="wx-det-sub">${wxUvLbl(daily.uv_index_max[0])}</div>
       </div>
-      <div class="wx-det" >
+      <div class="wx-det">
         ${wxIcoFeels}
         <div class="wx-det-lbl">Hissedilen Sıcaklık</div>
         <div class="wx-det-val">${Math.round(c.apparent_temperature)}°</div>
