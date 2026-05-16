@@ -206,25 +206,22 @@ function wxSunAnim(type){
 // ── UYARI MOTORU ─────────────────────────────────────────────────────
 function wxAlerts(current, hourly, daily){
   const alerts = [];
-  const ws  = current.wind_speed_10m;
-  const wg  = current.wind_gusts_10m || 0;
+  const ws   = current.wind_speed_10m;
+  const wg   = current.wind_gusts_10m || 0;
   const code = current.weather_code;
-  const vis  = current.visibility ?? 10000;   // metre
+  const vis  = current.visibility ?? 10000;
   const now  = Date.now();
 
-  // ─── Saatlik önizleme yardımcıları ─────────────────────────────
-  // Önümüzdeki N saat için max/sum hesapla
-  function hourlyWindow(arr, hours, fn){
-    let result = null;
+  // ─── Saatlik yardımcılar ────────────────────────────────────────
+  function hourMax(arr, hours){
+    let m=0;
     for(let i=0;i<hourly.time.length;i++){
-      const ht = new Date(hourly.time[i]).getTime();
-      if(ht < now || ht > now + hours*3600000) continue;
-      const v = (arr||[])[i] ?? 0;
-      result = result===null ? fn(result,v) : fn(result,v);
+      const ht=new Date(hourly.time[i]).getTime();
+      if(ht<now||ht>now+hours*3600000) continue;
+      m=Math.max(m,(arr||[])[i]??0);
     }
-    return result ?? 0;
+    return m;
   }
-  function hourMax(arr, hours){ return hourlyWindow(arr, hours, (a,v)=>a===null?v:Math.max(a,v)); }
   function hourSum(arr, hours){
     let s=0;
     for(let i=0;i<hourly.time.length;i++){
@@ -235,67 +232,127 @@ function wxAlerts(current, hourly, daily){
     return s;
   }
 
-  const maxRain6h  = hourMax(hourly.rain,      6);
-  const maxSnow6h  = hourMax(hourly.snowfall,   6);
-  const maxRain24h = hourMax(hourly.rain,      24);
+  const maxRain6h  = hourMax(hourly.rain, 6);
+  const maxSnow6h  = hourMax(hourly.snowfall, 6);
   const sumRain24h = hourSum(hourly.precipitation, 24);
 
-  // Hava bozulma tespiti: şu an açık/az bulutlu ama 3 saat içinde yağış kodu
-  let deteriorating = false;
-  if(code<=3){
-    for(let i=0;i<hourly.time.length;i++){
-      const ht=new Date(hourly.time[i]).getTime();
-      if(ht<now||ht>now+3*3600000) continue;
-      if((hourly.weather_code||[])[i]>=51){ deteriorating=true; break; }
-    }
+  // ─── Saatlik durum geçmişi / geleceği ──────────────────────────
+  // Şu anki saate karşılık gelen hourly index'i bul
+  let nowIdx = 0;
+  for(let i=0;i<hourly.time.length;i++){
+    if(new Date(hourly.time[i]).getTime() <= now) nowIdx = i;
+    else break;
   }
 
-  // Yağmur başlama: şu an yağmur yok ama 2 saat içinde başlıyor
+  // ─── 1. Saatlerce süren yağmur ─────────────────────────────────
+  // Önümüzdeki saatlerde kaç saat kesintisiz yağış kodu var?
+  let continuousRainHours = 0;
+  for(let i=nowIdx;i<hourly.time.length;i++){
+    const ht=new Date(hourly.time[i]).getTime();
+    if(ht>now+12*3600000) break;
+    if((hourly.weather_code||[])[i]>=51) continuousRainHours++;
+    else if(continuousRainHours>0) break; // Kesinti → dur
+  }
+
+  // ─── 2. Ani bastıran yağış (1 saat içinde yüksek mm) ───────────
+  let burstRain1h = 0;
+  for(let i=nowIdx;i<hourly.time.length;i++){
+    const ht=new Date(hourly.time[i]).getTime();
+    if(ht>now+1*3600000) break;
+    burstRain1h = Math.max(burstRain1h, (hourly.rain||[])[i]??0);
+  }
+
+  // ─── 3. Yağmur başlama ─────────────────────────────────────────
+  // Şu an kuru, önümüzdeki 3 saat içinde yağmur başlıyor
   let rainStartsIn = null;
-  if(code<51){
-    for(let i=0;i<hourly.time.length;i++){
+  const isRainingNow = code>=51 && code<=82;
+  if(!isRainingNow){
+    for(let i=nowIdx+1;i<hourly.time.length;i++){
       const ht=new Date(hourly.time[i]).getTime();
-      if(ht<now||ht>now+2*3600000) continue;
-      if((hourly.rain||[])[i]>=0.5){
-        rainStartsIn = Math.round((ht-now)/60000); // dakika
+      if(ht>now+3*3600000) break;
+      if((hourly.rain||[])[i]>=0.3){
+        rainStartsIn = Math.round((ht-now)/60000);
         break;
       }
     }
   }
 
-  // Önümüzdeki 6 saatte min görüş mesafesi (saatlik visibility yok —
-  // mevcut değeri ve hava kodunu birlikte kullanıyoruz)
-  const isFogCode = code===45||code===48;
+  // ─── 4. Yağmur bitiyor ─────────────────────────────────────────
+  // Şu an yağıyor, önümüzdeki 2 saat içinde duruyor
+  let rainStopsIn = null;
+  if(isRainingNow){
+    for(let i=nowIdx+1;i<hourly.time.length;i++){
+      const ht=new Date(hourly.time[i]).getTime();
+      if(ht>now+2*3600000) break;
+      const c=(hourly.weather_code||[])[i]??0;
+      if(c<51||(c>=71&&c<=77)){
+        rainStopsIn = Math.round((ht-now)/60000);
+        break;
+      }
+    }
+  }
 
-  // Sıcaklık değişimi bugün → yarın
-  const tempDiff = (daily.temperature_2m_max?.length>=2)
-    ? daily.temperature_2m_max[1] - daily.temperature_2m_max[0]
-    : 0;
+  // ─── 5. Detaylı hava bozulma özeti (3 saat içinde çoklu değişim) ─
+  // Sıcaklık, rüzgar ve hava kodu birlikte değişiyorsa kullanıcı dostu özet üret
+  let deteriorationMsg = null;
+  if(code<=3){ // Şu an açık/bulutlu
+    const futureIdx = hourly.time.findIndex((t,i)=>{
+      const ht=new Date(t).getTime();
+      return ht>now+2*3600000 && ht<=now+4*3600000 && (hourly.weather_code||[])[i]>=51;
+    });
+    if(futureIdx>=0){
+      const futureTemp   = (hourly.temperature_2m||[])[futureIdx]??null;
+      const futureWind   = null; // saatlik rüzgar yok — günlük kullanacağız
+      const futureCode   = (hourly.weather_code||[])[futureIdx];
+      const nowTemp      = (hourly.temperature_2m||[])[nowIdx]??current.temperature_2m;
+      const tempDrop     = nowTemp!=null && futureTemp!=null ? Math.round(nowTemp - futureTemp) : null;
+      const futureLabel  = futureCode>=95?'fırtına':futureCode>=80?'sağanak':futureCode>=61?'yağmurlu hava':futureCode>=51?'çiseleme':'yağış';
+      const nowLabel     = code<=1?'açık hava':code<=2?'parçalı bulutlu':'bulutlu hava';
+      const parts = [];
+      parts.push(`${nowLabel} → ${futureLabel}`);
+      if(tempDrop!=null && tempDrop>=5) parts.push(`sıcaklık ~${tempDrop}°C düşecek`);
+      deteriorationMsg = `Hava ${Math.round((new Date(hourly.time[futureIdx]).getTime()-now)/3600000)} saat içinde belirgin şekilde değişecek: ${parts.join(', ')}`;
+    }
+  }
 
-  // Günlük veriler
-  const feelsMax = (daily.apparent_temperature_max||[])[0] ?? null;
-  const feelsMin = (daily.apparent_temperature_min||[])[0] ?? null;
-  const minTemp  = daily.temperature_2m_min?.[0] ?? null;
-  const maxTemp  = daily.temperature_2m_max?.[0] ?? null;
-  const uv       = daily.uv_index_max?.[0] ?? 0;
+  // ─── 6. Fırtırmaya yaklaşan rüzgar (şu an orta, 3 saat içinde artıyor) ─
+  let windRisingMsg = null;
+  if(ws<45){
+    for(let i=nowIdx+1;i<hourly.time.length;i++){
+      const ht=new Date(hourly.time[i]).getTime();
+      if(ht>now+3*3600000) break;
+      // Saatlik wind_speed yok — ani esinti kodu 95+ ile yaklaşık tahmin
+      const fc=(hourly.weather_code||[])[i]??0;
+      if(fc>=95){
+        windRisingMsg=`Önümüzdeki saatlerde fırtına gelişebilir`;
+        break;
+      }
+    }
+  }
+
+  // ─── Günlük veriler ─────────────────────────────────────────────
+  const isFogCode    = code===45||code===48;
+  const tempDiff     = (daily.temperature_2m_max?.length>=2) ? daily.temperature_2m_max[1]-daily.temperature_2m_max[0] : 0;
+  const feelsMax     = (daily.apparent_temperature_max||[])[0] ?? null;
+  const minTemp      = daily.temperature_2m_min?.[0] ?? null;
+  const maxTemp      = daily.temperature_2m_max?.[0] ?? null;
+  const uv           = daily.uv_index_max?.[0] ?? 0;
   const next3DayRain = (daily.precipitation_sum||[]).slice(0,3).reduce((a,b)=>a+(b||0),0);
   const rainyDays    = (daily.precipitation_sum||[]).slice(0,5).filter(v=>(v||0)>=3).length;
   const snowSum3d    = (daily.snowfall_sum||[]).slice(0,3).reduce((a,b)=>a+(b||0),0);
+  const humidity     = current.relative_humidity_2m ?? 50;
 
   // ══════════════════════════════════════════════════════════════
-  //  UYARILAR — öncelik sırasıyla (kırmızı → turuncu → sarı → mavi)
+  //  UYARILAR
   // ══════════════════════════════════════════════════════════════
 
-  // 1. Şiddetli fırtına / yıldırım
+  // Şiddetli fırtına / yıldırım
   if(code>=95)
-    alerts.push({lvl:'red', ico:'⚡', msg:'Şiddetli fırtına ve yıldırım aktif — dışarı çıkmayın'});
+    alerts.push({lvl:'red',   ico:'⚡', msg:'Şiddetli fırtına ve yıldırım aktif — dışarı çıkmayın'});
   else if(code===96||code===99)
-    alerts.push({lvl:'red', ico:'⛈', msg:'Dolulu fırtına — araç ve cam yüzeyleri koruyun'});
+    alerts.push({lvl:'red',   ico:'⛈', msg:'Dolulu fırtına — araç ve cam yüzeyleri koruyun'});
 
-  // 2. Dolu (kod 96/99 zaten yukarıda; ek: hafif dolu)
-  // Open-Meteo'da dolu ayrı kod yok, 96/99 kapsamında — yukarıda ele alındı.
-
-  // 3. SEL riski
+  // SEL riski
   if(maxRain6h>=20)
     alerts.push({lvl:'red',   ico:'🌊', msg:`SEL RİSKİ — 6 saatte ${maxRain6h.toFixed(1)} mm yağış bekleniyor`});
   else if(maxRain6h>=12||sumRain24h>=40)
@@ -303,17 +360,39 @@ function wxAlerts(current, hourly, daily){
   else if(maxRain6h>=5)
     alerts.push({lvl:'yellow',ico:'🌧', msg:`Yağış yoğunlaşıyor (${maxRain6h.toFixed(1)} mm/6sa)`});
 
-  // 4. Yağmur başlama bildirimi
+  // Ani bastıran yağış (1 saat içinde yüksek mm)
+  if(burstRain1h>=8)
+    alerts.push({lvl:'orange',ico:'⛈', msg:`Ani bastıran yağış — 1 saat içinde ${burstRain1h.toFixed(1)} mm bekleniyor`});
+  else if(burstRain1h>=4)
+    alerts.push({lvl:'yellow',ico:'🌧', msg:`Yoğun yağış geliyor — 1 saat içinde ${burstRain1h.toFixed(1)} mm`});
+
+  // Saatlerce süren yağmur
+  if(continuousRainHours>=6)
+    alerts.push({lvl:'orange',ico:'☔', msg:`${continuousRainHours} saat kesintisiz yağmur bekleniyor`});
+  else if(continuousRainHours>=3)
+    alerts.push({lvl:'yellow',ico:'☔', msg:`${continuousRainHours} saat boyunca yağışlı hava`});
+
+  // Yağmur başlama bildirimi
   if(rainStartsIn!==null)
-    alerts.push({lvl:'yellow',ico:'🌂', msg:`Yaklaşık ${rainStartsIn} dakika içinde yağmur başlayabilir`});
+    alerts.push({lvl:'yellow',ico:'🌂', msg:`Yaklaşık ${rainStartsIn} dakika içinde yağmur başlıyor`});
 
-  // 5. Uzun süreli / süregelen yağış
+  // Yağmur bitiyor bildirimi
+  if(rainStopsIn!==null)
+    alerts.push({lvl:'yellow',ico:'🌤', msg:`Yağmur yaklaşık ${rainStopsIn} dakika içinde duruyor`});
+
+  // Detaylı hava bozulma özeti
+  if(deteriorationMsg)
+    alerts.push({lvl:'orange',ico:'⚠', msg:deteriorationMsg});
+  else if(windRisingMsg)
+    alerts.push({lvl:'yellow',ico:'⚠', msg:windRisingMsg});
+
+  // Uzun süreli yağış (çok günlü)
   if(next3DayRain>=60)
-    alerts.push({lvl:'orange',ico:'☔', msg:`Uzun süreli yoğun yağış — 3 günde toplam ${next3DayRain.toFixed(0)} mm`});
+    alerts.push({lvl:'orange',ico:'🌧', msg:`Uzun süreli yağış — 3 günde toplam ${next3DayRain.toFixed(0)} mm`});
   else if(rainyDays>=4)
-    alerts.push({lvl:'yellow',ico:'☔', msg:`${rainyDays} gün boyunca yağışlı hava bekleniyor`});
+    alerts.push({lvl:'yellow',ico:'🌧', msg:`${rainyDays} gün boyunca yağışlı hava`});
 
-  // 6. Kuvvetli rüzgar / fırtına
+  // Kuvvetli rüzgar / fırtırmaya yaklaşan
   if(wg>=90)
     alerts.push({lvl:'red',   ico:'🌪', msg:`Tayfun şiddetinde rüzgar — ani esinti ${wg} km/sa`});
   else if(wg>=75||ws>=60)
@@ -321,21 +400,17 @@ function wxAlerts(current, hourly, daily){
   else if(wg>=55||ws>=45)
     alerts.push({lvl:'yellow',ico:'💨', msg:`Kuvvetli rüzgar ${Math.round(ws)} km/sa — ani ${wg} km/sa`});
 
-  // 7. Hızlı hava bozulması
-  if(deteriorating)
-    alerts.push({lvl:'yellow',ico:'⚠', msg:'Önümüzdeki 3 saatte hava bozulacak — yağış başlıyor'});
-
-  // 8. Kar yağışı
+  // Kar yağışı
   if(maxSnow6h>=10)
     alerts.push({lvl:'blue',  ico:'❄', msg:`Yoğun kar — 6 saatte ${maxSnow6h.toFixed(1)} cm bekleniyor`});
   else if(maxSnow6h>=3)
     alerts.push({lvl:'blue',  ico:'🌨', msg:`Kar yağışı bekleniyor (${maxSnow6h.toFixed(1)} cm/6sa) — yollar kaygan`});
 
-  // 9. Kar erimesi / çığ riski (3 günde yüksek kar birikimi + yüksek max sıcaklık)
+  // Kar erimesi / çığ
   if(snowSum3d>=20 && (maxTemp??0)>=5)
-    alerts.push({lvl:'orange',ico:'🏔', msg:`Kar erimesi / çığ riski — ${snowSum3d.toFixed(0)} cm kar + sıcaklık yükseliyor`});
+    alerts.push({lvl:'orange',ico:'🏔', msg:`Kar erimesi riski — ${snowSum3d.toFixed(0)} cm kar birikimi, sıcaklık yükseliyor`});
 
-  // 10. Buzlanma / don
+  // Buzlanma / don
   if(minTemp!=null && minTemp<=-5)
     alerts.push({lvl:'blue',  ico:'🧊', msg:`Şiddetli don — gece ${Math.round(minTemp)}°C · buzlanma tehlikesi`});
   else if(minTemp!=null && minTemp<=0)
@@ -343,23 +418,23 @@ function wxAlerts(current, hourly, daily){
   else if(minTemp!=null && minTemp<=3)
     alerts.push({lvl:'yellow',ico:'🧊', msg:`Gece sıfıra yakın — ${Math.round(minTemp)}°C bekleniyor`});
 
-  // 11. Sis / düşük görüş
+  // Sis / düşük görüş
   if(isFogCode && vis<500)
-    alerts.push({lvl:'orange',ico:'🌫', msg:`Yoğun sis — görüş mesafesi ${vis} m · sürüş tehlikeli`});
+    alerts.push({lvl:'orange',ico:'🌫', msg:`Yoğun sis — görüş ${vis} m · sürüş tehlikeli`});
   else if(isFogCode || vis<1000)
     alerts.push({lvl:'yellow',ico:'🌫', msg:`Sis / düşük görüş — ${(vis/1000).toFixed(1)} km`});
 
-  // 12. Ani sıcaklık düşüşü / yükselişi
+  // Ani sıcaklık değişimi
   if(tempDiff<=-12)
-    alerts.push({lvl:'blue',  ico:'🌡', msg:`Yarın ani soğuma — ${Math.abs(tempDiff).toFixed(0)}°C düşüş bekleniyor`});
+    alerts.push({lvl:'blue',  ico:'🌡', msg:`Yarın ani soğuma — ${Math.abs(tempDiff).toFixed(0)}°C düşüş`});
   else if(tempDiff<=-7)
     alerts.push({lvl:'yellow',ico:'🌡', msg:`Yarın sıcaklık ${Math.abs(tempDiff).toFixed(0)}°C düşecek`});
   else if(tempDiff>=12)
-    alerts.push({lvl:'orange',ico:'🌡', msg:`Yarın ani ısınma — ${tempDiff.toFixed(0)}°C artış bekleniyor`});
+    alerts.push({lvl:'orange',ico:'🌡', msg:`Yarın ani ısınma — ${tempDiff.toFixed(0)}°C artış`});
   else if(tempDiff>=7)
     alerts.push({lvl:'yellow',ico:'🌡', msg:`Yarın sıcaklık ${tempDiff.toFixed(0)}°C yükselecek`});
 
-  // 13. Aşırı sıcak / sıcak hava dalgası
+  // Aşırı sıcak
   if(feelsMax!=null && feelsMax>=40)
     alerts.push({lvl:'red',   ico:'🔥', msg:`Tehlikeli sıcak — hissedilen ${Math.round(feelsMax)}°C · dışarı çıkmayın`});
   else if(feelsMax!=null && feelsMax>=35)
@@ -367,16 +442,15 @@ function wxAlerts(current, hourly, daily){
   else if(feelsMax!=null && feelsMax>=32)
     alerts.push({lvl:'yellow',ico:'🔥', msg:`Sıcak hava dalgası — hissedilen ${Math.round(feelsMax)}°C`});
 
-  // 14. Yüksek UV
+  // Yüksek UV
   if(uv>=11)
     alerts.push({lvl:'red',   ico:'☀', msg:`Aşırı UV (${uv.toFixed(1)}) — güneş kremi ve gölge zorunlu`});
   else if(uv>=8)
-    alerts.push({lvl:'orange',ico:'☀', msg:`Yüksek UV indeksi (${uv.toFixed(1)}) — güneş kremi kullanın`});
+    alerts.push({lvl:'orange',ico:'☀', msg:`Yüksek UV (${uv.toFixed(1)}) — güneş kremi kullanın`});
   else if(uv>=6)
     alerts.push({lvl:'yellow',ico:'☀', msg:`Orta-yüksek UV (${uv.toFixed(1)}) — öğlen saatlerinde dikkat`});
 
-  // 15. Toz taşınımı (visibility düşük + rüzgar yüksek + kuru hava)
-  const humidity = current.relative_humidity_2m ?? 50;
+  // Toz taşınımı
   if(vis<3000 && ws>=30 && humidity<30 && code<=3)
     alerts.push({lvl:'orange',ico:'🏜', msg:`Toz fırtınası ihtimali — düşük nem, görüş ${(vis/1000).toFixed(1)} km`});
   else if(vis<5000 && ws>=20 && humidity<25 && code<=3)
