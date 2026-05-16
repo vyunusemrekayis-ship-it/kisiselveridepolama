@@ -296,9 +296,13 @@ function wxPrecipChart(hourly, daily){
     if(hourly.time[i].split('T')[0] !== dayStr) continue;
     const rain = (hourly.rain||[])[i]||0;
     const snow = (hourly.snowfall||[])[i]||0;
-    const total = rain + snow;
+    const precip = (hourly.precipitation||[])[i]||0;
+    const total = Math.max(precip, rain+snow);
+    const snowFrac = (rain+snow)>0 ? snow/(rain+snow) : 0;
+    const rainDisp = total*(1-snowFrac);
+    const snowDisp = total*snowFrac;
     maxMm = Math.max(maxMm, total);
-    bars.push({h: hourly.time[i], rain, snow, total, prob: hourly.precipitation_probability[i]||0});
+    bars.push({h: hourly.time[i], rain: rainDisp, snow: snowDisp, total, prob: hourly.precipitation_probability[i]||0});
   }
   const hasData = maxMm>0 || bars.some(b=>b.prob>=10);
   const BAR_H = 44; // grafik yüksekliği px
