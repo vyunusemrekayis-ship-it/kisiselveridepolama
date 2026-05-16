@@ -301,20 +301,47 @@ function wxPrecipChart(hourly, daily){
     bars.push({h: hourly.time[i], rain, snow, total, prob: hourly.precipitation_probability[i]||0});
   }
   const hasData = maxMm>0 || bars.some(b=>b.prob>=10);
+  const BAR_H = 44; // grafik yüksekliği px
   const scale = maxMm>0 ? maxMm : 1;
+
+  // Y-ekseni için güzel referans değerleri seç (en fazla 2 çizgi)
+  function niceRef(max){
+    if(max<=0) return [];
+    const candidates=[0.5,1,2,5,10,20,50];
+    const step=candidates.find(c=>max/c<=3&&max/c>=1)||Math.ceil(max/2);
+    const refs=[];
+    for(let v=step;v<max*0.97;v+=step) refs.push(v);
+    return refs.slice(0,2);
+  }
+  const refLines = maxMm>0 ? niceRef(maxMm) : [];
+
   const barsHTML = bars.map(b=>{
     const hour = new Date(b.h).getHours().toString().padStart(2,'0');
-    const rainH = Math.max(b.rain/scale*44, b.rain>0?2:0);
-    const snowH = Math.max(b.snow/scale*44, b.snow>0?2:0);
+    const rainH = Math.max(b.rain/scale*BAR_H, b.rain>0?2:0);
+    const snowH = Math.max(b.snow/scale*BAR_H, b.snow>0?2:0);
     const isNow = new Date(b.h).getTime() <= now && now < new Date(b.h).getTime()+3600000;
+    const totalMm = b.rain + b.snow;
+    const mmLabel = totalMm>=0.1
+      ? `<div style="font-size:7px;color:rgba(56,189,248,.8);line-height:1">${totalMm>=10?totalMm.toFixed(0):totalMm.toFixed(1)}</div>`
+      : `<div style="height:9px"></div>`;
     return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:1px">
-      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:44px">
+      ${mmLabel}
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${BAR_H}px;position:relative">
         ${snowH>0?`<div style="width:65%;margin:0 auto;height:${snowH}px;background:rgba(147,197,253,.75);border-radius:1px"></div>`:''}
         ${rainH>0?`<div style="width:65%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.85);border-radius:1px 1px 0 0"></div>`:''}
         ${!rainH&&!snowH&&b.prob>=10?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.15)"></div>`:''}
       </div>
       ${b.prob>=10?`<div style="font-size:7px;color:rgba(96,165,250,.65)">${b.prob}%</div>`:`<div style="height:10px"></div>`}
       <div style="font-size:8px;color:${isNow?'rgba(232,237,245,.85)':'rgba(232,237,245,.3)'};font-weight:${isNow?'600':'400'}">${isNow?'●':hour}</div>
+    </div>`;
+  }).join('');
+
+  // Referans çizgileri: pozisyon = (1 - v/maxMm) * BAR_H
+  const refHTML = refLines.map(v=>{
+    const bottom = v/scale*BAR_H;
+    return `<div style="position:absolute;left:0;right:0;bottom:${bottom}px;display:flex;align-items:center;pointer-events:none">
+      <div style="width:100%;height:1px;background:rgba(255,255,255,.08)"></div>
+      <div style="position:absolute;right:0;font-size:7px;color:rgba(232,237,245,.25);white-space:nowrap;transform:translateY(-8px)">${v} mm</div>
     </div>`;
   }).join('');
 
@@ -326,13 +353,19 @@ function wxPrecipChart(hourly, daily){
   return `<div style="display:flex;flex-direction:column;height:100%">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <div class="wx-det-lbl" style="margin:0">${typeLabel}</div>
-      <div style="font-size:9px;color:rgba(232,237,245,.3)">${totalToday.toFixed(1)} mm</div>
+      <div style="font-size:9px;color:rgba(232,237,245,.3)">${totalToday.toFixed(1)} mm bugün</div>
     </div>
     ${hasSnow?`<div style="display:flex;gap:10px;margin-bottom:6px;font-size:9px;color:rgba(232,237,245,.35)">
       <span><span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:rgba(56,189,248,.85);vertical-align:middle;margin-right:3px"></span>Yağmur</span>
       <span><span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:rgba(147,197,253,.75);vertical-align:middle;margin-right:3px"></span>Kar</span>
     </div>`:''}
-    ${!hasData?`<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(232,237,245,.2)">Yağış beklenmez</div>`:`<div style="display:flex;gap:1px;align-items:flex-end;flex:1">${barsHTML}</div>`}
+    ${!hasData
+      ? `<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(232,237,245,.2)">Yağış beklenmez</div>`
+      : `<div style="position:relative;flex:1">
+           <div style="position:absolute;bottom:20px;left:0;right:0;height:${BAR_H}px">${refHTML}</div>
+           <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
+         </div>`
+    }
   </div>`;
 }
 
