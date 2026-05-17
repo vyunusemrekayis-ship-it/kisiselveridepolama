@@ -37,6 +37,61 @@ const CAL_SP = [
 const CAL_COLORS = {h:'#e53935', r:'#8e44ad', i:'#1565c0'};
 const CAL_LABELS = {h:'Resmi Tatil', r:'Dini Bayram', i:'Uluslararası'};
 
+// ── KİŞİSEL ÖZEL GÜNLER ─────────────────────────────────────────
+function getCustomDays(){ try{return JSON.parse(localStorage.getItem('gn_custom_days')||'[]')}catch(e){return[]} }
+function setCustomDays(a){ localStorage.setItem('gn_custom_days',JSON.stringify(a)); window.saveToFirestore&&window.saveToFirestore(); }
+
+function openCustomDayModal(){
+  const m = document.getElementById('custom-day-modal');
+  if(m){ m.style.display='flex'; renderCustomDayList(); }
+}
+function closeCustomDayModal(){
+  const m = document.getElementById('custom-day-modal');
+  if(m) m.style.display='none';
+}
+
+function renderCustomDayList(){
+  const el = document.getElementById('custom-day-list');
+  if(!el) return;
+  const days = getCustomDays();
+  if(!days.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Henüz özel gün eklenmedi.</div>';
+    return;
+  }
+  el.innerHTML = days.map((d,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--surface2);border-left:3px solid ${d.color}">
+      <div style="width:10px;height:10px;border-radius:50%;background:${d.color};flex-shrink:0"></div>
+      <span style="flex:1;font-size:13px">${esc(d.name)}</span>
+      <span style="font-size:11px;color:var(--muted)">${d.date.slice(5).replace('-','/')}${d.repeat?' · ↻':''}</span>
+      <button onclick="delCustomDay(${i})" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:0 2px;line-height:1">×</button>
+    </div>`).join('');
+}
+
+function saveCustomDay(){
+  const name = document.getElementById('cd-name').value.trim();
+  const date = document.getElementById('cd-date').value;
+  const color = document.getElementById('cd-color').value;
+  const repeat = document.getElementById('cd-repeat').checked;
+  if(!name || !date) return;
+  const days = getCustomDays();
+  days.push({name, date, color, repeat});
+  setCustomDays(days);
+  document.getElementById('cd-name').value='';
+  document.getElementById('cd-date').value='';
+  renderCustomDayList();
+  renderCal();
+  if(calSel) renderCalSide(calSel);
+}
+
+function delCustomDay(i){
+  const days = getCustomDays();
+  days.splice(i,1);
+  setCustomDays(days);
+  renderCustomDayList();
+  renderCal();
+  if(calSel) renderCalSide(calSel);
+}
+
 // Durum
 let calY = new Date().getFullYear();
 let calM = new Date().getMonth();
@@ -56,7 +111,12 @@ function getSpecial(ds){
   const [y,m,d] = ds.split('-');
   const k = m+'-'+d;
   const yr = parseInt(y);
-  return CAL_SP.filter(s => s.k===k && (!s.y || s.y.includes(yr)));
+  const base = CAL_SP.filter(s => s.k===k && (!s.y || s.y.includes(yr)));
+  const custom = getCustomDays().filter(c => {
+    if(c.repeat) return c.date.slice(5) === ds.slice(5);
+    return c.date === ds;
+  }).map(c => ({k, n:c.name, t:'custom', color:c.color}));
+  return [...base, ...custom];
 }
 
 function getSpecialMonth(year, month){
@@ -131,6 +191,7 @@ function renderCal(){
     if(isH) dots.push({c:CAL_COLORS.h, big:true});
     if(isR) dots.push({c:CAL_COLORS.r, big:true});
     if(isI) dots.push({c:CAL_COLORS.i, big:true});
+    sp.filter(s=>s.t==='custom').forEach(s=>dots.push({c:s.color, big:true}));
     nts.forEach(n => { const nc=typeof n==='object'?n.color:'#3a7bd5'; dots.push({c:nc,big:false}); });
     // To-do için nokta gösterme
 
@@ -199,9 +260,11 @@ function renderCalSide(ds){
 
   // Özel günler
   sp.forEach(s => {
-    html += `<div class="cal-item" style="border-left-color:${CAL_COLORS[s.t]||'var(--accent)'}">
+    const color = s.color || CAL_COLORS[s.t] || 'var(--accent)';
+    const label = s.t==='custom' ? 'Kişisel' : (CAL_LABELS[s.t]||'');
+    html += `<div class="cal-item" style="border-left-color:${color}">
       <div class="cal-item-title">${esc(s.n)}</div>
-      <div class="cal-item-sub">${CAL_LABELS[s.t]||''}</div>
+      <div class="cal-item-sub">${label}</div>
     </div>`;
   });
 
