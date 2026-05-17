@@ -82,6 +82,12 @@ function cdRepeatToggle(){
 function openCustomDayModal(){
   const m = document.getElementById('custom-day-modal');
   if(m){ m.style.display='flex'; renderCustomDayList(); }
+  // tarih varsayılanı bugün
+  const dateEl = document.getElementById('cd-date');
+  if(dateEl && !dateEl.value) dateEl.value = todayStr();
+  // desc sıfırla
+  const desc = document.getElementById('cd-desc');
+  if(desc) desc.value = '';
   // checkbox sıfırla
   const cb = document.getElementById('cd-repeat');
   const box = document.getElementById('cd-repeat-box');
@@ -114,15 +120,18 @@ function renderCustomDayList(){
 
 function saveCustomDay(){
   const name = document.getElementById('cd-name').value.trim();
-  const date = document.getElementById('cd-date').value;
+  const desc = (document.getElementById('cd-desc').value||'').trim();
+  const dateEl = document.getElementById('cd-date');
+  const date = dateEl.value || todayStr();
   const color = document.getElementById('cd-color').value;
   const repeat = document.getElementById('cd-repeat').checked;
-  if(!name || !date) return;
+  if(!name) return;
   const days = getCustomDays();
-  days.push({name, date, color, repeat});
+  days.push({name, desc, date, color, repeat});
   setCustomDays(days);
   document.getElementById('cd-name').value='';
-  document.getElementById('cd-date').value='';
+  document.getElementById('cd-desc').value='';
+  dateEl.value = todayStr();
   renderCustomDayList();
   renderLegendCustom();
   renderCal();
@@ -162,7 +171,7 @@ function getSpecial(ds){
   const custom = getCustomDays().filter(c => {
     if(c.repeat) return c.date.slice(5) === ds.slice(5);
     return c.date === ds;
-  }).map(c => ({k, n:c.name, t:'custom', color:c.color}));
+  }).map(c => ({k, n:c.name, desc:c.desc||'', t:'custom', color:c.color}));
   return [...base, ...custom];
 }
 
@@ -310,9 +319,11 @@ function renderCalSide(ds){
   sp.forEach(s => {
     const color = s.color || CAL_COLORS[s.t] || 'var(--accent)';
     const label = s.t==='custom' ? 'Kişisel' : (CAL_LABELS[s.t]||'');
+    const descHtml = (s.t==='custom' && s.desc) ? `<div class="cal-item-sub" style="margin-top:3px">${esc(s.desc)}</div>` : '';
     html += `<div class="cal-item" style="border-left-color:${color}">
       <div class="cal-item-title">${esc(s.n)}</div>
       <div class="cal-item-sub">${label}</div>
+      ${descHtml}
     </div>`;
   });
 
