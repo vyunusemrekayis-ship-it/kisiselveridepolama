@@ -28,11 +28,12 @@
       <div class="cal-days" id="cal-days"></div>
     </div>
     </div>
-<div style="display:flex;gap:20px;flex-wrap:wrap;margin:14px 0 4px;padding:10px 14px;border-radius:10px;background:var(--surface2);border:0.5px solid var(--border)">
+<div style="display:flex;gap:20px;flex-wrap:wrap;margin:14px 0 4px;padding:10px 14px;border-radius:10px;background:var(--surface2);border:0.5px solid var(--border);align-items:center">
   <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><span style="color:#e53935;font-size:16px">●</span> Resmi Tatil</span>
   <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><span style="color:#8e44ad;font-size:16px">●</span> Dini Bayram</span>
   <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><span style="color:#1565c0;font-size:16px">●</span> Uluslararası</span>
   <span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><span style="color:var(--accent);font-size:16px">●</span> Not</span>
+  <button onclick="openCustomDayModal()" style="margin-left:auto;padding:4px 12px;border-radius:7px;border:0.5px solid var(--border);background:var(--surface3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Özel Gün</button>
 </div>
   </div>
 
@@ -100,5 +101,40 @@
       </div>
     </div>
     <div id="cal-media-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+  </div>
+</div>
+
+<!-- ── KİŞİSEL ÖZEL GÜN MODAL ─────────────────────────────────── -->
+<div id="custom-day-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.65);align-items:center;justify-content:center" onclick="if(event.target===this)closeCustomDayModal()">
+  <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:22px;width:360px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'Playfair Display',serif;font-size:16px;color:var(--accent2)">Kişisel Özel Günler</div>
+      <button onclick="closeCustomDayModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 2px">×</button>
+    </div>
+
+    <!-- Liste -->
+    <div id="custom-day-list" style="display:grid;gap:5px;margin-bottom:14px;max-height:220px;overflow-y:auto"></div>
+
+    <!-- Yeni ekle formu -->
+    <div style="border-top:0.5px solid var(--border);padding-top:14px;display:grid;gap:8px">
+      <input id="cd-name" placeholder="Gün adı (ör: Doğum Günüm)" autocomplete="off"
+        style="padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;box-sizing:border-box"
+        onkeydown="if(event.key==='Enter')saveCustomDay()">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="cd-date" type="date"
+          style="flex:1;padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color-scheme:dark">
+        <input id="cd-color" type="color" value="#f59e0b" title="Renk seç"
+          style="width:36px;height:36px;border:0.5px solid var(--border);border-radius:8px;background:var(--surface2);cursor:pointer;padding:3px;flex-shrink:0">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0">
+          <input id="cd-repeat" type="checkbox" style="cursor:pointer"> Her yıl
+        </label>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeCustomDayModal()"
+          style="flex:1;padding:8px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer">Kapat</button>
+        <button onclick="saveCustomDay()"
+          style="flex:1;padding:8px;border-radius:8px;border:0.5px solid var(--accent);background:transparent;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;font-weight:500">Ekle</button>
+      </div>
+    </div>
   </div>
 </div>
