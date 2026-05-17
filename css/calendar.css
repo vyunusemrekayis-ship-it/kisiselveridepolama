@@ -49,3 +49,11 @@
   .cal-month{font-size:15px}
   #cal-day-panel > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important;display:grid!important}
   .cal-wds .cal-wd{font-size:10px}
+/* ── KİŞİSEL ÖZEL GÜN MODAL ────────────────────────── */
+#custom-day-modal { animation: cdFadeIn .15s ease }
+@keyframes cdFadeIn { from{opacity:0} to{opacity:1} }
+#custom-day-modal > div { animation: cdSlideIn .18s cubic-bezier(.22,1,.36,1) }
+@keyframes cdSlideIn { from{transform:translateY(12px);opacity:0} to{transform:translateY(0);opacity:1} }
+#custom-day-list::-webkit-scrollbar { width:4px }
+#custom-day-list::-webkit-scrollbar-track { background:transparent }
+#custom-day-list::-webkit-scrollbar-thumb { background:var(--border2);border-radius:2px }
