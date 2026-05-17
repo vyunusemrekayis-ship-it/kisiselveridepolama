@@ -41,9 +41,54 @@ const CAL_LABELS = {h:'Resmi Tatil', r:'Dini Bayram', i:'Uluslararası'};
 function getCustomDays(){ try{return JSON.parse(localStorage.getItem('gn_custom_days')||'[]')}catch(e){return[]} }
 function setCustomDays(a){ localStorage.setItem('gn_custom_days',JSON.stringify(a)); window.saveToFirestore&&window.saveToFirestore(); }
 
+function renderLegendCustom(){
+  const el = document.getElementById('cal-legend-custom');
+  if(!el) return;
+  const days = getCustomDays();
+  // Benzersiz isimler — aynı isim birden fazla kayıtta varsa bir kere göster
+  const seen = new Set();
+  const spans = [];
+  days.forEach(d => {
+    if(seen.has(d.name)) return;
+    seen.add(d.name);
+    spans.push(`<span style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><span style="color:${d.color};font-size:16px">●</span> ${esc(d.name)}</span>`);
+  });
+  el.innerHTML = spans.join('');
+}
+
+function cdRepeatToggle(){
+  const cb = document.getElementById('cd-repeat');
+  const box = document.getElementById('cd-repeat-box');
+  const lbl = document.getElementById('cd-repeat-label');
+  if(!cb) return;
+  cb.checked = !cb.checked;
+  if(cb.checked){
+    box.textContent = '✓';
+    box.style.background = 'var(--accent)';
+    box.style.borderColor = 'var(--accent)';
+    box.style.color = '#1a1a00';
+    lbl.style.borderColor = 'var(--accent)';
+    lbl.style.color = 'var(--accent)';
+  } else {
+    box.textContent = '';
+    box.style.background = 'transparent';
+    box.style.borderColor = 'var(--border2)';
+    box.style.color = '';
+    lbl.style.borderColor = 'var(--border)';
+    lbl.style.color = 'var(--text)';
+  }
+}
+
 function openCustomDayModal(){
   const m = document.getElementById('custom-day-modal');
   if(m){ m.style.display='flex'; renderCustomDayList(); }
+  // checkbox sıfırla
+  const cb = document.getElementById('cd-repeat');
+  const box = document.getElementById('cd-repeat-box');
+  const lbl = document.getElementById('cd-repeat-label');
+  if(cb){ cb.checked=false; }
+  if(box){ box.textContent=''; box.style.background='transparent'; box.style.borderColor='var(--border2)'; box.style.color=''; }
+  if(lbl){ lbl.style.borderColor='var(--border)'; lbl.style.color='var(--text)'; }
 }
 function closeCustomDayModal(){
   const m = document.getElementById('custom-day-modal');
@@ -79,6 +124,7 @@ function saveCustomDay(){
   document.getElementById('cd-name').value='';
   document.getElementById('cd-date').value='';
   renderCustomDayList();
+  renderLegendCustom();
   renderCal();
   if(calSel) renderCalSide(calSel);
 }
@@ -88,6 +134,7 @@ function delCustomDay(i){
   days.splice(i,1);
   setCustomDays(days);
   renderCustomDayList();
+  renderLegendCustom();
   renderCal();
   if(calSel) renderCalSide(calSel);
 }
@@ -141,6 +188,7 @@ function calMove(dir){
 function renderCal(){
   const monthEl = document.getElementById('cal-month');
   if(!monthEl) return;
+  renderLegendCustom();
   monthEl.textContent = TR_M[calM]+' '+calY;
 
   const first = (new Date(calY,calM,1).getDay()+6)%7;
