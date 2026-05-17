@@ -118,9 +118,10 @@
 
     <!-- Yeni ekle formu -->
     <div style="border-top:0.5px solid var(--border);padding-top:14px;display:grid;gap:8px">
-      <input id="cd-name" placeholder="Gün adı (ör: Doğum Günüm)" autocomplete="off"
-        style="padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;box-sizing:border-box"
-        onkeydown="if(event.key==='Enter')saveCustomDay()">
+      <input id="cd-name" placeholder="Başlık (ör: Doğum Günüm)" autocomplete="off"
+        style="padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;box-sizing:border-box">
+      <textarea id="cd-desc" placeholder="Açıklama (isteğe bağlı)" rows="2"
+        style="padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%;box-sizing:border-box;resize:none;line-height:1.5"></textarea>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap">
         <input id="cd-date" type="date"
           style="flex:1;min-width:0;padding:8px 11px;border-radius:8px;border:0.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color-scheme:dark">
