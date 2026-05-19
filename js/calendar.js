@@ -318,11 +318,11 @@ function renderCalSide(ds){
   // Özel günler
   sp.forEach(s => {
     const color = s.color || CAL_COLORS[s.t] || 'var(--accent)';
-    const label = s.t==='custom' ? 'Kişisel' : (CAL_LABELS[s.t]||'');
+    const label = s.t==='custom' ? '' : (CAL_LABELS[s.t]||'');
     const descHtml = (s.t==='custom' && s.desc) ? `<div class="cal-item-sub" style="margin-top:3px">${esc(s.desc)}</div>` : '';
     html += `<div class="cal-item" style="border-left-color:${color}">
       <div class="cal-item-title">${esc(s.n)}</div>
-      <div class="cal-item-sub">${label}</div>
+      ${label ? `<div class="cal-item-sub">${label}</div>` : ''}
       ${descHtml}
     </div>`;
   });
