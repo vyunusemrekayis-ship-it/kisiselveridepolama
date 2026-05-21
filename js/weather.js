@@ -250,16 +250,16 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
     const label = isRise ? 'Gün Doğumu' : 'Gün Batımı';
     const textColor = isRise ? 'rgba(253,230,138,.9)' : 'rgba(252,165,165,.85)';
     const subColor  = isRise ? 'rgba(253,230,138,.45)' : 'rgba(252,165,165,.4)';
-    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;background:rgba(255,255,255,.035);border-radius:10px;min-width:0">
+    return `<div style="flex:0 0 auto;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px 6px;background:rgba(255,255,255,.035);border-radius:10px">
       <style>${anim}</style>
-      <svg width="40" height="36" viewBox="0 0 40 36" overflow="visible" style="overflow:visible">
+      <svg width="20" height="18" viewBox="0 0 40 36" overflow="visible" style="overflow:visible">
         <defs><radialGradient id="rg${uid}"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></radialGradient></defs>
         ${rays}
         <line x1="4" y1="22" x2="36" y2="22" stroke="${horiz}" stroke-width="1" stroke-linecap="round"/>
         <circle cx="20" cy="${discY}" r="6" fill="url(#rg${uid})" style="filter:drop-shadow(0 0 4px ${glow});animation:msr${uid} 1.5s cubic-bezier(.22,1,.36,1) forwards"/>
       </svg>
-      <div style="font-size:13px;font-weight:700;color:${textColor};letter-spacing:.3px">${fmtT(time)}</div>
-      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:${subColor}">${label}</div>
+      <div style="font-size:11px;font-weight:700;color:${textColor};letter-spacing:.3px">${fmtT(time)}</div>
+      <div style="font-size:8px;text-transform:uppercase;letter-spacing:.8px;color:${subColor}">${label}</div>
     </div>`;
   }
 
