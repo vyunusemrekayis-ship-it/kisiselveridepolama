@@ -26,6 +26,7 @@ function wxSetAtmo(code,isDay){
 // ── TABS ─────────────────────────────────────────────────────────────
 function wxRenderTabs(){
   const el=document.getElementById('wx-tabs');
+  if(!el) return;
   if(!wxCities.length){el.innerHTML='';return}
   el.innerHTML=wxCities.map((c,i)=>`
     <div class="wx-tab${i===wxActive?' on':''}" onclick="wxSelect(${i})">
@@ -47,8 +48,16 @@ function wxDel(i,e){
 function wxToggleSearch(e){
   e.stopPropagation();
   const p=document.getElementById('wx-popup');
+  if(!p) return;
+  // Popup'ı fixed konumda göster — wx-root overflow:hidden'dan etkilenmemesi için
+  const btn=e.currentTarget||e.target.closest('.wx-add-btn')||e.target;
+  const rect=btn.getBoundingClientRect();
+  p.style.position='fixed';
+  p.style.top=(rect.bottom+8)+'px';
+  p.style.right=(window.innerWidth-rect.right)+'px';
+  p.style.left='auto';
   p.classList.toggle('vis');
-  if(p.classList.contains('vis'))setTimeout(()=>document.getElementById('wx-inp').focus(),50);
+  if(p.classList.contains('vis'))setTimeout(()=>{const inp=document.getElementById('wx-inp');if(inp)inp.focus()},50);
 }
 document.addEventListener('click',function(e){
   if(!e.target.closest('#wx-popup')&&!e.target.closest('.wx-add-btn'))
@@ -80,10 +89,10 @@ function wxPickSug(lat,lon,name,country,admin1){
   wxAddCity({name:full,country,lat,lon});
   document.getElementById('wx-inp').value='';
   document.getElementById('wx-suggest').style.display='none';
-  document.getElementById('wx-popup').classList.remove('vis');
+  document.getElementById('wx-popup')?.classList.remove('vis');
 }
 async function wxAddByEnter(){
-  const q=document.getElementById('wx-inp').value.trim();if(!q)return;
+  const inp=document.getElementById('wx-inp');const q=inp?inp.value.trim():'';if(!q)return;
   try{
     const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=tr&format=json`);
     const d=await r.json();if(!d.results?.length)return;
@@ -111,11 +120,10 @@ async function wxGPS(){
 }
 
 function wxShowLoad(){
-  document.getElementById('wx-welcome').style.display='none';
-  document.getElementById('wx-content').style.display='none';
-  document.getElementById('wx-loading').style.display='flex';
+  const w=document.getElementById('wx-welcome'),c=document.getElementById('wx-content'),l=document.getElementById('wx-loading');
+  if(w)w.style.display='none'; if(c)c.style.display='none'; if(l)l.style.display='flex';
 }
-function wxHideLoad(){document.getElementById('wx-loading').style.display='none'}
+function wxHideLoad(){const l=document.getElementById('wx-loading');if(l)l.style.display='none';}
 
 // ── VERİ ─────────────────────────────────────────────────────────────
 async function wxFetch(idx){
@@ -969,7 +977,7 @@ function wxRender(d,city){
   const sceneHTML2 = wxSceneHTML(c.weather_code, c.is_day, c.temperature_2m, city);
   const precipHTML = wxPrecipChart(hourly, daily);
 
-  document.getElementById('wx-content').innerHTML=`<div class="wx-stream">
+  const wxContentEl=document.getElementById('wx-content');if(!wxContentEl)return;wxContentEl.innerHTML=`<div class="wx-stream">
     ${alertHTML}
     <div class="wx-hero-scene-row">
       <div class="wx-hero">
@@ -1052,7 +1060,7 @@ function wxRender(d,city){
     <div class="wx-foot">Güncellendi ${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')} · Open-Meteo</div>
   </div>`;
 
-  document.getElementById('wx-content').style.display='block';
+  if(wxContentEl)wxContentEl.style.display='block';
 }
 
 function wxToggleDay(row,idx){
