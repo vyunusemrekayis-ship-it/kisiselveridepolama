@@ -382,7 +382,7 @@ async function aiSend() {
 
 async function aiRun() {
   aiLoading = true;
-  document.getElementById('ai-send').disabled = true;
+  const sendBtn = document.getElementById('ai-send'); if(sendBtn) sendBtn.disabled = true;
 
   // Yazıyor göstergesi
   const typingId = aiShowTyping();
@@ -393,7 +393,7 @@ async function aiRun() {
       aiHideTyping(typingId);
       aiRenderMessage('assistant', 'API anahtarı bulunamadı. Lütfen Firebase\'de `config/app` dökümanına `anthropicKey` ekleyin.');
       aiLoading = false;
-      document.getElementById('ai-send').disabled = false;
+      if(sendBtn) sendBtn.disabled = false;
       return;
     }
 
@@ -474,7 +474,7 @@ async function aiRun() {
   }
 
   aiLoading = false;
-  document.getElementById('ai-send').disabled = false;
+  const sendBtn2 = document.getElementById('ai-send'); if(sendBtn2) sendBtn2.disabled = false;
 
   // Firebase'e kaydet
   await aiSaveMessagesToFirebase();
