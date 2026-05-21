@@ -280,13 +280,6 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
   </div>`;
 }
 
-  if(!precipSection && !sunInfoHTML) return cardHTML;
-  const row2Parts = [sunInfoHTML, precipSection].filter(Boolean);
-  return `<div style="display:flex;flex-direction:column;gap:0">
-    <div style="display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px">${cardHTML}</div>
-    <div style="padding:10px 2px 2px;display:flex;gap:8px;align-items:stretch">${row2Parts.join('')}</div>
-  </div>`;
-}
 
 // ── ANİMASYONLU İKON HTML'LERİ ───────────────────────────────────────
 const wxIcoHum=`<div class="wx-ico-hum"><div class="wx-ico-hum-drop"></div></div>`;
