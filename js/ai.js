@@ -1,104 +1,102 @@
-// ── AI.JS ─────────────────────────────────────────────────────────
+// ── AI.JS ──────────────────────────────────────────────────────────
+// Tool use ile Claude entegrasyonu
+// Sohbet geçmişi + uzun süreli bellek Firebase'de saklanır
 
-// Samsun koordinatları (weather.js ile uyumlu)
-const AI_LAT = 41.2867;
-const AI_LON = 36.33;
+// ── DURUM ───────────────────────────────────────────────────────────
+let aiMessages = [];      // Mevcut sohbet [{role,content}]
+let aiMemory   = [];      // Uzun süreli bellek [string]
+let aiLoading  = false;
 
-let aiMessages = []; // Aktif sohbet geçmişi
-let aiIsLoading = false;
-let aiMemory = {}; // Firebase'den yüklenen uzun dönem hafıza
-
-// ── TOOLS TANIMI ──────────────────────────────────────────────────
-
+// ── ARAÇLAR (TOOLS) ─────────────────────────────────────────────────
 const AI_TOOLS = [
   {
     name: 'get_todos',
-    description: 'Belirli bir tarih veya tarih aralığı için takvim görevlerini (todos) getirir.',
+    description: 'Belirli bir tarihteki görevleri (todo) getirir. Tarihi YYYY-MM-DD formatında girin. Bugün için todayStr() değerini kullanın.',
     input_schema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih. Boş bırakılırsa bugün.' },
-        range_days: { type: 'number', description: 'Kaç günlük aralık. Örn: 7 = önümüzdeki 7 gün.' }
-      }
+        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih' }
+      },
+      required: ['date']
     }
   },
   {
     name: 'add_todo',
-    description: 'Takvime yeni bir görev (todo) ekler.',
+    description: 'Belirli bir tarihe görev ekler.',
     input_schema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih.' },
-        text: { type: 'string', description: 'Görevin metni.' }
+        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih' },
+        text: { type: 'string', description: 'Görev metni' }
       },
       required: ['date', 'text']
     }
   },
   {
     name: 'get_notes',
-    description: 'Belirli bir tarih veya tarih aralığı için takvim notlarını getirir.',
+    description: 'Belirli bir tarihteki notları getirir.',
     input_schema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih.' },
-        range_days: { type: 'number', description: 'Kaç günlük aralık.' }
-      }
+        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih' }
+      },
+      required: ['date']
     }
   },
   {
     name: 'add_note',
-    description: 'Takvime yeni bir not ekler.',
+    description: 'Belirli bir tarihe not ekler.',
     input_schema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih.' },
-        text: { type: 'string', description: 'Not metni.' }
+        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih' },
+        text: { type: 'string', description: 'Not metni' }
       },
       required: ['date', 'text']
     }
   },
   {
     name: 'get_weather',
-    description: 'Belirli tarih ve saat için hava durumu bilgisi getirir (Open-Meteo API).',
+    description: 'Hava durumu bilgisini getirir. Kayıtlı şehirler için mevcut hava durumu ve saatlik tahmin döner.',
     input_schema: {
       type: 'object',
       properties: {
-        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih.' },
-        hour: { type: 'number', description: 'Saat (0-23). Boş bırakılırsa günlük özet.' }
-      }
+        date: { type: 'string', description: 'YYYY-MM-DD formatında tarih (isteğe bağlı, bugün için boş bırakın)' }
+      },
+      required: []
     }
   },
   {
     name: 'get_goals',
-    description: 'Hedefleri getirir. Aktif, haftalık, aylık veya yıllık filtre uygulanabilir.',
+    description: 'Aktif hedefleri getirir. weekly/monthly/yearly filtreleyebilirsiniz.',
     input_schema: {
       type: 'object',
       properties: {
-        period: { type: 'string', enum: ['weekly', 'monthly', 'yearly', 'all'], description: 'Dönem filtresi.' },
-        active_only: { type: 'boolean', description: 'Sadece aktif dönemdeki hedefler.' }
-      }
+        period: { type: 'string', enum: ['weekly', 'monthly', 'yearly', 'all'], description: 'Dönem filtresi' }
+      },
+      required: []
     }
   },
   {
     name: 'get_films',
-    description: 'İzlenen filmler ve izleme listesini getirir.',
+    description: 'İzlenen veya izlenecek filmleri getirir.',
     input_schema: {
       type: 'object',
       properties: {
-        type: { type: 'string', enum: ['watched', 'watchlist', 'all'], description: 'Film listesi türü.' },
-        limit: { type: 'number', description: 'Kaç film getirilsin. Varsayılan 10.' }
-      }
+        list: { type: 'string', enum: ['watched', 'watchlist', 'all'], description: 'Liste türü' }
+      },
+      required: []
     }
   },
   {
     name: 'get_books',
-    description: 'Okunan kitaplar ve okuma listesini getirir.',
+    description: 'Okunan veya okunacak kitapları getirir.',
     input_schema: {
       type: 'object',
       properties: {
-        type: { type: 'string', enum: ['read', 'readlist', 'all'], description: 'Kitap listesi türü.' },
-        limit: { type: 'number', description: 'Kaç kitap getirilsin. Varsayılan 10.' }
-      }
+        list: { type: 'string', enum: ['read', 'readlist', 'all'], description: 'Liste türü' }
+      },
+      required: []
     }
   },
   {
@@ -106,453 +104,496 @@ const AI_TOOLS = [
     description: 'Zincir kırma alışkanlıklarını ve streak bilgilerini getirir.',
     input_schema: {
       type: 'object',
-      properties: {}
+      properties: {},
+      required: []
     }
   },
   {
-    name: 'update_memory',
-    description: 'Kullanıcı hakkında önemli bir bilgiyi uzun dönem hafızaya kaydeder (tercihler, önemli bilgiler, alışkanlıklar vb.).',
+    name: 'get_week_summary',
+    description: 'Bu haftanın görevlerini, notlarını ve özel günlerini özetler.',
     input_schema: {
       type: 'object',
       properties: {
-        key: { type: 'string', description: 'Hafıza anahtarı (örn: "meslek", "sehir", "tercihler").' },
-        value: { type: 'string', description: 'Kaydedilecek değer.' }
+        offset: { type: 'number', description: 'Bu haftadan kaç hafta önce/sonra (0=bu hafta, -1=geçen hafta)' }
       },
-      required: ['key', 'value']
+      required: []
+    }
+  },
+  {
+    name: 'save_memory',
+    description: 'Kullanıcı hakkında önemli bir bilgiyi uzun süreli belleğe kaydeder. Sadece gerçekten önemli, kalıcı bilgiler için kullanın (isim tercihleri, önemli kişiler, kronik alışkanlıklar vb.).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        note: { type: 'string', description: 'Kaydedilecek bilgi' }
+      },
+      required: ['note']
     }
   }
 ];
 
-// ── TOOL ÇALIŞTIRICILARI ──────────────────────────────────────────
+// ── ARAÇ UYGULAMA ────────────────────────────────────────────────────
+async function aiExecuteTool(name, input) {
+  try {
+    switch (name) {
 
-async function aiRunTool(name, input) {
-  switch (name) {
-
-    case 'get_todos': {
-      const todos = getTodos();
-      const date = input.date || todayStr();
-      const days = input.range_days || 1;
-      const result = {};
-      for (let i = 0; i < days; i++) {
-        const d = new Date(date + 'T00:00:00');
-        d.setDate(d.getDate() + i);
-        const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-        const list = todos[ds] || [];
-        if (list.length || days === 1) result[ds] = list;
+      case 'get_todos': {
+        const todos = getTodos();
+        const list = todos[input.date] || [];
+        if (!list.length) return `${input.date} tarihinde görev yok.`;
+        const done = list.filter(t => t.done).length;
+        return JSON.stringify({ date: input.date, total: list.length, done, items: list.map(t => ({ text: t.text, done: t.done })) });
       }
-      return JSON.stringify(result);
-    }
 
-    case 'add_todo': {
-      const todos = getTodos();
-      const date = input.date || todayStr();
-      if (!todos[date]) todos[date] = [];
-      todos[date].push({ text: input.text, done: false });
-      setTodos(todos);
-      if (typeof renderCal === 'function' && _currentPage === 'calendar') renderCal();
-      if (typeof renderHomeWidgets === 'function' && _currentPage === 'home') renderHomeWidgets();
-      return JSON.stringify({ success: true, date, text: input.text });
-    }
-
-    case 'get_notes': {
-      const notes = getCalNotes();
-      const date = input.date || todayStr();
-      const days = input.range_days || 1;
-      const result = {};
-      for (let i = 0; i < days; i++) {
-        const d = new Date(date + 'T00:00:00');
-        d.setDate(d.getDate() + i);
-        const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-        const nts = notes[ds] || [];
-        if (nts.length || days === 1) result[ds] = nts;
+      case 'add_todo': {
+        const todos = getTodos();
+        if (!todos[input.date]) todos[input.date] = [];
+        todos[input.date].push({ text: input.text, done: false });
+        setTodos(todos);
+        if (typeof renderCal === 'function' && window._currentPage === 'calendar') renderCal();
+        if (typeof renderHomeWidgets === 'function' && window._currentPage === 'home') renderHomeWidgets();
+        return `"${input.text}" görevi ${input.date} tarihine eklendi.`;
       }
-      return JSON.stringify(result);
-    }
 
-    case 'add_note': {
-      const notes = getCalNotes();
-      const date = input.date || todayStr();
-      if (!Array.isArray(notes[date])) notes[date] = [];
-      notes[date].push({ text: input.text, color: '#3a7bd5' });
-      setCalNotes(notes);
-      if (typeof renderCal === 'function' && _currentPage === 'calendar') renderCal();
-      return JSON.stringify({ success: true, date, text: input.text });
-    }
+      case 'get_notes': {
+        const notes = getCalNotes();
+        const list = notes[input.date];
+        if (!list || (Array.isArray(list) && !list.length)) return `${input.date} tarihinde not yok.`;
+        const arr = Array.isArray(list) ? list : [list];
+        return JSON.stringify({ date: input.date, notes: arr.map(n => typeof n === 'object' ? n.text : n) });
+      }
 
-    case 'get_weather': {
-      try {
-        const date = input.date || todayStr();
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${AI_LAT}&longitude=${AI_LON}&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max&timezone=Europe/Istanbul&start_date=${date}&end_date=${date}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (input.hour !== undefined && input.hour !== null) {
-          const idx = data.hourly.time.findIndex(t => t.includes('T' + String(input.hour).padStart(2,'0') + ':00'));
-          if (idx >= 0) {
-            return JSON.stringify({
-              datetime: data.hourly.time[idx],
-              temp: data.hourly.temperature_2m[idx],
-              precip_prob: data.hourly.precipitation_probability[idx],
-              wind: data.hourly.windspeed_10m[idx],
-              code: data.hourly.weathercode[idx]
-            });
+      case 'add_note': {
+        const notes = getCalNotes();
+        if (!Array.isArray(notes[input.date])) notes[input.date] = [];
+        notes[input.date].push({ text: input.text, color: '#3a7bd5' });
+        setCalNotes(notes);
+        if (typeof renderCal === 'function' && window._currentPage === 'calendar') renderCal();
+        return `"${input.text}" notu ${input.date} tarihine eklendi.`;
+      }
+
+      case 'get_weather': {
+        const cities = JSON.parse(localStorage.getItem('gn_wx_cities') || '[]');
+        if (!cities.length) return 'Hava durumu için şehir kaydedilmemiş. Hava Durumu sayfasından şehir ekleyebilirsiniz.';
+        const city = cities[0];
+        // Open-Meteo'dan güncel veri çek
+        const targetDate = input.date || new Date().toISOString().split('T')[0];
+        try {
+          const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=3`;
+          const res = await fetch(url);
+          const data = await res.json();
+          const cur = data.current;
+          const wmo = {0:'Açık',1:'Az bulutlu',2:'Parçalı bulutlu',3:'Çok bulutlu',45:'Sisli',48:'Yoğun sisli',51:'Hafif çiseleme',53:'Orta çiseleme',55:'Yoğun çiseleme',61:'Hafif yağmurlu',63:'Orta yağmurlu',65:'Yoğun yağmurlu',71:'Hafif karlı',73:'Orta karlı',75:'Yoğun karlı',80:'Hafif sağanak',81:'Orta sağanak',82:'Şiddetli sağanak',95:'Fırtınalı',99:'Dolulu fırtına'};
+          const desc = wmo[cur.weather_code] || 'Bilinmiyor';
+
+          // İstenen tarih için saatlik veri
+          let dayInfo = '';
+          if (input.date && data.hourly) {
+            const hours = data.hourly.time.filter(t => t.startsWith(targetDate));
+            if (hours.length) {
+              const temps = hours.map((t, i) => {
+                const idx = data.hourly.time.indexOf(t);
+                return `${t.split('T')[1]}: ${data.hourly.temperature_2m[idx]}°C`;
+              });
+              dayInfo = ` | ${targetDate} saatlik: ${temps.slice(6,22).join(', ')}`;
+            }
           }
+
+          return JSON.stringify({
+            city: city.name,
+            current_temp: cur.temperature_2m,
+            feels_like: cur.apparent_temperature,
+            condition: desc,
+            wind: cur.wind_speed_10m,
+            humidity: cur.relative_humidity_2m,
+            date: targetDate,
+            hourly_note: dayInfo || 'Saatlik veri için tarih belirtin'
+          });
+        } catch(e) {
+          return `Hava durumu alınamadı: ${e.message}`;
         }
-        return JSON.stringify({
-          date,
-          temp_max: data.daily.temperature_2m_max[0],
-          temp_min: data.daily.temperature_2m_min[0],
-          precip_prob: data.daily.precipitation_probability_max[0],
-          code: data.daily.weathercode[0]
-        });
-      } catch(e) {
-        return JSON.stringify({ error: 'Hava durumu alınamadı: ' + e.message });
       }
-    }
 
-    case 'get_goals': {
-      let goals = db.g || [];
-      if (input.period && input.period !== 'all') {
-        goals = goals.filter(g => g.period === input.period);
+      case 'get_goals': {
+        let goals = db.g || [];
+        const period = input.period || 'all';
+        if (period !== 'all') goals = goals.filter(g => g.period === period);
+        const active = goals.filter(g => typeof isGoalActive === 'function' ? isGoalActive(g) : true);
+        return JSON.stringify(active.map(g => ({
+          name: g.name,
+          period: g.period,
+          target: g.target,
+          current: g.current || 0,
+          unit: g.unit || '',
+          done: g.done,
+          track: g.track || ''
+        })));
       }
-      if (input.active_only) {
-        goals = goals.filter(g => typeof isGoalActive === 'function' ? isGoalActive(g) : true);
-      }
-      return JSON.stringify(goals.map(g => ({
-        name: g.name,
-        period: g.period,
-        target: g.target,
-        current: g.current || 0,
-        unit: g.unit || '',
-        done: g.done || false,
-        track: g.track || ''
-      })));
-    }
 
-    case 'get_films': {
-      const type = input.type || 'all';
-      const limit = input.limit || 10;
-      const result = {};
-      if (type === 'watched' || type === 'all') {
-        result.watched = (db.f || []).slice(0, limit).map(f => ({
-          name: f.name, dir: f.dir || '', date: f.date || '', note: f.note || ''
+      case 'get_films': {
+        const list = input.list || 'all';
+        const result = {};
+        if (list === 'watched' || list === 'all') result.watched = (db.f || []).map(f => ({ name: f.name, dir: f.dir, date: f.date, note: f.note }));
+        if (list === 'watchlist' || list === 'all') result.watchlist = (getWl ? getWl() : []).map(f => ({ name: f.name, dir: f.dir }));
+        return JSON.stringify(result);
+      }
+
+      case 'get_books': {
+        const list = input.list || 'all';
+        const result = {};
+        if (list === 'read' || list === 'all') result.read = (db.b || []).map(b => ({ name: b.name, author: b.author, pages: b.pages, note: b.note }));
+        if (list === 'readlist' || list === 'all') result.readlist = (getRl ? getRl() : []).map(b => ({ name: b.name, author: b.author }));
+        return JSON.stringify(result);
+      }
+
+      case 'get_chains': {
+        const chains = getCh ? getCh() : [];
+        return JSON.stringify(chains.map(ch => {
+          const doneSet = new Set(ch.done || []);
+          const startMs = new Date(ch.start + 'T00:00:00').getTime();
+          const todayIdx = Math.floor((Date.now() - startMs) / 86400000);
+          let streak = 0;
+          let idx = doneSet.has(todayIdx) ? todayIdx : (doneSet.has(todayIdx - 1) ? todayIdx - 1 : -1);
+          while (idx >= 0 && doneSet.has(idx)) { streak++; idx--; }
+          return { name: ch.name, streak, doneToday: doneSet.has(todayIdx) };
         }));
       }
-      if (type === 'watchlist' || type === 'all') {
-        const wl = JSON.parse(localStorage.getItem('gn_wl') || '[]');
-        result.watchlist = wl.slice(0, limit).map(f => ({ name: f.name, dir: f.dir || '' }));
+
+      case 'get_week_summary': {
+        const offset = input.offset || 0;
+        const today = new Date();
+        today.setDate(today.getDate() + offset * 7);
+        const dow = (today.getDay() + 6) % 7;
+        const mon = new Date(today); mon.setDate(today.getDate() - dow);
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(mon); d.setDate(mon.getDate() + i);
+          const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+          const todos = (getTodos()[ds] || []).map(t => t.text + (t.done ? ' (tamamlandı)' : ''));
+          const notesRaw = getCalNotes()[ds];
+          const notes = notesRaw ? (Array.isArray(notesRaw) ? notesRaw : [notesRaw]).map(n => typeof n === 'object' ? n.text : n) : [];
+          if (todos.length || notes.length) days.push({ date: ds, todos, notes });
+        }
+        return JSON.stringify({ week_start: mon.toISOString().split('T')[0], days });
       }
-      return JSON.stringify(result);
-    }
 
-    case 'get_books': {
-      const type = input.type || 'all';
-      const limit = input.limit || 10;
-      const result = {};
-      if (type === 'read' || type === 'all') {
-        result.read = (db.b || []).slice(0, limit).map(b => ({
-          name: b.name, author: b.author || '', pages: b.pages || '', note: b.note || ''
-        }));
+      case 'save_memory': {
+        aiMemory.push(input.note);
+        await aiSaveMemoryToFirebase();
+        return `Belleğe kaydedildi: "${input.note}"`;
       }
-      if (type === 'readlist' || type === 'all') {
-        const rl = JSON.parse(localStorage.getItem('gn_rl') || '[]');
-        result.readlist = rl.slice(0, limit).map(b => ({ name: b.name, author: b.author || '' }));
-      }
-      return JSON.stringify(result);
-    }
 
-    case 'get_chains': {
-      const chains = JSON.parse(localStorage.getItem('gn_chains') || '[]');
-      return JSON.stringify(chains.map(ch => {
-        const doneSet = new Set(ch.done || []);
-        const startMs = new Date(ch.start + 'T00:00:00').getTime();
-        const todayIdx = Math.floor((Date.now() - startMs) / 86400000);
-        let streak = 0;
-        let checkIdx = todayIdx;
-        if (!doneSet.has(checkIdx)) checkIdx--;
-        while (checkIdx >= 0 && doneSet.has(checkIdx)) { streak++; checkIdx--; }
-        return { name: ch.name, streak, start: ch.start };
-      }));
+      default:
+        return `Bilinmeyen araç: ${name}`;
     }
-
-    case 'update_memory': {
-      aiMemory[input.key] = input.value;
-      await aiSaveMemory();
-      return JSON.stringify({ success: true, key: input.key, value: input.value });
-    }
-
-    default:
-      return JSON.stringify({ error: 'Bilinmeyen tool: ' + name });
+  } catch (e) {
+    return `Araç hatası (${name}): ${e.message}`;
   }
 }
 
-// ── SYSTEM PROMPT ─────────────────────────────────────────────────
-
-function aiSystemPrompt() {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-  const memoryStr = Object.keys(aiMemory).length
-    ? '\n\nKullanıcı hafızası:\n' + Object.entries(aiMemory).map(([k,v]) => `- ${k}: ${v}`).join('\n')
-    : '';
-
-  return `Sen kişisel bir dijital asistansın. Kullanıcıyla Türkçe konuşuyorsun ve "Siz" ile hitap ediyorsun.
-
-Bugün: ${dateStr}, Saat: ${timeStr}
-Konum: Samsun, Türkiye${memoryStr}
-
-Görevlerin:
-- Kullanıcının takvimi, hedefleri, filmleri, kitapları ve alışkanlıklarına erişebilir ve bunları düzenleyebilirsin.
-- Hava durumu için Open-Meteo API'sini kullanıyorsun (Samsun koordinatları zaten tanımlı).
-- Kullanıcı hakkında öğrendiğin önemli bilgileri (meslek, tercihler, önemli kişiler vb.) update_memory ile kaydet.
-- Yanıtların kısa, net ve yardımcı olsun. Gereksiz uzatma.
-- Bir işlem yaptığında (görev ekleme vb.) kullanıcıya kısaca bildir.
-- Tarihleri Türkçe formatla (ör: "15 Ocak Çarşamba").
-- Hava durumu kodlarını anlaşılır Türkçe'ye çevir (0=açık, 1-3=parçalı bulutlu, 51-67=yağmurlu, 71-77=karlı, 80-82=sağanak, 95=fırtınalı vb.)`;
+// ── FIREBASE HAFIZA ──────────────────────────────────────────────────
+async function aiLoadFromFirebase() {
+  try {
+    await waitForFirebase();
+    const uid = window._fbUser?.uid;
+    if (!uid) return;
+    const ref = window._fbDoc(window._fbDb, 'users', uid);
+    const snap = await window._fbGetDoc(ref);
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.ai_memory) aiMemory = d.ai_memory;
+      if (d.ai_messages) aiMessages = d.ai_messages;
+    }
+  } catch (e) { console.error('AI Firebase yükleme:', e); }
 }
 
-// ── ANA MESAJ GÖNDERME ────────────────────────────────────────────
+async function aiSaveMemoryToFirebase() {
+  try {
+    await waitForFirebase();
+    const uid = window._fbUser?.uid;
+    if (!uid) return;
+    const ref = window._fbDoc(window._fbDb, 'users', uid);
+    await window._fbSetDoc(ref, { ai_memory: aiMemory }, { merge: true });
+  } catch (e) { console.error('AI bellek kayıt:', e); }
+}
 
+async function aiSaveMessagesToFirebase() {
+  try {
+    await waitForFirebase();
+    const uid = window._fbUser?.uid;
+    if (!uid) return;
+    // Son 40 mesajı sakla
+    const toSave = aiMessages.slice(-40);
+    const ref = window._fbDoc(window._fbDb, 'users', uid);
+    await window._fbSetDoc(ref, { ai_messages: toSave }, { merge: true });
+  } catch (e) { console.error('AI mesaj kayıt:', e); }
+}
+
+// ── SİSTEM PROMPT ────────────────────────────────────────────────────
+function aiSystemPrompt() {
+  const today = new Date();
+  const ds = todayStr();
+  const dayName = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][today.getDay()];
+  const dateStr = today.getDate() + ' ' + ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'][today.getMonth()] + ' ' + today.getFullYear();
+
+  let memorySection = '';
+  if (aiMemory.length) {
+    memorySection = `\n\nUzun süreli bellek (önceki konuşmalardan öğrendiklerim):\n${aiMemory.map((m,i) => `${i+1}. ${m}`).join('\n')}`;
+  }
+
+  return `Siz Yunus Emre Kayış'ın kişisel asistanısınız. Kişisel günlük web sitesine entegre edildiniz.
+
+Bugün: ${dayName}, ${dateStr} (${ds})
+
+Yetenekleriniz:
+- Takvim: görev ve not okuma/yazma
+- Hava durumu: anlık ve saatlik tahmin
+- Hedefler: okuma ve ilerleme takibi
+- Filmler ve kitaplar: liste görüntüleme
+- Zincir kırma alışkanlıkları: streak takibi
+- Hafıza: önemli bilgileri kalıcı saklama
+
+Kurallar:
+- Her zaman Türkçe cevap verin
+- "Siz" ile hitap edin
+- Kısa ve net olun
+- Aksiyon alırken (todo/not ekleme) onay aldıktan sonra yapın
+- Birden fazla araç gerektiren durumlarda sırasıyla kullanın
+- Önemli kişisel bilgileri (alışkanlıklar, tercihler) save_memory ile kaydedin${memorySection}`;
+}
+
+// ── ANA MESAJ GÖNDERME ───────────────────────────────────────────────
 async function aiSend() {
   const input = document.getElementById('ai-input');
-  if (!input) return;
   const text = input.value.trim();
-  if (!text || aiIsLoading) return;
+  if (!text || aiLoading) return;
 
   input.value = '';
   aiAutoResize(input);
-  aiHideWelcome();
-  aiAddUserMessage(text);
-  await aiChat(text);
+  aiHideEmpty();
+  aiHideQuick();
+
+  // Kullanıcı mesajını ekle
+  aiMessages.push({ role: 'user', content: text });
+  aiRenderMessage('user', text);
+
+  await aiRun();
 }
 
-async function aiChat(userText) {
-  aiIsLoading = true;
-  aiSetStatus(true);
-  aiSetSendDisabled(true);
+async function aiRun() {
+  aiLoading = true;
+  document.getElementById('ai-send').disabled = true;
 
-  aiMessages.push({ role: 'user', content: userText });
-
-  // Typing göster
+  // Yazıyor göstergesi
   const typingId = aiShowTyping();
 
   try {
-    await window.loadApiKey && window.loadApiKey();
-    if (!window.ANTHROPIC_KEY) throw new Error('API key bulunamadı.');
-
-    let response = await aiCallAPI(aiMessages);
-    aiRemoveTyping(typingId);
+    await window.loadApiKey();
+    if (!window.ANTHROPIC_KEY) {
+      aiHideTyping(typingId);
+      aiRenderMessage('assistant', 'API anahtarı bulunamadı. Lütfen Firebase\'de `config/app` dökümanına `anthropicKey` ekleyin.');
+      aiLoading = false;
+      document.getElementById('ai-send').disabled = false;
+      return;
+    }
 
     // Tool use döngüsü
-    while (response.stop_reason === 'tool_use') {
-      const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
-      const textBlocks = response.content.filter(b => b.type === 'text' && b.text.trim());
+    let iterations = 0;
+    const MAX_ITER = 8;
 
-      // Varsa metin yanıtı göster
-      if (textBlocks.length) {
-        aiAddAssistantMessage(textBlocks.map(b => b.text).join('\n'));
+    while (iterations < MAX_ITER) {
+      iterations++;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': window.ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5-20251001',
+          max_tokens: 1000,
+          system: aiSystemPrompt(),
+          tools: AI_TOOLS,
+          messages: aiMessages
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${res.status}`);
       }
 
-      // Tool çağrılarını çalıştır
-      const toolResults = [];
-      for (const tb of toolUseBlocks) {
-        const callEl = aiShowToolCall(tb.name, false);
-        try {
-          const result = await aiRunTool(tb.name, tb.input);
-          aiMarkToolDone(callEl);
-          toolResults.push({ type: 'tool_result', tool_use_id: tb.id, content: result });
-        } catch (e) {
-          aiMarkToolDone(callEl);
-          toolResults.push({ type: 'tool_result', tool_use_id: tb.id, content: JSON.stringify({ error: e.message }), is_error: true });
+      const data = await res.json();
+
+      // Yanıtı mesaj geçmişine ekle
+      aiMessages.push({ role: 'assistant', content: data.content });
+
+      // Stop reason kontrolü
+      if (data.stop_reason === 'end_turn') {
+        // Sadece metin yanıtları
+        aiHideTyping(typingId);
+        const textBlocks = data.content.filter(b => b.type === 'text');
+        if (textBlocks.length) {
+          aiRenderMessage('assistant', textBlocks.map(b => b.text).join('\n'));
         }
+        break;
       }
 
-      // Mesaj geçmişine ekle
-      aiMessages.push({ role: 'assistant', content: response.content });
-      aiMessages.push({ role: 'user', content: toolResults });
+      if (data.stop_reason === 'tool_use') {
+        const toolUses = data.content.filter(b => b.type === 'tool_use');
+        const toolResults = [];
 
-      // Yeni typing
-      const t2 = aiShowTyping();
-      response = await aiCallAPI(aiMessages);
-      aiRemoveTyping(t2);
+        for (const tool of toolUses) {
+          // Tool çağrısını göster
+          aiUpdateTypingLabel(typingId, aiToolLabel(tool.name));
+
+          const result = await aiExecuteTool(tool.name, tool.input);
+
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: tool.id,
+            content: result
+          });
+        }
+
+        // Tool sonuçlarını mesaj geçmişine ekle
+        aiMessages.push({ role: 'user', content: toolResults });
+        continue;
+      }
+
+      // Beklenmedik stop_reason
+      break;
     }
-
-    // Son metin yanıtı
-    const finalText = response.content
-      .filter(b => b.type === 'text')
-      .map(b => b.text)
-      .join('\n')
-      .trim();
-
-    if (finalText) {
-      aiAddAssistantMessage(finalText);
-      aiMessages.push({ role: 'assistant', content: response.content });
-    }
-
-    // Firebase'e sohbet geçmişini kaydet (son 40 mesaj)
-    if (aiMessages.length > 40) aiMessages = aiMessages.slice(-40);
-    await aiSaveHistory();
 
   } catch (e) {
-    aiRemoveTyping(typingId);
-    aiShowError(e.message || 'Bir hata oluştu.');
-    console.error('AI Hata:', e);
+    aiHideTyping(typingId);
+    aiRenderMessage('assistant', `Bir hata oluştu: ${e.message}`);
   }
 
-  aiIsLoading = false;
-  aiSetStatus(false);
-  aiSetSendDisabled(false);
+  aiLoading = false;
+  document.getElementById('ai-send').disabled = false;
+
+  // Firebase'e kaydet
+  await aiSaveMessagesToFirebase();
 }
 
-async function aiCallAPI(messages) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': window.ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: aiSystemPrompt(),
-      tools: AI_TOOLS,
-      messages
-    })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API hatası: ${res.status}`);
+function aiToolLabel(name) {
+  const labels = {
+    get_todos: 'Takvim okunuyor...',
+    add_todo: 'Görev ekleniyor...',
+    get_notes: 'Notlar okunuyor...',
+    add_note: 'Not ekleniyor...',
+    get_weather: 'Hava durumu alınıyor...',
+    get_goals: 'Hedefler okunuyor...',
+    get_films: 'Filmler okunuyor...',
+    get_books: 'Kitaplar okunuyor...',
+    get_chains: 'Alışkanlıklar okunuyor...',
+    get_week_summary: 'Hafta özeti hazırlanıyor...',
+    save_memory: 'Belleğe kaydediliyor...'
+  };
+  return labels[name] || `${name} çalışıyor...`;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function aiRenderMessage(role, text) {
+  const container = document.getElementById('ai-messages');
+  const div = document.createElement('div');
+  div.className = `ai-msg ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `ai-avatar ${role}`;
+
+  if (role === 'assistant') {
+    avatar.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  } else {
+    avatar.textContent = 'S';
   }
-  return res.json();
+
+  const bubble = document.createElement('div');
+  bubble.className = 'ai-bubble';
+  bubble.innerHTML = aiFormatText(text);
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  container.appendChild(div);
+
+  // Aşağı scroll
+  container.scrollTop = container.scrollHeight;
 }
 
-// ── UI YARDIMCILARI ───────────────────────────────────────────────
-
-function aiHideWelcome() {
-  const el = document.getElementById('ai-welcome');
-  if (el) el.style.display = 'none';
-}
-
-function aiAddUserMessage(text) {
-  const el = document.getElementById('ai-messages');
-  if (!el) return;
-  const div = document.createElement('div');
-  div.className = 'ai-msg user';
-  div.innerHTML = `
-    <div class="ai-msg-avatar"><div class="ai-msg-avatar-user"></div></div>
-    <div class="ai-msg-body">
-      <div class="ai-msg-bubble">${aiEsc(text).replace(/\n/g, '<br>')}</div>
-    </div>`;
-  el.appendChild(div);
-  aiScrollBottom();
-}
-
-function aiAddAssistantMessage(text) {
-  const el = document.getElementById('ai-messages');
-  if (!el) return;
-  const div = document.createElement('div');
-  div.className = 'ai-msg assistant';
-  div.innerHTML = `
-    <div class="ai-msg-avatar"><div class="ai-msg-avatar-dot"></div></div>
-    <div class="ai-msg-body">
-      <div class="ai-msg-bubble">${aiFormatText(text)}</div>
-    </div>`;
-  el.appendChild(div);
-  aiScrollBottom();
+function aiFormatText(text) {
+  // Basit markdown benzeri formatlama
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
 }
 
 function aiShowTyping() {
-  const el = document.getElementById('ai-messages');
-  if (!el) return null;
+  const container = document.getElementById('ai-messages');
   const id = 'typing-' + Date.now();
   const div = document.createElement('div');
   div.className = 'ai-msg assistant';
   div.id = id;
-  div.innerHTML = `
-    <div class="ai-msg-avatar"><div class="ai-msg-avatar-dot"></div></div>
-    <div class="ai-msg-body">
-      <div class="ai-typing"><span></span><span></span><span></span></div>
-    </div>`;
-  el.appendChild(div);
-  aiScrollBottom();
+
+  const avatar = document.createElement('div');
+  avatar.className = 'ai-avatar assistant';
+  avatar.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.gap = '6px';
+
+  const label = document.createElement('div');
+  label.className = 'ai-tool-call';
+  label.id = id + '-label';
+  label.textContent = 'Düşünülüyor...';
+  label.style.display = 'none';
+
+  const typing = document.createElement('div');
+  typing.className = 'ai-typing';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+
+  wrap.appendChild(label);
+  wrap.appendChild(typing);
+  div.appendChild(avatar);
+  div.appendChild(wrap);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
   return id;
 }
 
-function aiRemoveTyping(id) {
-  if (!id) return;
+function aiUpdateTypingLabel(id, text) {
+  const label = document.getElementById(id + '-label');
+  if (label) {
+    label.style.display = 'flex';
+    label.textContent = text;
+  }
+}
+
+function aiHideTyping(id) {
   const el = document.getElementById(id);
   if (el) el.remove();
 }
 
-function aiShowToolCall(toolName, done) {
-  const el = document.getElementById('ai-messages');
-  if (!el) return null;
-  const labels = {
-    get_todos: 'Görevler okunuyor',
-    add_todo: 'Görev ekleniyor',
-    get_notes: 'Notlar okunuyor',
-    add_note: 'Not ekleniyor',
-    get_weather: 'Hava durumu alınıyor',
-    get_goals: 'Hedefler okunuyor',
-    get_films: 'Filmler okunuyor',
-    get_books: 'Kitaplar okunuyor',
-    get_chains: 'Zincirler okunuyor',
-    update_memory: 'Hafızaya kaydediliyor'
-  };
-  const id = 'tool-' + Date.now();
-  const div = document.createElement('div');
-  div.id = id;
-  div.className = 'ai-msg assistant';
-  div.innerHTML = `
-    <div class="ai-msg-avatar"><div class="ai-msg-avatar-dot"></div></div>
-    <div class="ai-msg-body">
-      <div class="ai-tool-call">
-        <div class="ai-tool-call-spinner" id="${id}-icon"></div>
-        <span>${labels[toolName] || toolName}</span>
-      </div>
-    </div>`;
-  el.appendChild(div);
-  aiScrollBottom();
-  return id;
+function aiHideEmpty() {
+  const el = document.getElementById('ai-empty');
+  if (el) el.style.display = 'none';
 }
 
-function aiMarkToolDone(id) {
-  if (!id) return;
-  const icon = document.getElementById(id + '-icon');
-  if (icon) {
-    icon.className = 'ai-tool-call-done';
-  }
+function aiHideQuick() {
+  const el = document.getElementById('ai-quick');
+  if (el) el.style.display = 'none';
 }
 
-function aiShowError(msg) {
-  const el = document.getElementById('ai-messages');
-  if (!el) return;
-  const div = document.createElement('div');
-  div.className = 'ai-error';
-  div.textContent = 'Hata: ' + msg;
-  el.appendChild(div);
-  aiScrollBottom();
-}
-
-function aiScrollBottom() {
-  const el = document.getElementById('ai-messages');
-  if (el) el.scrollTop = el.scrollHeight;
-}
-
-function aiSetStatus(active) {
-  const dot = document.getElementById('ai-status-dot');
-  if (dot) dot.className = 'ai-status-dot' + (active ? ' active' : '');
-}
-
-function aiSetSendDisabled(disabled) {
-  const btn = document.getElementById('ai-send-btn');
-  if (btn) btn.disabled = disabled;
-}
-
-function aiAutoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+function aiQuick(text) {
+  const input = document.getElementById('ai-input');
+  if (input) { input.value = text; aiSend(); }
 }
 
 function aiKeyDown(e) {
@@ -562,135 +603,96 @@ function aiKeyDown(e) {
   }
 }
 
-function aiSuggest(text) {
-  const input = document.getElementById('ai-input');
-  if (input) {
-    input.value = text;
-    aiAutoResize(input);
-    input.focus();
-  }
+function aiAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
 }
 
-function aiEsc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-function aiFormatText(text) {
-  // Basit markdown: **bold**, *italic*, satır sonu, madde işaretleri
-  let html = aiEsc(text);
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br>');
-  if (!html.startsWith('<')) html = '<p>' + html + '</p>';
-  return html;
-}
-
-// ── FIREBASE HAFIZA & GEÇMİŞ ─────────────────────────────────────
-
-async function aiLoadData() {
-  try {
-    await waitForFirebase(3000);
-    const uid = window._fbUser?.uid;
-    if (!uid) return;
-    const ref = window._fbDoc(window._fbDb, 'users', uid);
-    const snap = await window._fbGetDoc(ref);
-    if (snap.exists()) {
-      const d = snap.data();
-      if (d.ai_memory) aiMemory = d.ai_memory;
-      if (d.ai_history && Array.isArray(d.ai_history)) {
-        aiMessages = d.ai_history;
-        aiRenderHistory();
-      }
-    }
-  } catch (e) {
-    console.error('AI veri yüklenemedi:', e);
-  }
-}
-
-async function aiSaveHistory() {
-  try {
-    await waitForFirebase(2000);
-    const uid = window._fbUser?.uid;
-    if (!uid) return;
-    const ref = window._fbDoc(window._fbDb, 'users', uid);
-    await window._fbSetDoc(ref, { ai_history: aiMessages }, { merge: true });
-  } catch (e) {
-    console.error('AI geçmiş kaydedilemedi:', e);
-  }
-}
-
-async function aiSaveMemory() {
-  try {
-    await waitForFirebase(2000);
-    const uid = window._fbUser?.uid;
-    if (!uid) return;
-    const ref = window._fbDoc(window._fbDb, 'users', uid);
-    await window._fbSetDoc(ref, { ai_memory: aiMemory }, { merge: true });
-  } catch (e) {
-    console.error('AI hafıza kaydedilemedi:', e);
-  }
-}
-
-function aiRenderHistory() {
-  const el = document.getElementById('ai-messages');
-  if (!el) return;
-
-  // Sadece kullanıcı ve asistan text mesajlarını göster
-  const visible = aiMessages.filter(m =>
-    m.role === 'user' && typeof m.content === 'string'
-    || m.role === 'assistant' && Array.isArray(m.content) && m.content.some(b => b.type === 'text')
-    || m.role === 'assistant' && typeof m.content === 'string'
-  );
-
-  if (!visible.length) return;
-  aiHideWelcome();
-
-  visible.forEach(m => {
-    if (m.role === 'user' && typeof m.content === 'string') {
-      aiAddUserMessage(m.content);
-    } else if (m.role === 'assistant') {
-      const text = Array.isArray(m.content)
-        ? m.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
-        : m.content;
-      if (text && text.trim()) aiAddAssistantMessage(text.trim());
-    }
-  });
-}
-
-async function aiClearHistory() {
-  if (!confirm('Sohbet geçmişi temizlensin mi?')) return;
+function aiClearChat() {
+  if (!confirm('Sohbet geçmişi silinsin mi?')) return;
   aiMessages = [];
-  const el = document.getElementById('ai-messages');
-  if (el) {
-    el.innerHTML = '';
-    // Welcome'ı geri ekle
-    el.innerHTML = `
-      <div class="ai-welcome" id="ai-welcome">
-        <div class="ai-welcome-icon">
-          <div class="ai-pulse-ring"></div>
-          <div class="ai-pulse-core"></div>
-        </div>
-        <div class="ai-welcome-text">Merhaba. Size nasıl yardımcı olabilirim?</div>
-        <div class="ai-welcome-sub">Takvim, hedefler, hava durumu ve daha fazlası için sorabilirsiniz.</div>
-        <div class="ai-suggestions">
-          <button class="ai-suggestion" onclick="aiSuggest('Bugün planım ne?')">Bugün planım ne?</button>
-          <button class="ai-suggestion" onclick="aiSuggest('Bu hafta hedeflerim nerede?')">Bu hafta hedeflerim nerede?</button>
-          <button class="ai-suggestion" onclick="aiSuggest('Yarın hava nasıl?')">Yarın hava nasıl?</button>
-          <button class="ai-suggestion" onclick="aiSuggest('Son izlediğim filmler neler?')">Son filmlerim neler?</button>
-        </div>
-      </div>`;
-  }
-  await aiSaveHistory();
+  const container = document.getElementById('ai-messages');
+  container.innerHTML = '';
+  const empty = document.createElement('div');
+  empty.className = 'ai-empty';
+  empty.id = 'ai-empty';
+  empty.innerHTML = `
+    <div class="ai-empty-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <div class="ai-empty-title">Merhaba</div>
+    <div class="ai-empty-sub">Size nasıl yardımcı olabilirim? Takvim, hedefler, filmler, kitaplar veya hava durumu hakkında sorabilirsiniz.</div>`;
+  container.appendChild(empty);
+  document.getElementById('ai-quick').style.display = 'flex';
+  aiSaveMessagesToFirebase();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────
+// ── BELLEK YÖNETİMİ ──────────────────────────────────────────────────
+function aiShowMemory() {
+  const panel = document.getElementById('ai-memory-panel');
+  if (panel) panel.style.display = 'block';
+  aiRenderMemory();
+}
 
-function initAi() {
-  aiLoadData();
+function aiHideMemory() {
+  const panel = document.getElementById('ai-memory-panel');
+  if (panel) panel.style.display = 'none';
+}
+
+function aiRenderMemory() {
+  const list = document.getElementById('ai-memory-list');
+  if (!list) return;
+  if (!aiMemory.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted2);padding:6px 0">Henüz bellek yok.</div>';
+    return;
+  }
+  list.innerHTML = aiMemory.map((m, i) => `
+    <div class="ai-memory-item">
+      <span>${esc(m)}</span>
+      <button class="ai-memory-del" onclick="aiDelMemory(${i})">×</button>
+    </div>`).join('');
+}
+
+async function aiAddMemory() {
+  const input = document.getElementById('ai-memory-input');
+  const text = input.value.trim();
+  if (!text) return;
+  aiMemory.push(text);
+  input.value = '';
+  await aiSaveMemoryToFirebase();
+  aiRenderMemory();
+}
+
+async function aiDelMemory(i) {
+  aiMemory.splice(i, 1);
+  await aiSaveMemoryToFirebase();
+  aiRenderMemory();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+async function initAi() {
+  await aiLoadFromFirebase();
+
+  // Önceki mesajlar varsa render et
+  if (aiMessages.length) {
+    aiHideEmpty();
+    aiHideQuick();
+    aiMessages.forEach(msg => {
+      if (msg.role === 'user') {
+        const text = typeof msg.content === 'string' ? msg.content : msg.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
+        if (text) aiRenderMessage('user', text);
+      } else if (msg.role === 'assistant') {
+        const blocks = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
+        const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('\n');
+        if (text) aiRenderMessage('assistant', text);
+      }
+    });
+    // En alta scroll
+    setTimeout(() => {
+      const c = document.getElementById('ai-messages');
+      if (c) c.scrollTop = c.scrollHeight;
+    }, 50);
+  }
 }
