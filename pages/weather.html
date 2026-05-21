@@ -1,0 +1,369 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+.wx-root *{box-sizing:border-box;margin:0;padding:0}
+.wx-root{
+  font-family:'Outfit',sans-serif;
+  color:#e8edf5;
+  width:100%;
+  height:100%;
+  background:#080c14;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* ── ATMOSFER ── */
+.wx-atmo{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.wx-orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:0;transition:all 1.8s ease}
+
+/* ── TOP BAR ── */
+.wx-topbar{
+  position:relative;z-index:10;flex-shrink:0;
+  display:flex;align-items:center;gap:10px;
+  padding:16px 32px 0;
+}
+.wx-city-tabs{display:flex;gap:6px;flex:1;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.wx-city-tabs::-webkit-scrollbar{display:none}
+.wx-tab{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .2s;flex-shrink:0;
+  border:1px solid rgba(255,255,255,.1);
+  color:rgba(232,237,245,.5);background:transparent;
+  display:flex;align-items:center;gap:6px;
+}
+.wx-tab:hover{background:rgba(255,255,255,.07);color:#e8edf5}
+.wx-tab.on{background:rgba(255,255,255,.12);color:#e8edf5;border-color:rgba(255,255,255,.2)}
+.wx-tab-del{background:none;border:none;color:rgba(255,255,255,.25);cursor:pointer;font-size:14px;line-height:1;padding:0;transition:color .15s;margin-left:2px}
+.wx-tab-del:hover{color:rgba(255,100,100,.7)}
+.wx-add-btn{padding:6px 14px;border-radius:20px;font-size:12px;border:1px dashed rgba(255,255,255,.2);background:transparent;color:rgba(232,237,245,.4);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;font-family:'Outfit',sans-serif;white-space:nowrap}
+.wx-add-btn:hover{border-color:rgba(255,255,255,.4);color:#e8edf5}
+
+/* Arama popup */
+.wx-search-popup{position:fixed;width:280px;background:#131928;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;z-index:9999;display:none;box-shadow:0 16px 48px rgba(0,0,0,.6)}
+.wx-search-popup.vis{display:block}
+.wx-search-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:8px 12px;margin-bottom:8px;transition:border-color .2s}
+.wx-search-row:focus-within{border-color:rgba(255,255,255,.25)}
+.wx-search-row input{background:transparent;border:none;outline:none;color:#e8edf5;font-family:'Outfit',sans-serif;font-size:13px;flex:1}
+.wx-search-row input::placeholder{color:rgba(232,237,245,.3)}
+.wx-search-suggest{display:none}
+.wx-sug-item{padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s}
+.wx-sug-item:hover{background:rgba(255,255,255,.07)}
+.wx-sug-name{font-size:12px;font-weight:500}
+.wx-sug-sub{font-size:10px;color:rgba(232,237,245,.35);margin-top:1px}
+.wx-search-gps{width:100%;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:transparent;color:rgba(232,237,245,.45);font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;margin-top:4px}
+.wx-search-gps:hover{background:rgba(255,255,255,.07);color:#e8edf5}
+
+/* ── BODY SCROLL ── */
+.wx-body{
+  position:relative;z-index:1;
+  flex:1;
+  overflow-y:auto;
+  min-height:0;
+  padding:16px 28px 28px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.07) transparent;
+}
+
+/* Hoşgeldin */
+.wx-welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:14px;color:rgba(232,237,245,.3);text-align:center}
+.wx-welcome h3{font-size:16px;font-weight:400;color:rgba(232,237,245,.6)}
+.wx-welcome p{font-size:12px;line-height:1.7;max-width:220px}
+/* Loading */
+.wx-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;gap:12px;color:rgba(232,237,245,.3);font-size:12px}
+.wx-spin{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.08);border-top-color:rgba(255,255,255,.5);animation:wxspin .7s linear infinite}
+@keyframes wxspin{to{transform:rotate(360deg)}}
+
+/* ── HERO ── */
+.wx-hero{margin-bottom:16px}
+.wx-hero-loc{font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:rgba(232,237,245,.35);margin-bottom:6px}
+.wx-hero-city{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;line-height:1;margin-bottom:10px}
+.wx-hero-row{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.wx-hero-temp{font-size:80px;font-weight:200;line-height:1;letter-spacing:-3px;background:linear-gradient(180deg,#fff 40%,rgba(255,255,255,.45));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.wx-hero-meta{padding-bottom:10px}
+.wx-hero-cond{font-size:22px;font-weight:300;margin-bottom:6px}
+.wx-hero-feels{font-size:13px;color:rgba(232,237,245,.45);margin-bottom:3px}
+.wx-hero-range{font-size:13px;color:rgba(232,237,245,.45)}
+
+/* ── SAATLİK ── */
+.wx-sec-lbl{font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(232,237,245,.28);margin-bottom:12px}
+.wx-hourly-track{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:4px 2px;margin-bottom:16px}
+.wx-hourly-track::-webkit-scrollbar{display:none}
+.wx-h{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:11px 10px;border-radius:12px;min-width:56px;gap:5px;transition:background .15s;cursor:default}
+.wx-h:hover{background:rgba(255,255,255,.05)}
+.wx-h.now{background:rgba(255,255,255,.09);outline:1px solid rgba(255,255,255,.13)}
+.wx-h-t{font-size:10px;color:rgba(232,237,245,.38);font-weight:500}
+.wx-h.now .wx-h-t{color:rgba(232,237,245,.85);font-weight:600}
+.wx-h-ico{height:26px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.wx-h-rain{font-size:9px;color:#7ab8f5;font-weight:600;height:12px;line-height:12px}
+.wx-h-temp{font-size:13px;font-weight:500}
+
+/* Saatlik gün doğumu/batımı — MINI CSS animasyonu */
+.wx-h.sol .wx-h-t{font-size:9px}
+.wx-h.sol-rise .wx-h-t{color:rgba(251,191,36,.7)}
+.wx-h.sol-set  .wx-h-t{color:rgba(249,115,22,.6)}
+.wx-h.sol .wx-h-temp{font-size:9px;font-weight:400}
+.wx-h.sol-rise .wx-h-temp{color:rgba(251,191,36,.55)}
+.wx-h.sol-set  .wx-h-temp{color:rgba(249,115,22,.5)}
+
+/* Mini güneş (saatlik bantta) */
+.wx-mini-sun{position:relative;width:26px;height:26px}
+.wx-mini-disc{
+  position:absolute;border-radius:50%;
+  left:50%;transform:translateX(-50%);
+}
+.wx-mini-rise .wx-mini-disc{
+  width:10px;height:10px;bottom:4px;
+  background:radial-gradient(circle,#fde68a,#f59e0b);
+  box-shadow:0 0 6px 2px rgba(251,191,36,.5);
+  animation:miniRise 1.4s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes miniRise{from{transform:translateX(-50%) translateY(8px);opacity:.3}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.wx-mini-set .wx-mini-disc{
+  width:10px;height:10px;top:2px;
+  background:radial-gradient(circle,#fca5a5,#f97316);
+  box-shadow:0 0 6px 2px rgba(249,115,22,.4);
+  animation:miniSet 1.6s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes miniSet{from{transform:translateX(-50%) translateY(0);opacity:1}to{transform:translateX(-50%) translateY(10px);opacity:.3}}
+.wx-mini-horizon{position:absolute;bottom:3px;left:2px;right:2px;height:1px;background:linear-gradient(to right,transparent,rgba(251,191,36,.4),transparent);animation:wxFadeIn .8s ease .3s both}
+.wx-mini-set .wx-mini-horizon{background:linear-gradient(to right,transparent,rgba(249,115,22,.4),transparent)}
+
+/* ── GÜNEŞ KARTLARI (büyük) ── */
+.wx-sun-row{display:flex;gap:12px;margin-bottom:16px}
+.wx-sun-card{flex:1;padding:14px 18px;border-radius:16px;background:rgba(255,255,255,.025);display:flex;align-items:center;gap:18px}
+.wx-sun-anim{width:60px;height:60px;position:relative;flex-shrink:0}
+.wx-sun-info{}
+.wx-sun-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(232,237,245,.32);margin-bottom:5px}
+.wx-sun-val{font-size:26px;font-weight:200;font-family:'Playfair Display',serif;letter-spacing:-1px}
+.wx-sun-sub{font-size:11px;color:rgba(232,237,245,.35);margin-top:3px}
+
+/* Büyük gündoğumu */
+.wx-rise-wrap{position:relative;width:60px;height:60px}
+.wx-rise-wrap .wx-sun-disc{position:absolute;left:50%;bottom:12px;width:18px;height:18px;border-radius:50%;transform:translateX(-50%) translateY(22px);background:radial-gradient(circle,#fde68a,#f59e0b);box-shadow:0 0 12px 4px rgba(251,191,36,.45);animation:wxRiseUp 1.6s cubic-bezier(.22,1,.36,1) .2s forwards}
+@keyframes wxRiseUp{to{transform:translateX(-50%) translateY(0);opacity:1}}
+.wx-rise-wrap .wx-horizon-line{position:absolute;bottom:10px;left:4px;right:4px;height:1px;background:linear-gradient(to right,transparent,rgba(251,191,36,.45),transparent);animation:wxFadeIn .8s ease .3s both}
+.wx-rise-wrap .wx-ray{position:absolute;left:50%;bottom:20px;width:1.5px;background:linear-gradient(to top,rgba(251,191,36,.5),transparent);transform-origin:bottom center;animation:wxFadeIn .7s ease 1s both}
+.wx-rise-wrap .wx-ray:nth-child(1){height:14px;transform:translateX(-50%) rotate(-50deg)}
+.wx-rise-wrap .wx-ray:nth-child(2){height:16px;transform:translateX(-50%) rotate(-25deg)}
+.wx-rise-wrap .wx-ray:nth-child(3){height:18px;transform:translateX(-50%) rotate(0deg)}
+.wx-rise-wrap .wx-ray:nth-child(4){height:16px;transform:translateX(-50%) rotate(25deg)}
+.wx-rise-wrap .wx-ray:nth-child(5){height:14px;transform:translateX(-50%) rotate(50deg)}
+.wx-rise-wrap .wx-glow{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:44px;height:18px;border-radius:50%;background:radial-gradient(ellipse,rgba(251,191,36,.22),transparent 70%);animation:wxFadeIn .8s ease .5s both}
+
+/* Büyük gün batımı */
+.wx-set-wrap{position:relative;width:60px;height:60px}
+.wx-set-wrap .wx-sun-disc{position:absolute;left:50%;top:8px;width:18px;height:18px;border-radius:50%;transform:translateX(-50%);background:radial-gradient(circle,#fca5a5,#f97316);box-shadow:0 0 12px 4px rgba(249,115,22,.38);animation:wxSetDown 1.8s cubic-bezier(.22,1,.36,1) .2s forwards}
+@keyframes wxSetDown{to{transform:translateX(-50%) translateY(26px);opacity:.4}}
+.wx-set-wrap .wx-horizon-line{position:absolute;bottom:10px;left:4px;right:4px;height:1px;background:linear-gradient(to right,transparent,rgba(249,115,22,.4),transparent);animation:wxFadeIn .8s ease .3s both}
+.wx-set-wrap .wx-ray{position:absolute;left:50%;top:16px;width:1.5px;background:linear-gradient(to bottom,transparent,rgba(249,115,22,.38));transform-origin:top center;animation:wxFadeOut 1.4s ease .4s forwards;opacity:1}
+.wx-set-wrap .wx-ray:nth-child(1){height:12px;transform:translateX(-50%) rotate(-50deg)}
+.wx-set-wrap .wx-ray:nth-child(2){height:14px;transform:translateX(-50%) rotate(-25deg)}
+.wx-set-wrap .wx-ray:nth-child(3){height:16px;transform:translateX(-50%) rotate(0deg)}
+.wx-set-wrap .wx-ray:nth-child(4){height:14px;transform:translateX(-50%) rotate(25deg)}
+.wx-set-wrap .wx-ray:nth-child(5){height:12px;transform:translateX(-50%) rotate(50deg)}
+.wx-set-wrap .wx-glow{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:50px;height:20px;border-radius:50%;background:radial-gradient(ellipse,rgba(249,115,22,.25),transparent 70%);animation:wxFadeIn 1.2s ease .5s both}
+@keyframes wxFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes wxFadeOut{from{opacity:1}to{opacity:0}}
+
+/* ── DETAY GRID ── */
+.wx-det-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,.04);border-radius:16px;overflow:hidden;margin-bottom:16px}
+.wx-det{background:#080c14;padding:18px 16px;transition:background .15s;cursor:default}
+.wx-det:hover{background:#0c1020}
+.wx-det-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(232,237,245,.28);margin-bottom:7px;margin-top:4px}
+.wx-det-val{font-size:22px;font-weight:300;line-height:1;margin-bottom:5px}
+.wx-det-sub{font-size:10px;color:rgba(232,237,245,.33);line-height:1.55}
+.wx-uv-bar{height:3px;border-radius:2px;background:linear-gradient(to right,#22c55e,#eab308,#f97316,#ef4444,#a855f7);margin:9px 0 5px;position:relative}
+.wx-uv-pin{position:absolute;top:-4px;width:3px;height:11px;background:#fff;border-radius:2px;transform:translateX(-50%);transition:left .6s ease;box-shadow:0 0 5px rgba(0,0,0,.5)}
+.wx-hum-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.07);margin:9px 0 5px;overflow:hidden}
+.wx-hum-fill{height:100%;border-radius:2px;background:linear-gradient(to right,#38bdf8,#818cf8);transition:width .6s}
+
+/* ── ANİMASYONLU İKONLAR ── */
+/* Nem — su damlası sallanıyor */
+.wx-ico-hum{width:28px;height:28px;position:relative;margin-bottom:6px}
+.wx-ico-hum-drop{width:12px;height:16px;background:linear-gradient(180deg,#7dd3fc,#38bdf8);border-radius:50% 50% 50% 50% / 40% 40% 60% 60%;transform:rotate(0deg);position:absolute;left:50%;top:4px;transform:translateX(-50%);animation:wxDropSway 2.5s ease-in-out infinite;box-shadow:0 0 8px rgba(56,189,248,.35)}
+@keyframes wxDropSway{0%,100%{transform:translateX(-50%) rotate(-8deg)}50%{transform:translateX(-50%) rotate(8deg)}}
+
+/* Rüzgar — çizgiler sürükleniyor */
+.wx-ico-wind{width:28px;height:22px;position:relative;margin-bottom:6px;overflow:hidden}
+.wx-ico-wind-line{position:absolute;height:1.5px;border-radius:2px;background:linear-gradient(to right,rgba(147,197,253,.8),transparent);animation:wxWindMove 1.4s ease-in-out infinite}
+.wx-ico-wind-line:nth-child(1){width:20px;top:4px;left:0;animation-delay:0s}
+.wx-ico-wind-line:nth-child(2){width:16px;top:10px;left:0;animation-delay:.2s}
+.wx-ico-wind-line:nth-child(3){width:12px;top:16px;left:0;animation-delay:.4s}
+@keyframes wxWindMove{0%{transform:translateX(-4px);opacity:.4}50%{transform:translateX(0);opacity:1}100%{transform:translateX(-4px);opacity:.4}}
+
+/* Basınç — daire nefes alıyor */
+.wx-ico-press{width:28px;height:28px;position:relative;margin-bottom:6px}
+.wx-ico-press-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(167,139,250,.5);animation:wxPressBreath 2s ease-in-out infinite}
+.wx-ico-press-ring:nth-child(1){width:12px;height:12px;top:8px;left:8px;animation-delay:0s}
+.wx-ico-press-ring:nth-child(2){width:20px;height:20px;top:4px;left:4px;animation-delay:.3s;opacity:.5}
+.wx-ico-press-ring:nth-child(3){width:28px;height:28px;top:0;left:0;animation-delay:.6s;opacity:.25}
+@keyframes wxPressBreath{0%,100%{transform:scale(.9);opacity:.4}50%{transform:scale(1);opacity:1}}
+
+/* Görüş mesafesi — ışın genişliyor */
+.wx-ico-vis{width:28px;height:20px;position:relative;margin-bottom:6px}
+.wx-ico-vis-beam{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:1.5px;background:linear-gradient(to right,transparent,rgba(134,239,172,.7),transparent);border-radius:2px;animation:wxBeamWide 1.8s ease-in-out infinite}
+.wx-ico-vis-beam:nth-child(1){width:10px;animation-delay:0s}
+.wx-ico-vis-beam:nth-child(2){width:16px;bottom:5px;animation-delay:.3s}
+.wx-ico-vis-beam:nth-child(3){width:22px;bottom:10px;animation-delay:.6s}
+.wx-ico-vis-dot{position:absolute;top:0;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#86efac;box-shadow:0 0 6px rgba(134,239,172,.5);animation:wxVisBlink 1.8s ease-in-out infinite}
+@keyframes wxBeamWide{0%,100%{opacity:.3}50%{opacity:.9}}
+@keyframes wxVisBlink{0%,100%{opacity:.5;transform:translateX(-50%) scale(.8)}50%{opacity:1;transform:translateX(-50%) scale(1)}}
+
+/* Yağış — damlalar düşüyor */
+.wx-ico-rain{width:28px;height:28px;position:relative;margin-bottom:6px;overflow:hidden}
+.wx-ico-rain-drop{position:absolute;width:2px;border-radius:2px;background:linear-gradient(to bottom,transparent,#7dd3fc);animation:wxRainFall 1.2s linear infinite}
+.wx-ico-rain-drop:nth-child(1){height:8px;left:6px;top:-8px;animation-delay:0s}
+.wx-ico-rain-drop:nth-child(2){height:10px;left:13px;top:-8px;animation-delay:.3s}
+.wx-ico-rain-drop:nth-child(3){height:7px;left:20px;top:-8px;animation-delay:.6s}
+.wx-ico-rain-cloud{position:absolute;top:0;left:50%;transform:translateX(-50%);width:22px;height:9px;background:rgba(148,163,184,.5);border-radius:5px}
+@keyframes wxRainFall{from{transform:translateY(0)}to{transform:translateY(36px)}}
+
+/* UV — güneş döner */
+.wx-ico-uv{width:28px;height:28px;position:relative;margin-bottom:6px}
+.wx-ico-uv-disc{position:absolute;top:50%;left:50%;width:12px;height:12px;border-radius:50%;background:radial-gradient(circle,#fde68a,#f59e0b);transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(251,191,36,.5)}
+.wx-ico-uv-rays{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);animation:wxUvSpin 6s linear infinite}
+.wx-ico-uv-ray{position:absolute;width:1.5px;height:6px;background:linear-gradient(to top,rgba(251,191,36,.6),transparent);border-radius:2px;left:50%;transform-origin:bottom center;top:-12px}
+.wx-ico-uv-ray:nth-child(1){transform:translateX(-50%) rotate(0deg)}
+.wx-ico-uv-ray:nth-child(2){transform:translateX(-50%) rotate(45deg)}
+.wx-ico-uv-ray:nth-child(3){transform:translateX(-50%) rotate(90deg)}
+.wx-ico-uv-ray:nth-child(4){transform:translateX(-50%) rotate(135deg)}
+.wx-ico-uv-ray:nth-child(5){transform:translateX(-50%) rotate(180deg)}
+.wx-ico-uv-ray:nth-child(6){transform:translateX(-50%) rotate(225deg)}
+.wx-ico-uv-ray:nth-child(7){transform:translateX(-50%) rotate(270deg)}
+.wx-ico-uv-ray:nth-child(8){transform:translateX(-50%) rotate(315deg)}
+@keyframes wxUvSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+/* Hissedilen — termometre */
+.wx-ico-feels{width:28px;height:28px;position:relative;margin-bottom:6px}
+.wx-ico-feels-tube{position:absolute;left:50%;transform:translateX(-50%);width:6px;height:20px;border-radius:3px;border:1.5px solid rgba(248,113,113,.5);background:transparent}
+.wx-ico-feels-fill{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:3px;border-radius:2px;background:linear-gradient(to top,#f87171,#fca5a5);animation:wxTempPulse 2s ease-in-out infinite}
+.wx-ico-feels-bulb{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,#f87171,#ef4444);box-shadow:0 0 6px rgba(239,68,68,.4);animation:wxBulbGlow 2s ease-in-out infinite}
+@keyframes wxTempPulse{0%,100%{height:10px}50%{height:14px}}
+@keyframes wxBulbGlow{0%,100%{box-shadow:0 0 4px rgba(239,68,68,.3)}50%{box-shadow:0 0 10px rgba(239,68,68,.6)}}
+
+/* ── GÜNLÜK ── */
+.wx-daily-wrap{margin-bottom:8px}
+.wx-day-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:opacity .15s}
+.wx-day-row:last-child{border:none}
+.wx-day-row:hover{opacity:.75}
+.wx-day-name{width:40px;font-size:12px;font-weight:400;color:rgba(232,237,245,.55)}
+.wx-day-name.today{color:#e8edf5;font-weight:600}
+.wx-day-ico{width:24px;font-size:16px}
+.wx-day-rain{font-size:10px;color:#7ab8f5;width:36px;font-weight:500}
+.wx-day-lo{font-size:12px;color:rgba(232,237,245,.32);width:28px;text-align:right}
+.wx-day-spacer{flex:1}
+.wx-day-hi{font-size:13px;font-weight:600;width:28px;text-align:right}
+.wx-day-arr{font-size:11px;color:rgba(232,237,245,.18);margin-left:6px;transition:transform .2s}
+.wx-day-row.open .wx-day-arr{transform:rotate(90deg)}
+.wx-day-expand{display:none;padding:8px 0 12px;border-bottom:1px solid rgba(255,255,255,.04)}
+.wx-day-expand.vis{display:block}
+.wx-day-exp-track{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.wx-day-exp-track::-webkit-scrollbar{display:none}
+
+.wx-foot{font-size:10px;color:rgba(232,237,245,.12);text-align:right;margin-top:8px}
+@keyframes wxfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.wx-stream{animation:wxfade .4s ease}
+/* ── CANLI SAHNE ── */
+.wx-scene-wrap{
+  position:relative;width:100%;height:160px;
+  border-radius:14px;overflow:hidden;
+  margin-bottom:16px;
+  border:1px solid rgba(255,255,255,.06);
+}
+@keyframes wxCloudDrift{from{transform:translateX(-20px)}to{transform:translateX(120px)}}
+@keyframes wxCloudDrift2{from{transform:translateX(120px)}to{transform:translateX(-120px)}}
+@keyframes wxRainDrop{from{transform:translateY(0)}to{transform:translateY(200px)}}
+@keyframes wxSnowFall{from{transform:translateY(0) rotate(0)}to{transform:translateY(200px) rotate(360deg)}}
+@keyframes wxStarTwinkle{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes wxMoonGlow{0%,100%{box-shadow:0 0 20px rgba(255,213,79,.3)}50%{box-shadow:0 0 35px rgba(255,213,79,.6)}}
+@keyframes wxSunPulse{0%,100%{box-shadow:0 0 25px rgba(255,214,0,.4)}50%{box-shadow:0 0 45px rgba(255,214,0,.7)}}
+@keyframes wxLightning{0%,85%,100%{opacity:0}87%,89%{opacity:1}88%,90%{opacity:0}91%{opacity:.8}92%{opacity:0}}
+
+/* ── YAĞIŞ GRAFİĞİ ── */
+.wx-precip-wrap{
+  background:var(--wd-surface,rgba(255,255,255,.04));
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;padding:14px 16px;
+  margin-bottom:16px;
+}
+
+/* ── HERO + SAHNE YAN YANA ── */
+.wx-hero-scene-row{
+  display:flex;gap:16px;align-items:stretch;margin-bottom:16px;
+}
+.wx-hero-scene-row .wx-hero{
+  flex:0 0 auto;width:320px;margin-bottom:0;
+}
+.wx-hero-scene-row .wx-scene-wrap{
+  flex:1;margin-bottom:0;min-width:0;
+  height:auto;min-height:160px;
+}
+
+/* Yağış kart: grid'de geniş */
+.wx-det-precip{grid-column:span 1}
+
+</style>
+
+<div class="wx-root" id="wx-root">
+  <div class="wx-atmo" id="wx-atmo">
+    <div class="wx-orb" id="wx-orb1" style="width:600px;height:600px;top:-150px;right:-150px"></div>
+    <div class="wx-orb" id="wx-orb2" style="width:350px;height:350px;bottom:-100px;left:80px"></div>
+  </div>
+
+  <div class="wx-topbar" style="position:relative">
+    <div class="wx-city-tabs" id="wx-tabs"></div>
+    <button class="wx-add-btn" onclick="wxToggleSearch(event)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Şehir Ekle
+    </button>
+  </div>
+
+  <div class="wx-body" id="wx-body">
+    <div class="wx-welcome" id="wx-welcome">
+      <div style="font-size:44px;opacity:.2">🌍</div>
+      <h3>Hava Durumu</h3>
+      <p>Üstten şehir ekle ya da GPS konumunu kullan.</p>
+    </div>
+    <div class="wx-loading" id="wx-loading" style="display:none">
+      <div class="wx-spin"></div><span>Yükleniyor...</span>
+    </div>
+    <div id="wx-content" style="display:none"></div>
+  </div>
+</div>
+
+<div class="wx-search-popup" id="wx-popup">
+  <div class="wx-search-row">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" opacity=".4"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="wx-inp" placeholder="Şehir adı..." oninput="wxSuggest(this.value)" onkeydown="if(event.key==='Enter')wxAddByEnter()">
+  </div>
+  <div class="wx-search-suggest" id="wx-suggest"></div>
+  <button class="wx-search-gps" onclick="wxGPS()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+    Konumumu Kullan
+  </button>
+</div>
+
+<script>
+(function(){
+  function wxFixHeight(){
+    const pc = document.getElementById('page-container');
+    const main = document.getElementById('main-content');
+    if(pc && main){
+      const mh = main.getBoundingClientRect().height;
+      pc.style.height = mh + 'px';
+      pc.style.overflow = 'hidden';
+    }
+  }
+  // Sayfa yüklenince ve resize'da çalıştır
+  setTimeout(wxFixHeight, 50);
+  window.addEventListener('resize', wxFixHeight);
+  // weather sekmesine geçilince de çalıştır
+  const _origInit = window._weatherInit;
+  window._weatherInit = function(){
+    wxFixHeight();
+    if(_origInit) _origInit();
+  };
+})();
+</script>
+
