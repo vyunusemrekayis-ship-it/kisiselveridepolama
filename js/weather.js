@@ -275,7 +275,7 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
     <div style="padding:10px 2px 2px;display:flex;gap:6px;align-items:stretch">
       ${riseBox}
       ${setBox}
-      ${precipSection ? `<div style="flex:1;min-width:0;max-width:260px">${precipSection}</div>` : ''}
+      ${precipSection ? `<div style="flex:1;min-width:0;max-width:520px">${precipSection}</div>` : ''}
     </div>
   </div>`;
 }
