@@ -171,7 +171,6 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
   const cardHTML = [...items,...extras].sort((a,b)=>a.ts-b.ts).map(h=>{
     if(h.isSol) return '';
     const feelsStr  = h.feels!=null && Math.round(h.feels)!==Math.round(h.temp) ? `<div class="wx-h-feels">${Math.round(h.feels)}°</div>` : `<div class="wx-h-feels" style="visibility:hidden">-</div>`;
-    const windStr   = h.wind!=null && h.wind>=5 ? `<div class="wx-h-wind">${Math.round(h.wind)}<span style="font-size:7px;opacity:.6"> km/s</span></div>` : `<div class="wx-h-wind" style="visibility:hidden">-</div>`;
     const precipStr = (h.precip+h.snow)>=0.1 ? `<div class="wx-h-mm">${(h.precip+h.snow)>=10?(h.precip+h.snow).toFixed(0):(h.precip+h.snow).toFixed(1)}<span style="font-size:7px;opacity:.6"> mm</span></div>` : `<div class="wx-h-mm" style="visibility:hidden">-</div>`;
     const rainProb  = h.rain>10 ? `<div class="wx-h-rain">${h.rain}%</div>` : `<div class="wx-h-rain" style="visibility:hidden">-</div>`;
     return `<div class="wx-h${h.isNow?' now':''}">
@@ -181,16 +180,35 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
       ${feelsStr}
       ${rainProb}
       ${precipStr}
-      ${windStr}
     </div>`;
   }).join('');
 
   const precipSection = !isToday ? wxDayPrecipChart(hourly, daily, dayIdx) : '';
-  if(!precipSection) return cardHTML;
-  // 2 satır: üst kartlar, alt grafik ortalanmış
+
+  // Gün doğumu/batımı bilgisi
+  const fmtT = s => { const d=new Date(s); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); };
+  const sunInfoHTML = (sunrise||sunset) ? `<div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:10px;flex-shrink:0;min-width:80px">
+    ${sunrise?`<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:16px;height:16px;position:relative;flex-shrink:0">
+        <div style="position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fde68a,#f59e0b);box-shadow:0 0 5px rgba(251,191,36,.6);bottom:1px;left:50%;transform:translateX(-50%)"></div>
+        <div style="position:absolute;bottom:1px;left:1px;right:1px;height:1px;background:rgba(251,191,36,.3)"></div>
+      </div>
+      <span style="font-size:11px;font-weight:600;color:rgba(253,230,138,.8)">${fmtT(sunrise)}</span>
+    </div>`:''}
+    ${sunset?`<div style="display:flex;align-items:center;gap:6px">
+      <div style="width:16px;height:16px;position:relative;flex-shrink:0">
+        <div style="position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fca5a5,#f97316);box-shadow:0 0 5px rgba(249,115,22,.5);top:1px;left:50%;transform:translateX(-50%)"></div>
+        <div style="position:absolute;top:9px;left:1px;right:1px;height:1px;background:rgba(249,115,22,.3)"></div>
+      </div>
+      <span style="font-size:11px;font-weight:600;color:rgba(252,165,165,.7)">${fmtT(sunset)}</span>
+    </div>`:''}
+  </div>` : '';
+
+  if(!precipSection && !sunInfoHTML) return cardHTML;
+  const row2Parts = [sunInfoHTML, precipSection].filter(Boolean);
   return `<div style="display:flex;flex-direction:column;gap:0">
     <div style="display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px">${cardHTML}</div>
-    <div style="padding:10px 2px 2px;display:flex;justify-content:center">${precipSection}</div>
+    <div style="padding:10px 2px 2px;display:flex;gap:8px;align-items:stretch">${row2Parts.join('')}</div>
   </div>`;
 }
 
