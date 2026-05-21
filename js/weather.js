@@ -218,10 +218,59 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
       </svg>
     </div>`;
   }
-  const sunInfoHTML = (!isToday && (sunrise||sunset)) ? `<div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:10px;flex-shrink:0">
-    ${sunrise?`<div style="display:flex;align-items:center;gap:8px">${miniSunSVG('rise')}<span style="font-size:11px;font-weight:600;color:rgba(253,230,138,.85)">${fmtT(sunrise)}</span></div>`:''}
-    ${sunset?`<div style="display:flex;align-items:center;gap:8px">${miniSunSVG('set')}<span style="font-size:11px;font-weight:600;color:rgba(252,165,165,.75)">${fmtT(sunset)}</span></div>`:''}
-  </div>` : '';
+  // Gün doğumu / batımı — ayrı kutular, SVG animasyonlu
+  function sunBox(type){
+    const isRise = type==='rise';
+    const time   = isRise ? sunrise : sunset;
+    if(!time) return '';
+    const gc1   = isRise?'#fde68a':'#fca5a5', gc2 = isRise?'#f59e0b':'#f97316';
+    const glow  = isRise?'rgba(251,191,36,.55)':'rgba(249,115,22,.45)';
+    const horiz = isRise?'rgba(251,191,36,.4)':'rgba(249,115,22,.4)';
+    const rayC  = isRise?'rgba(253,230,138,.55)':'rgba(252,165,165,.45)';
+    const uid   = type+dayIdx;
+    const discY = isRise?22:10;
+    const anim  = isRise
+      ? `@keyframes msr${uid}{from{transform:translateY(7px);opacity:.2}to{transform:translateY(0);opacity:1}}`
+      : `@keyframes msr${uid}{from{transform:translateY(0);opacity:1}to{transform:translateY(7px);opacity:.2}}`;
+    const angles = [-55,-28,0,28,55];
+    const rays = angles.map(a=>{
+      const r=a*Math.PI/180, cx=20, cy=18;
+      const x1=(cx+Math.sin(r)*9).toFixed(1),  y1=(cy-Math.cos(r)*9).toFixed(1);
+      const x2=(cx+Math.sin(r)*14).toFixed(1), y2=(cy-Math.cos(r)*14).toFixed(1);
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${rayC}" stroke-width="1.3" stroke-linecap="round"/>`;
+    }).join('');
+    const label = isRise ? 'Gün Doğumu' : 'Gün Batımı';
+    const textColor = isRise ? 'rgba(253,230,138,.9)' : 'rgba(252,165,165,.85)';
+    const subColor  = isRise ? 'rgba(253,230,138,.45)' : 'rgba(252,165,165,.4)';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;background:rgba(255,255,255,.035);border-radius:10px;min-width:0">
+      <style>${anim}</style>
+      <svg width="40" height="36" viewBox="0 0 40 36" overflow="visible" style="overflow:visible">
+        <defs><radialGradient id="rg${uid}"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></radialGradient></defs>
+        ${rays}
+        <line x1="4" y1="22" x2="36" y2="22" stroke="${horiz}" stroke-width="1" stroke-linecap="round"/>
+        <circle cx="20" cy="${discY}" r="6" fill="url(#rg${uid})" style="filter:drop-shadow(0 0 4px ${glow});animation:msr${uid} 1.5s cubic-bezier(.22,1,.36,1) forwards"/>
+      </svg>
+      <div style="font-size:13px;font-weight:700;color:${textColor};letter-spacing:.3px">${fmtT(time)}</div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:${subColor}">${label}</div>
+    </div>`;
+  }
+
+  if(!precipSection && isToday) return cardHTML;
+  const riseBox = !isToday ? sunBox('rise') : '';
+  const setBox  = !isToday ? sunBox('set')  : '';
+  const hasSun  = riseBox || setBox;
+  if(!precipSection && !hasSun) return cardHTML;
+
+  // 2. satır: [doğum] [batım] [──── grafik (flex:1) ────]
+  return `<div style="display:flex;flex-direction:column;gap:0">
+    <div style="display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px">${cardHTML}</div>
+    <div style="padding:10px 2px 2px;display:flex;gap:6px;align-items:stretch">
+      ${riseBox}
+      ${setBox}
+      ${precipSection ? `<div style="flex:1;min-width:0">${precipSection}</div>` : ''}
+    </div>
+  </div>`;
+}
 
   if(!precipSection && !sunInfoHTML) return cardHTML;
   const row2Parts = [sunInfoHTML, precipSection].filter(Boolean);
@@ -631,7 +680,7 @@ function wxDayPrecipChart(hourly, daily, dayIdx){
   const hasData = maxMm>0 || bars.some(b=>b.prob>=10);
   if(!hasData) return '';
 
-  const BAR_H = 44;
+  const BAR_H = 56;
   const scale = maxMm>0 ? maxMm : 1;
   const totalDay = (daily.precipitation_sum||[])[dayIdx]||0;
   const hasSnow = bars.some(b=>b.snow>0.1);
@@ -654,17 +703,17 @@ function wxDayPrecipChart(hourly, daily, dayIdx){
     const snowH = Math.max(b.snow/scale*BAR_H, b.snow>0?2:0);
     const totalMm = b.rain + b.snow;
     const mmLabel = totalMm>=0.1
-      ? `<div style="font-size:7px;color:rgba(56,189,248,.8);line-height:1">${totalMm>=10?totalMm.toFixed(0):totalMm.toFixed(1)}</div>`
-      : `<div style="height:9px"></div>`;
+      ? `<div style="font-size:8px;color:rgba(56,189,248,.9);line-height:1;font-weight:600">${totalMm>=10?totalMm.toFixed(0):totalMm.toFixed(1)}</div>`
+      : `<div style="height:10px"></div>`;
     return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:1px">
       ${mmLabel}
       <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${BAR_H}px;position:relative">
-        ${snowH>0?`<div style="width:65%;margin:0 auto;height:${snowH}px;background:rgba(147,197,253,.75);border-radius:1px"></div>`:''}
-        ${rainH>0?`<div style="width:65%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.85);border-radius:1px 1px 0 0"></div>`:''}
+        ${snowH>0?`<div style="width:70%;margin:0 auto;height:${snowH}px;background:rgba(147,197,253,.8);border-radius:2px"></div>`:''}
+        ${rainH>0?`<div style="width:70%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.9);border-radius:2px 2px 0 0"></div>`:''}
         ${!rainH&&!snowH&&b.prob>=10?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.15)"></div>`:''}
       </div>
-      ${b.prob>=10?`<div style="font-size:7px;color:rgba(96,165,250,.65)">${b.prob}%</div>`:`<div style="height:10px"></div>`}
-      <div style="font-size:8px;color:rgba(232,237,245,.3)">${hour}</div>
+      ${b.prob>=10?`<div style="font-size:8px;color:rgba(96,165,250,.75);font-weight:500">${b.prob}%</div>`:`<div style="height:11px"></div>`}
+      <div style="font-size:9px;color:rgba(232,237,245,.35)">${hour}</div>
     </div>`;
   }).join('');
 
@@ -672,22 +721,22 @@ function wxDayPrecipChart(hourly, daily, dayIdx){
     const bottom = v/scale*BAR_H;
     return `<div style="position:absolute;left:0;right:0;bottom:${bottom}px;pointer-events:none;display:flex;align-items:center">
       <div style="width:100%;height:1px;background:rgba(255,255,255,.08)"></div>
-      <div style="position:absolute;right:0;font-size:7px;color:rgba(232,237,245,.25);white-space:nowrap;transform:translateY(-8px)">${v} mm</div>
+      <div style="position:absolute;right:0;font-size:8px;color:rgba(232,237,245,.3);white-space:nowrap;transform:translateY(-9px)">${v} mm</div>
     </div>`;
   }).join('');
 
-  return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4)">${typeLabel}</div>
-      ${totalDay>0?`<div style="font-size:9px;color:rgba(255,255,255,.3)">${totalDay.toFixed(1)} mm toplam</div>`:''}
+  return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px 14px;height:100%;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.45);font-weight:600">${typeLabel}</div>
+      ${totalDay>0?`<div style="font-size:10px;color:rgba(56,189,248,.6);font-weight:600">${totalDay.toFixed(1)} mm</div>`:''}
     </div>
-    ${hasSnow?`<div style="display:flex;gap:10px;margin-bottom:6px;font-size:9px;color:rgba(232,237,245,.3)">
-      <span><span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:rgba(56,189,248,.85);vertical-align:middle;margin-right:3px"></span>Yağmur</span>
-      <span><span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:rgba(147,197,253,.75);vertical-align:middle;margin-right:3px"></span>Kar</span>
+    ${hasSnow?`<div style="display:flex;gap:12px;margin-bottom:8px;font-size:9px;color:rgba(232,237,245,.35)">
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:1px;background:rgba(56,189,248,.9);vertical-align:middle;margin-right:4px"></span>Yağmur</span>
+      <span><span style="display:inline-block;width:7px;height:7px;border-radius:1px;background:rgba(147,197,253,.8);vertical-align:middle;margin-right:4px"></span>Kar</span>
     </div>`:''}
     <div style="position:relative">
-      <div style="position:absolute;bottom:20px;left:0;right:0;height:${BAR_H}px">${refHTML}</div>
-      <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
+      <div style="position:absolute;bottom:22px;left:0;right:0;height:${BAR_H}px">${refHTML}</div>
+      <div style="display:flex;gap:2px;align-items:flex-end">${barsHTML}</div>
     </div>
   </div>`;
 }
