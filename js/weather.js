@@ -123,7 +123,7 @@ async function wxFetch(idx){
   wxShowLoad();
   const url=`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}`
     +`&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,visibility,wind_gusts_10m`
-    +`&hourly=temperature_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,showers,is_day`
+    +`&hourly=temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,rain,snowfall,showers,wind_speed_10m,wind_direction_10m,is_day`
     +`&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,uv_index_max,precipitation_sum,precipitation_probability_max,snowfall_sum`
     +`&timezone=auto&wind_speed_unit=kmh&forecast_days=10`;
   try{
@@ -163,23 +163,35 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
     if(hourly.time[i].split('T')[0]!==dayStr)continue;
     const ht=new Date(hourly.time[i]);
     if(isToday&&ht.getTime()<now-1800000)continue;
-    items.push({ts:ht.getTime(),time:ht,code:hourly.weather_code[i],isDay:hourly.is_day[i],temp:hourly.temperature_2m[i],rain:hourly.precipitation_probability[i],precip:(hourly.precipitation||[])[i]||0,snow:(hourly.snowfall||[])[i]||0,isNow:isToday&&items.length===0});
+    items.push({ts:ht.getTime(),time:ht,code:hourly.weather_code[i],isDay:hourly.is_day[i],temp:hourly.temperature_2m[i],feels:(hourly.apparent_temperature||[])[i]??null,rain:hourly.precipitation_probability[i],precip:(hourly.precipitation||[])[i]||0,snow:(hourly.snowfall||[])[i]||0,wind:(hourly.wind_speed_10m||[])[i]??null,windDir:(hourly.wind_direction_10m||[])[i]??null,isNow:isToday&&items.length===0});
   }
   const extras=[];
   if(sunrise)extras.push({ts:new Date(sunrise).getTime(),isSol:true,type:'rise',time:sunrise});
   if(sunset) extras.push({ts:new Date(sunset).getTime(),isSol:true,type:'set',time:sunset});
   const cardHTML = [...items,...extras].sort((a,b)=>a.ts-b.ts).map(h=>{
     if(h.isSol) return '';
+    const feelsStr  = h.feels!=null && Math.round(h.feels)!==Math.round(h.temp) ? `<div class="wx-h-feels">${Math.round(h.feels)}°</div>` : `<div class="wx-h-feels" style="visibility:hidden">-</div>`;
+    const windStr   = h.wind!=null && h.wind>=5 ? `<div class="wx-h-wind">${Math.round(h.wind)}<span style="font-size:7px;opacity:.6"> km/s</span></div>` : `<div class="wx-h-wind" style="visibility:hidden">-</div>`;
+    const precipStr = (h.precip+h.snow)>=0.1 ? `<div class="wx-h-mm">${(h.precip+h.snow)>=10?(h.precip+h.snow).toFixed(0):(h.precip+h.snow).toFixed(1)}<span style="font-size:7px;opacity:.6"> mm</span></div>` : `<div class="wx-h-mm" style="visibility:hidden">-</div>`;
+    const rainProb  = h.rain>10 ? `<div class="wx-h-rain">${h.rain}%</div>` : `<div class="wx-h-rain" style="visibility:hidden">-</div>`;
     return `<div class="wx-h${h.isNow?' now':''}">
       <div class="wx-h-t">${h.isNow?'Şu An':h.time.getHours().toString().padStart(2,'0')+':00'}</div>
       <div class="wx-h-ico">${wxc(h.code,h.isDay).e}</div>
-      <div class="wx-h-rain">${h.rain>15?'💧'+h.rain+'%':''}</div>
       <div class="wx-h-temp">${Math.round(h.temp)}°</div>
+      ${feelsStr}
+      ${rainProb}
+      ${precipStr}
+      ${windStr}
     </div>`;
   }).join('');
 
   const precipSection = !isToday ? wxDayPrecipChart(hourly, daily, dayIdx) : '';
-  return cardHTML + (precipSection ? `<div style="padding:12px 4px 4px">${precipSection}</div>` : '');
+  if(!precipSection) return cardHTML;
+  // 2 satır: üst kartlar, alt grafik ortalanmış
+  return `<div style="display:flex;flex-direction:column;gap:0">
+    <div style="display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding:2px">${cardHTML}</div>
+    <div style="padding:10px 2px 2px;display:flex;justify-content:center">${precipSection}</div>
+  </div>`;
 }
 
 // ── ANİMASYONLU İKON HTML'LERİ ───────────────────────────────────────
@@ -833,6 +845,19 @@ function wxRender(d,city){
   const c=d.current,daily=d.daily,hourly=d.hourly;
   const info=wxc(c.weather_code,c.is_day);
   wxSetAtmo(c.weather_code,c.is_day);
+  // Genişletilmiş saatlik kart CSS'i
+  if(!document.getElementById('wx-h-extra-css')){
+    const s=document.createElement('style');s.id='wx-h-extra-css';
+    s.textContent=`
+      .wx-h{min-width:62px;gap:3px;padding:9px 8px}
+      .wx-h-feels{font-size:9px;color:rgba(232,237,245,.38);line-height:1}
+      .wx-h.now .wx-h-feels{color:rgba(232,237,245,.6)}
+      .wx-h-rain{font-size:9px;color:#7ab8f5;font-weight:600;height:11px;line-height:11px}
+      .wx-h-mm{font-size:9px;color:#38bdf8;font-weight:600;height:11px;line-height:11px}
+      .wx-h-wind{font-size:9px;color:rgba(200,220,255,.45);height:11px;line-height:11px}
+    `;
+    document.head.appendChild(s);
+  }
 
   const dailyHTML=daily.time.map((dt,i)=>{
     const rain=daily.precipitation_probability_max[i];
