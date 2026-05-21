@@ -172,7 +172,7 @@ const TR_M=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos
 const TR_D=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
 
 // NAV
-const titles={home:'Giriş',chain:'Zincir Kırma',clock:'Saat & Kronometre',calendar:'Takvim',films:'Filmler',books:'Kitaplar',goals:'Hedefler'};
+const titles={home:'Giriş',chain:'Zincir Kırma',clock:'Saat & Kronometre',calendar:'Takvim',films:'Filmler',books:'Kitaplar',goals:'Hedefler',ai:'Asistan'};
 
 
 
@@ -317,6 +317,7 @@ const _pageInits = {
   goals: () => { renderGoals(); },
   chain: () => { renderChains(); },
   weather: () => { if(typeof window._weatherInit==='function') window._weatherInit(); },
+  ai: () => { if(typeof initAi==='function') initAi(); },
 };
 const _pageCss = {
   home: ['css/home.css'],
@@ -327,6 +328,7 @@ const _pageCss = {
   clock: ['css/clock.css'],
   chain: ['css/chain.css'],
   weather: ['css/calendar.css'],
+  ai: ['css/ai.css'],
 };
 let _currentPage = null;
 
@@ -364,7 +366,8 @@ async function loadPage(pageId) {
   // Home için özel
   const hw = document.getElementById('home-bg');
   const sb = document.getElementById('sidebar');
-  if (hw && sb) hw.style.left = sb.classList.contains('collapsed') ? '58px' : '220px';
+  if (hw && sb) hw.style.left = sb.classList.contains('collapsed') ?
+    '58px' : '220px';
 }
 
 function nav(id, el) {
