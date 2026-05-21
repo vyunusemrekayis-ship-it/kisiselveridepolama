@@ -275,7 +275,7 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
     <div style="padding:10px 2px 2px;display:flex;gap:6px;align-items:stretch">
       ${riseBox}
       ${setBox}
-      ${precipSection ? `<div style="flex:1;min-width:0">${precipSection}</div>` : ''}
+      ${precipSection ? `<div style="flex:1;min-width:0;max-width:260px">${precipSection}</div>` : ''}
     </div>
   </div>`;
 }
@@ -681,7 +681,7 @@ function wxDayPrecipChart(hourly, daily, dayIdx){
   const hasData = maxMm>0 || bars.some(b=>b.prob>=10);
   if(!hasData) return '';
 
-  const BAR_H = 56;
+  const BAR_H = 44;
   const scale = maxMm>0 ? maxMm : 1;
   const totalDay = (daily.precipitation_sum||[])[dayIdx]||0;
   const hasSnow = bars.some(b=>b.snow>0.1);
@@ -726,7 +726,7 @@ function wxDayPrecipChart(hourly, daily, dayIdx){
     </div>`;
   }).join('');
 
-  return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px 14px;height:100%;box-sizing:border-box">
+  return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:8px 10px;height:100%;box-sizing:border-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.45);font-weight:600">${typeLabel}</div>
       ${totalDay>0?`<div style="font-size:10px;color:rgba(56,189,248,.6);font-weight:600">${totalDay.toFixed(1)} mm</div>`:''}
