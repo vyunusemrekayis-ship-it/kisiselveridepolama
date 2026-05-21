@@ -163,12 +163,12 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
     if(hourly.time[i].split('T')[0]!==dayStr)continue;
     const ht=new Date(hourly.time[i]);
     if(isToday&&ht.getTime()<now-1800000)continue;
-    items.push({ts:ht.getTime(),time:ht,code:hourly.weather_code[i],isDay:hourly.is_day[i],temp:hourly.temperature_2m[i],rain:hourly.precipitation_probability[i],isNow:isToday&&items.length===0});
+    items.push({ts:ht.getTime(),time:ht,code:hourly.weather_code[i],isDay:hourly.is_day[i],temp:hourly.temperature_2m[i],rain:hourly.precipitation_probability[i],precip:(hourly.precipitation||[])[i]||0,snow:(hourly.snowfall||[])[i]||0,isNow:isToday&&items.length===0});
   }
   const extras=[];
   if(sunrise)extras.push({ts:new Date(sunrise).getTime(),isSol:true,type:'rise',time:sunrise});
   if(sunset) extras.push({ts:new Date(sunset).getTime(),isSol:true,type:'set',time:sunset});
-  return [...items,...extras].sort((a,b)=>a.ts-b.ts).map(h=>{
+  const cardHTML = [...items,...extras].sort((a,b)=>a.ts-b.ts).map(h=>{
     if(h.isSol) return '';
     return `<div class="wx-h${h.isNow?' now':''}">
       <div class="wx-h-t">${h.isNow?'Şu An':h.time.getHours().toString().padStart(2,'0')+':00'}</div>
@@ -177,6 +177,9 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
       <div class="wx-h-temp">${Math.round(h.temp)}°</div>
     </div>`;
   }).join('');
+
+  const precipSection = !isToday ? wxDayPrecipChart(hourly, daily, dayIdx) : '';
+  return cardHTML + (precipSection ? `<div style="padding:12px 4px 4px">${precipSection}</div>` : '');
 }
 
 // ── ANİMASYONLU İKON HTML'LERİ ───────────────────────────────────────
@@ -558,6 +561,85 @@ function wxPrecipChart(hourly, daily){
            <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
          </div>`
     }
+  </div>`;
+}
+
+// ── SONRAKI GÜNLER İÇİN YAĞIŞ GRAFİĞİ ──────────────────────────────
+function wxDayPrecipChart(hourly, daily, dayIdx){
+  const dayStr = daily.time[dayIdx];
+  const bars = [];
+  let maxMm = 0;
+  for(let i=0;i<hourly.time.length;i++){
+    if(hourly.time[i].split('T')[0] !== dayStr) continue;
+    const rain  = (hourly.rain||[])[i]||0;
+    const snow  = (hourly.snowfall||[])[i]||0;
+    const precip = (hourly.precipitation||[])[i]||0;
+    const total = Math.max(precip, rain+snow);
+    const snowFrac = (rain+snow)>0 ? snow/(rain+snow) : 0;
+    maxMm = Math.max(maxMm, total);
+    bars.push({h:hourly.time[i], rain:total*(1-snowFrac), snow:total*snowFrac, prob:(hourly.precipitation_probability||[])[i]||0});
+  }
+  const hasData = maxMm>0 || bars.some(b=>b.prob>=10);
+  if(!hasData) return '';
+
+  const BAR_H = 44;
+  const scale = maxMm>0 ? maxMm : 1;
+  const totalDay = (daily.precipitation_sum||[])[dayIdx]||0;
+  const hasSnow = bars.some(b=>b.snow>0.1);
+  const hasRain = bars.some(b=>b.rain>0.1);
+  const typeLabel = hasSnow&&hasRain?'Kar + Yağmur':hasSnow?'Kar':hasRain?'Yağmur':'Yağış Olasılığı';
+
+  function niceRef(max){
+    if(max<=0) return [];
+    const candidates=[0.5,1,2,5,10,20,50];
+    const step=candidates.find(c=>max/c<=3&&max/c>=1)||Math.ceil(max/2);
+    const refs=[];
+    for(let v=step;v<max*0.97;v+=step) refs.push(v);
+    return refs.slice(0,2);
+  }
+  const refLines = maxMm>0 ? niceRef(maxMm) : [];
+
+  const barsHTML = bars.map(b=>{
+    const hour  = new Date(b.h).getHours().toString().padStart(2,'0');
+    const rainH = Math.max(b.rain/scale*BAR_H, b.rain>0?2:0);
+    const snowH = Math.max(b.snow/scale*BAR_H, b.snow>0?2:0);
+    const totalMm = b.rain + b.snow;
+    const mmLabel = totalMm>=0.1
+      ? `<div style="font-size:7px;color:rgba(56,189,248,.8);line-height:1">${totalMm>=10?totalMm.toFixed(0):totalMm.toFixed(1)}</div>`
+      : `<div style="height:9px"></div>`;
+    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;gap:1px">
+      ${mmLabel}
+      <div style="width:100%;display:flex;flex-direction:column;justify-content:flex-end;height:${BAR_H}px;position:relative">
+        ${snowH>0?`<div style="width:65%;margin:0 auto;height:${snowH}px;background:rgba(147,197,253,.75);border-radius:1px"></div>`:''}
+        ${rainH>0?`<div style="width:65%;margin:0 auto;height:${rainH}px;background:rgba(56,189,248,.85);border-radius:1px 1px 0 0"></div>`:''}
+        ${!rainH&&!snowH&&b.prob>=10?`<div style="width:2px;margin:0 auto;height:2px;background:rgba(255,255,255,.15)"></div>`:''}
+      </div>
+      ${b.prob>=10?`<div style="font-size:7px;color:rgba(96,165,250,.65)">${b.prob}%</div>`:`<div style="height:10px"></div>`}
+      <div style="font-size:8px;color:rgba(232,237,245,.3)">${hour}</div>
+    </div>`;
+  }).join('');
+
+  const refHTML = refLines.map(v=>{
+    const bottom = v/scale*BAR_H;
+    return `<div style="position:absolute;left:0;right:0;bottom:${bottom}px;pointer-events:none;display:flex;align-items:center">
+      <div style="width:100%;height:1px;background:rgba(255,255,255,.08)"></div>
+      <div style="position:absolute;right:0;font-size:7px;color:rgba(232,237,245,.25);white-space:nowrap;transform:translateY(-8px)">${v} mm</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4)">${typeLabel}</div>
+      ${totalDay>0?`<div style="font-size:9px;color:rgba(255,255,255,.3)">${totalDay.toFixed(1)} mm toplam</div>`:''}
+    </div>
+    ${hasSnow?`<div style="display:flex;gap:10px;margin-bottom:6px;font-size:9px;color:rgba(232,237,245,.3)">
+      <span><span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:rgba(56,189,248,.85);vertical-align:middle;margin-right:3px"></span>Yağmur</span>
+      <span><span style="display:inline-block;width:6px;height:6px;border-radius:1px;background:rgba(147,197,253,.75);vertical-align:middle;margin-right:3px"></span>Kar</span>
+    </div>`:''}
+    <div style="position:relative">
+      <div style="position:absolute;bottom:20px;left:0;right:0;height:${BAR_H}px">${refHTML}</div>
+      <div style="display:flex;gap:1px;align-items:flex-end">${barsHTML}</div>
+    </div>
   </div>`;
 }
 
