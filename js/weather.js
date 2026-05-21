@@ -187,21 +187,40 @@ function wxHourlyHTML(hourly,daily,dayIdx,isToday){
 
   // Gün doğumu/batımı bilgisi
   const fmtT = s => { const d=new Date(s); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); };
-  const sunInfoHTML = (sunrise||sunset) ? `<div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:10px;flex-shrink:0;min-width:80px">
-    ${sunrise?`<div style="display:flex;align-items:center;gap:6px">
-      <div style="width:16px;height:16px;position:relative;flex-shrink:0">
-        <div style="position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fde68a,#f59e0b);box-shadow:0 0 5px rgba(251,191,36,.6);bottom:1px;left:50%;transform:translateX(-50%)"></div>
-        <div style="position:absolute;bottom:1px;left:1px;right:1px;height:1px;background:rgba(251,191,36,.3)"></div>
-      </div>
-      <span style="font-size:11px;font-weight:600;color:rgba(253,230,138,.8)">${fmtT(sunrise)}</span>
-    </div>`:''}
-    ${sunset?`<div style="display:flex;align-items:center;gap:6px">
-      <div style="width:16px;height:16px;position:relative;flex-shrink:0">
-        <div style="position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fca5a5,#f97316);box-shadow:0 0 5px rgba(249,115,22,.5);top:1px;left:50%;transform:translateX(-50%)"></div>
-        <div style="position:absolute;top:9px;left:1px;right:1px;height:1px;background:rgba(249,115,22,.3)"></div>
-      </div>
-      <span style="font-size:11px;font-weight:600;color:rgba(252,165,165,.7)">${fmtT(sunset)}</span>
-    </div>`:''}
+  // Mini gün doğumu/batımı — büyük wx-rise/set-wrap animasyonunun ölçekli SVG hali
+  function miniSunSVG(type){
+    const isRise = type==='rise';
+    const gc1 = isRise?'#fde68a':'#fca5a5', gc2 = isRise?'#f59e0b':'#f97316';
+    const glow = isRise?'rgba(251,191,36,.5)':'rgba(249,115,22,.4)';
+    const horiz = isRise?'rgba(251,191,36,.35)':'rgba(249,115,22,.35)';
+    const ray  = isRise?'rgba(253,230,138,.5)':'rgba(252,165,165,.4)';
+    const uid = type+dayIdx;
+    // Güneş yukarı çıkıyor (rise) ya da aşağı iniyor (set)
+    const discY = isRise?20:12;
+    const anim = isRise
+      ? `@keyframes msr${uid}{from{transform:translateY(6px);opacity:.3}to{transform:translateY(0);opacity:1}}`
+      : `@keyframes msr${uid}{from{transform:translateY(0);opacity:1}to{transform:translateY(6px);opacity:.3}}`;
+    // 5 ışın
+    const angles = [-50,-25,0,25,50];
+    const rays = angles.map(a=>{
+      const r=a*Math.PI/180, cx=16, cy=16;
+      const x1=(cx+Math.sin(r)*7).toFixed(1), y1=(cy-Math.cos(r)*7).toFixed(1);
+      const x2=(cx+Math.sin(r)*11).toFixed(1), y2=(cy-Math.cos(r)*11).toFixed(1);
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${ray}" stroke-width="1.2" stroke-linecap="round"/>`;
+    }).join('');
+    return `<div style="width:32px;height:32px;position:relative;flex-shrink:0">
+      <style>${anim}</style>
+      <svg width="32" height="32" viewBox="0 0 32 32" overflow="visible">
+        <defs><radialGradient id="rg${uid}"><stop offset="0%" stop-color="${gc1}"/><stop offset="100%" stop-color="${gc2}"/></radialGradient></defs>
+        ${rays}
+        <line x1="5" y1="18" x2="27" y2="18" stroke="${horiz}" stroke-width="1" stroke-linecap="round"/>
+        <circle cx="16" cy="${discY}" r="5" fill="url(#rg${uid})" style="filter:drop-shadow(0 0 3px ${glow});animation:msr${uid} 1.5s cubic-bezier(.22,1,.36,1) forwards"/>
+      </svg>
+    </div>`;
+  }
+  const sunInfoHTML = (!isToday && (sunrise||sunset)) ? `<div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:10px;flex-shrink:0">
+    ${sunrise?`<div style="display:flex;align-items:center;gap:8px">${miniSunSVG('rise')}<span style="font-size:11px;font-weight:600;color:rgba(253,230,138,.85)">${fmtT(sunrise)}</span></div>`:''}
+    ${sunset?`<div style="display:flex;align-items:center;gap:8px">${miniSunSVG('set')}<span style="font-size:11px;font-weight:600;color:rgba(252,165,165,.75)">${fmtT(sunset)}</span></div>`:''}
   </div>` : '';
 
   if(!precipSection && !sunInfoHTML) return cardHTML;
