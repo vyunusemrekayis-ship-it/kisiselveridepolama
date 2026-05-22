@@ -108,6 +108,16 @@ let db=(function(){
 let _syncUnsub=null;
 window.loadFromFirestore=async function(uid){
   try{
+    // ── Önce localStorage'ı temizle (farklı kullanıcı girişinde eski veri kalmasın) ──
+    db={f:[],b:[],g:[],e:[]};
+    localStorage.removeItem(SK);
+    localStorage.removeItem('gn_notes');
+    localStorage.removeItem('gn_todos');
+    localStorage.removeItem('gn_chains');
+    localStorage.removeItem('gn_wl');
+    localStorage.removeItem('gn_rl');
+    localStorage.removeItem('gn_sw_log');
+    // ──────────────────────────────────────────────────────────────────────────────────
     const ref=window._fbDoc(window._fbDb,'users',uid);
     const snap=await window._fbGetDoc(ref);
     if(snap.exists()){
