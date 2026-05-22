@@ -125,10 +125,12 @@ window.loadFromFirestore=async function(uid){
     }
     // ── İlk kez giriş: profil yoksa isim sor ─────────────────────
     if(!window._userProfile){
-      const name = prompt('Adınızı girin (profil için):') || window._fbUser.email;
-      window._userProfile = { name };
-      await window._fbSetDoc(window._fbDoc(window._fbDb,'users',uid),
-        { profile: window._userProfile }, { merge: true });
+      const name = prompt('Adınızı girin (profil için):');
+      if(name && name.trim()){
+        window._userProfile = { name: name.trim() };
+        await window._fbSetDoc(window._fbDoc(window._fbDb,'users',uid),
+          { profile: window._userProfile }, { merge: true });
+      }
     }
     // ─────────────────────────────────────────────────────────────
     renderAll();updateBadges();
