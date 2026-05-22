@@ -82,7 +82,7 @@ fbScript.textContent = `
       if(emailEl)emailEl.textContent=user.email||'';
       // API key'i yükle
       await window.loadApiKey();
-      // Firestore'dan veriyi çek
+      // Firestore'dan veriyi çek (profil dahil)
       await window.loadFromFirestore(user.uid);
       // Gerçek zamanlı senkronizasyon
       window.setupSync(user.uid);
@@ -112,6 +112,9 @@ window.loadFromFirestore=async function(uid){
     const snap=await window._fbGetDoc(ref);
     if(snap.exists()){
       const d=snap.data();
+      // ── Profil yükle ─────────────────────────────────────────────
+      window._userProfile = d.profile || null;
+      // ─────────────────────────────────────────────────────────────
       if(d.main){db=d.main;localStorage.setItem(SK,JSON.stringify(db));}
       if(d.notes)localStorage.setItem('gn_notes',JSON.stringify(d.notes));
       if(d.todos)localStorage.setItem('gn_todos',JSON.stringify(d.todos));
@@ -120,6 +123,14 @@ window.loadFromFirestore=async function(uid){
       if(d.rl)localStorage.setItem('gn_rl',JSON.stringify(d.rl));
       if(d.sw_log)localStorage.setItem('gn_sw_log',JSON.stringify(d.sw_log));
     }
+    // ── İlk kez giriş: profil yoksa isim sor ─────────────────────
+    if(!window._userProfile){
+      const name = prompt('Adınızı girin (profil için):') || window._fbUser.email;
+      window._userProfile = { name };
+      await window._fbSetDoc(window._fbDoc(window._fbDb,'users',uid),
+        { profile: window._userProfile }, { merge: true });
+    }
+    // ─────────────────────────────────────────────────────────────
     renderAll();updateBadges();
   }catch(e){console.error('Firestore yükleme:',e);}
 };
@@ -380,6 +391,13 @@ function nav(id, el) {
 
 // ── INIT ─────────────────────────────────────────────────────────────
 window._appInit = function() {
+  // ── Kullanıcı adını tüm başlıklara yaz ──────────────────────────
+  const userName = window._userProfile?.name || '';
+  const sbH1 = document.querySelector('#sidebar .sidebar-brand h1');
+  if(sbH1) sbH1.textContent = userName;
+  const drawerTitle = document.querySelector('#mobile-drawer > div:first-child > div:first-child');
+  if(drawerTitle) drawerTitle.textContent = userName;
+  // ─────────────────────────────────────────────────────────────────
   loadPage('home');
   tickClock();
   setInterval(tickClock, 100);
