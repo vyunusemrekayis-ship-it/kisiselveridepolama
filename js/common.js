@@ -1,3 +1,5 @@
+// DÜZELTME 2: common.js yüklenince hemen spinner'ı göster
+document.getElementById('loading-screen').style.display = 'flex';
 
 // ── FIREBASE ──────────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -89,11 +91,9 @@ fbScript.textContent = `
       if(window._appInit)window._appInit();
     } else {
       window._fbUser = null;
-      window._userProfile = null;
-      // Çıkış yapınca sayfayı yenile — farklı kullanıcı girişinde temiz başlasın
+      document.getElementById('loading-screen').style.display='none';
       document.getElementById('login-screen').style.display = 'flex';
       document.getElementById('app-wrapper').style.display = 'none';
-      window.location.reload();
     }
   });
 `;
@@ -111,16 +111,6 @@ let db=(function(){
 let _syncUnsub=null;
 window.loadFromFirestore=async function(uid){
   try{
-    // ── Önce localStorage'ı temizle (farklı kullanıcı girişinde eski veri kalmasın) ──
-    db={f:[],b:[],g:[],e:[]};
-    localStorage.removeItem(SK);
-    localStorage.removeItem('gn_notes');
-    localStorage.removeItem('gn_todos');
-    localStorage.removeItem('gn_chains');
-    localStorage.removeItem('gn_wl');
-    localStorage.removeItem('gn_rl');
-    localStorage.removeItem('gn_sw_log');
-    // ──────────────────────────────────────────────────────────────────────────────────
     const ref=window._fbDoc(window._fbDb,'users',uid);
     const snap=await window._fbGetDoc(ref);
     if(snap.exists()){
@@ -128,6 +118,7 @@ window.loadFromFirestore=async function(uid){
       // ── Profil yükle ─────────────────────────────────────────────
       window._userProfile = d.profile || null;
       // ─────────────────────────────────────────────────────────────
+
       if(d.main){db=d.main;localStorage.setItem(SK,JSON.stringify(db));}
       if(d.notes)localStorage.setItem('gn_notes',JSON.stringify(d.notes));
       if(d.todos)localStorage.setItem('gn_todos',JSON.stringify(d.todos));
@@ -138,12 +129,10 @@ window.loadFromFirestore=async function(uid){
     }
     // ── İlk kez giriş: profil yoksa isim sor ─────────────────────
     if(!window._userProfile){
-      const name = prompt('Adınızı girin (profil için):');
-      if(name && name.trim()){
-        window._userProfile = { name: name.trim() };
-        await window._fbSetDoc(window._fbDoc(window._fbDb,'users',uid),
-          { profile: window._userProfile }, { merge: true });
-      }
+      const name = prompt('Adınızı girin (profil için):') || window._fbUser.email;
+      window._userProfile = { name };
+      await window._fbSetDoc(window._fbDoc(window._fbDb,'users',uid),
+        { profile: window._userProfile }, { merge: true });
     }
     // ─────────────────────────────────────────────────────────────
     renderAll();updateBadges();
@@ -222,8 +211,6 @@ function toggleSidebar(){
   const collapsed=sb.classList.contains('collapsed');
   const hw=document.getElementById('home-bg');
   if(hw)hw.style.left=collapsed?'58px':'220px';
-  const btn=document.getElementById('btn-rename');
-  if(btn)btn.style.display=collapsed?'none':'flex';
 }
 
 // BADGES
@@ -243,21 +230,6 @@ function doSignOut(){
   if(!confirm('Çıkış yapmak istediğinize emin misiniz?'))return;
   if(window._fbSignOut&&window._fbAuth)window._fbSignOut(window._fbAuth);
 }
-
-window.changeProfileName = async function(){
-  const current = window._userProfile?.name || '';
-  const name = prompt('Yeni adınızı girin:', current);
-  if(!name || !name.trim() || name.trim() === current) return;
-  window._userProfile = { name: name.trim() };
-  const sbH1 = document.getElementById('sidebar-username');
-  if(sbH1) sbH1.textContent = name.trim();
-  const drawerName = document.getElementById('mobile-drawer-name');
-  if(drawerName) drawerName.textContent = name.trim();
-  try{
-    const ref = window._fbDoc(window._fbDb,'users',window._fbUser.uid);
-    await window._fbSetDoc(ref, { profile: window._userProfile }, { merge: true });
-  }catch(e){ console.error('Profil kayıt:', e); }
-};
 
 // MOBİL DRAWER
 
@@ -425,9 +397,9 @@ function nav(id, el) {
 window._appInit = function() {
   // ── Kullanıcı adını tüm başlıklara yaz ──────────────────────────
   const userName = window._userProfile?.name || '';
-  const sbH1 = document.getElementById('sidebar-username');
+  const sbH1 = document.querySelector('#sidebar .sidebar-brand h1');
   if(sbH1) sbH1.textContent = userName;
-  const drawerTitle = document.getElementById('mobile-drawer-name');
+  const drawerTitle = document.querySelector('#mobile-drawer > div:first-child > div:first-child');
   if(drawerTitle) drawerTitle.textContent = userName;
   // ─────────────────────────────────────────────────────────────────
   loadPage('home');
