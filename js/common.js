@@ -89,8 +89,11 @@ fbScript.textContent = `
       if(window._appInit)window._appInit();
     } else {
       window._fbUser = null;
+      window._userProfile = null;
+      // Çıkış yapınca sayfayı yenile — farklı kullanıcı girişinde temiz başlasın
       document.getElementById('login-screen').style.display = 'flex';
       document.getElementById('app-wrapper').style.display = 'none';
+      window.location.reload();
     }
   });
 `;
