@@ -229,6 +229,21 @@ function doSignOut(){
   if(window._fbSignOut&&window._fbAuth)window._fbSignOut(window._fbAuth);
 }
 
+window.changeProfileName = async function(){
+  const current = window._userProfile?.name || '';
+  const name = prompt('Yeni adınızı girin:', current);
+  if(!name || !name.trim() || name.trim() === current) return;
+  window._userProfile = { name: name.trim() };
+  const sbH1 = document.getElementById('sidebar-username');
+  if(sbH1) sbH1.textContent = name.trim();
+  const drawerName = document.getElementById('mobile-drawer-name');
+  if(drawerName) drawerName.textContent = name.trim();
+  try{
+    const ref = window._fbDoc(window._fbDb,'users',window._fbUser.uid);
+    await window._fbSetDoc(ref, { profile: window._userProfile }, { merge: true });
+  }catch(e){ console.error('Profil kayıt:', e); }
+};
+
 // MOBİL DRAWER
 
 function toggleDrawer(){
