@@ -209,6 +209,8 @@ function toggleSidebar(){
   const collapsed=sb.classList.contains('collapsed');
   const hw=document.getElementById('home-bg');
   if(hw)hw.style.left=collapsed?'58px':'220px';
+  const btn=document.getElementById('btn-rename');
+  if(btn)btn.style.display=collapsed?'none':'flex';
 }
 
 // BADGES
