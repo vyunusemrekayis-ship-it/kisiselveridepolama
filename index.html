@@ -8,9 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Günlüğüm">
 <meta name="theme-color" content="#36393e">
 <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/initials/svg?seed=YEK&backgroundColor=FBD100&fontFamily=Georgia&fontSize=40&chars=2">
-<title>Yunus Emre Kayış</title>
+<title>Günlüğüm</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-
   <!-- CSS -->
   <link rel="stylesheet" href="css/common.css?v=3">
   <link rel="stylesheet" href="css/home.css?v=5">
@@ -46,7 +45,7 @@ html, body { height: 100%; }
 <!-- MOBİL DRAWER -->
 <div id="mobile-drawer" style="display:none;position:fixed;top:0;left:0;bottom:0;width:260px;z-index:500;background:var(--surface);border-right:0.5px solid var(--border);transform:translateX(-100%);transition:transform .25s ease;overflow-y:auto;flex-direction:column">
   <div style="padding:20px 16px 14px;border-bottom:0.5px solid var(--border)">
-    <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)">Yunus Emre Kayış</div>
+    <div id="mobile-drawer-name" style="font-family:'Playfair Display',serif;font-size:17px;color:var(--accent2)"></div>
     <div id="mobile-user-email" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
   </div>
   <nav style="padding:8px 0;flex:1">
@@ -82,7 +81,7 @@ html, body { height: 100%; }
 <div id="app-wrapper" style="display:none;width:100vw;min-height:100vh;overflow-x:hidden">
   <aside class="sidebar collapsed" id="sidebar">
   <div class="sidebar-brand">
-    <div><h1>Yunus Emre Kayış</h1><p id="sb-date"></p></div>
+    <div><h1 id="sidebar-username"></h1><p id="sb-date"></p></div>
     <button class="sidebar-toggle" onclick="toggleSidebar()">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
@@ -95,7 +94,7 @@ html, body { height: 100%; }
         <span class="nav-label-text">Giriş</span>
       </div>
       <div class="nav-item" onclick="nav('calendar',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span class="nav-label-text">Takvim</span>
       </div>
       <div class="nav-item" onclick="nav('clock',this)">
@@ -106,19 +105,22 @@ html, body { height: 100%; }
     <div class="nav-group">
       <div class="nav-group-label">İçerik</div>
       <div class="nav-item" onclick="nav('films',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-        <span class="nav-label-text">Filmler</span><span class="nav-badge" id="nb-film">0</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="2" y1="17" x2="7" y2="17"/></svg>
+        <span class="nav-label-text">Filmler</span>
+        <span class="nav-badge" id="nb-film">0</span>
       </div>
       <div class="nav-item" onclick="nav('books',this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span class="nav-label-text">Kitaplar</span><span class="nav-badge" id="nb-book">0</span>
+        <span class="nav-label-text">Kitaplar</span>
+        <span class="nav-badge" id="nb-book">0</span>
       </div>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Takip</div>
       <div class="nav-item" onclick="nav('goals',this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        <span class="nav-label-text">Hedefler</span><span class="nav-badge" id="nb-goal">0</span>
+        <span class="nav-label-text">Hedefler</span>
+        <span class="nav-badge" id="nb-goal">0</span>
       </div>
       <div class="nav-item" onclick="nav('chain',this)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -148,13 +150,13 @@ html, body { height: 100%; }
 </div>
 
 <div id="loading-screen" style="display:flex;position:fixed;inset:0;z-index:10000;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:12px">
-  <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--accent)">Yunus Emre Kayış</div>
+  <div style="font-family:'Playfair Display',serif;font-size:22px;color:var(--accent)">Günlüğüm</div>
   <div style="width:32px;height:32px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <div id="login-screen" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px">
-  <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--accent);text-align:center">Yunus Emre Kayış</div>
+  <div style="font-family:'Playfair Display',serif;font-size:26px;color:var(--accent);text-align:center">Günlüğüm</div>
   <div style="font-size:13px;color:var(--muted);margin-bottom:4px">Devam etmek için giriş yapın</div>
   <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px">
     <input id="login-email" type="email" placeholder="E-posta" style="padding:11px 14px;border-radius:9px;border:0.5px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%">
@@ -167,7 +169,7 @@ html, body { height: 100%; }
 
 
 <!-- JS -->
-<script src="js/common.js?v=5"></script>
+<script src="js/common.js?v=6"></script>
 <script src="js/home.js?v=3"></script>
 <script src="js/films.js?v=3"></script>
 <script src="js/books.js?v=3"></script>
