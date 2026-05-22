@@ -176,7 +176,6 @@ async function aiExecuteTool(name, input) {
         const cities = JSON.parse(localStorage.getItem('gn_wx_cities') || '[]');
         if (!cities.length) return 'Hava durumu için şehir kaydedilmemiş. Hava Durumu sayfasından şehir ekleyebilirsiniz.';
         const city = cities[0];
-        // Open-Meteo'dan güncel veri çek
         const targetDate = input.date || new Date().toISOString().split('T')[0];
         try {
           const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=temperature_2m,weather_code&timezone=auto&forecast_days=3`;
@@ -185,8 +184,6 @@ async function aiExecuteTool(name, input) {
           const cur = data.current;
           const wmo = {0:'Açık',1:'Az bulutlu',2:'Parçalı bulutlu',3:'Çok bulutlu',45:'Sisli',48:'Yoğun sisli',51:'Hafif çiseleme',53:'Orta çiseleme',55:'Yoğun çiseleme',61:'Hafif yağmurlu',63:'Orta yağmurlu',65:'Yoğun yağmurlu',71:'Hafif karlı',73:'Orta karlı',75:'Yoğun karlı',80:'Hafif sağanak',81:'Orta sağanak',82:'Şiddetli sağanak',95:'Fırtınalı',99:'Dolulu fırtına'};
           const desc = wmo[cur.weather_code] || 'Bilinmiyor';
-
-          // İstenen tarih için saatlik veri
           let dayInfo = '';
           if (input.date && data.hourly) {
             const hours = data.hourly.time.filter(t => t.startsWith(targetDate));
@@ -198,7 +195,6 @@ async function aiExecuteTool(name, input) {
               dayInfo = ` | ${targetDate} saatlik: ${temps.slice(6,22).join(', ')}`;
             }
           }
-
           return JSON.stringify({
             city: city.name,
             current_temp: cur.temperature_2m,
@@ -322,7 +318,6 @@ async function aiSaveMessagesToFirebase() {
     await waitForFirebase();
     const uid = window._fbUser?.uid;
     if (!uid) return;
-    // Son 40 mesajı sakla
     const toSave = aiMessages.slice(-40);
     const ref = window._fbDoc(window._fbDb, 'users', uid);
     await window._fbSetDoc(ref, { ai_messages: toSave }, { merge: true });
@@ -341,7 +336,11 @@ function aiSystemPrompt() {
     memorySection = `\n\nUzun süreli bellek (önceki konuşmalardan öğrendiklerim):\n${aiMemory.map((m,i) => `${i+1}. ${m}`).join('\n')}`;
   }
 
-  return `Siz Yunus Emre Kayış'ın kişisel asistanısınız. Kişisel günlük web sitesine entegre edildiniz.
+  // ── Kullanıcı adını dinamik al ───────────────────────────────────
+  const userName = window._userProfile?.name || 'Kullanıcı';
+  // ─────────────────────────────────────────────────────────────────
+
+  return `Siz ${userName}'ın kişisel asistanısınız. Kişisel günlük web sitesine entegre edildiniz.
 
 Bugün: ${dayName}, ${dateStr} (${ds})
 
@@ -373,7 +372,6 @@ async function aiSend() {
   aiHideEmpty();
   aiHideQuick();
 
-  // Kullanıcı mesajını ekle
   aiMessages.push({ role: 'user', content: text });
   aiRenderMessage('user', text);
 
@@ -382,9 +380,8 @@ async function aiSend() {
 
 async function aiRun() {
   aiLoading = true;
-  const sendBtn = document.getElementById('ai-send'); if(sendBtn) sendBtn.disabled = true;
+  document.getElementById('ai-send').disabled = true;
 
-  // Yazıyor göstergesi
   const typingId = aiShowTyping();
 
   try {
@@ -393,11 +390,10 @@ async function aiRun() {
       aiHideTyping(typingId);
       aiRenderMessage('assistant', 'API anahtarı bulunamadı. Lütfen Firebase\'de `config/app` dökümanına `anthropicKey` ekleyin.');
       aiLoading = false;
-      if(sendBtn) sendBtn.disabled = false;
+      document.getElementById('ai-send').disabled = false;
       return;
     }
 
-    // Tool use döngüsü
     let iterations = 0;
     const MAX_ITER = 8;
 
@@ -427,13 +423,9 @@ async function aiRun() {
       }
 
       const data = await res.json();
-
-      // Yanıtı mesaj geçmişine ekle
       aiMessages.push({ role: 'assistant', content: data.content });
 
-      // Stop reason kontrolü
       if (data.stop_reason === 'end_turn') {
-        // Sadece metin yanıtları
         aiHideTyping(typingId);
         const textBlocks = data.content.filter(b => b.type === 'text');
         if (textBlocks.length) {
@@ -447,11 +439,8 @@ async function aiRun() {
         const toolResults = [];
 
         for (const tool of toolUses) {
-          // Tool çağrısını göster
           aiUpdateTypingLabel(typingId, aiToolLabel(tool.name));
-
           const result = await aiExecuteTool(tool.name, tool.input);
-
           toolResults.push({
             type: 'tool_result',
             tool_use_id: tool.id,
@@ -459,12 +448,10 @@ async function aiRun() {
           });
         }
 
-        // Tool sonuçlarını mesaj geçmişine ekle
         aiMessages.push({ role: 'user', content: toolResults });
         continue;
       }
 
-      // Beklenmedik stop_reason
       break;
     }
 
@@ -474,9 +461,7 @@ async function aiRun() {
   }
 
   aiLoading = false;
-  const sendBtn2 = document.getElementById('ai-send'); if(sendBtn2) sendBtn2.disabled = false;
-
-  // Firebase'e kaydet
+  document.getElementById('ai-send').disabled = false;
   await aiSaveMessagesToFirebase();
 }
 
@@ -519,13 +504,10 @@ function aiRenderMessage(role, text) {
   div.appendChild(avatar);
   div.appendChild(bubble);
   container.appendChild(div);
-
-  // Aşağı scroll
   container.scrollTop = container.scrollHeight;
 }
 
 function aiFormatText(text) {
-  // Basit markdown benzeri formatlama
   return text
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -675,7 +657,6 @@ async function aiDelMemory(i) {
 async function initAi() {
   await aiLoadFromFirebase();
 
-  // Önceki mesajlar varsa render et
   if (aiMessages.length) {
     aiHideEmpty();
     aiHideQuick();
@@ -689,7 +670,6 @@ async function initAi() {
         if (text) aiRenderMessage('assistant', text);
       }
     });
-    // En alta scroll
     setTimeout(() => {
       const c = document.getElementById('ai-messages');
       if (c) c.scrollTop = c.scrollHeight;
