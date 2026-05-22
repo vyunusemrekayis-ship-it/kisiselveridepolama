@@ -412,9 +412,9 @@ function nav(id, el) {
 window._appInit = function() {
   // ── Kullanıcı adını tüm başlıklara yaz ──────────────────────────
   const userName = window._userProfile?.name || '';
-  const sbH1 = document.querySelector('#sidebar .sidebar-brand h1');
+  const sbH1 = document.getElementById('sidebar-username');
   if(sbH1) sbH1.textContent = userName;
-  const drawerTitle = document.querySelector('#mobile-drawer > div:first-child > div:first-child');
+  const drawerTitle = document.getElementById('mobile-drawer-name');
   if(drawerTitle) drawerTitle.textContent = userName;
   // ─────────────────────────────────────────────────────────────────
   loadPage('home');
