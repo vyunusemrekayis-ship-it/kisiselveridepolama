@@ -628,3 +628,24 @@
   #fab-ai { bottom: 16px; right: 16px; }
   .fab-panel { right: 10px; left: 10px; width: auto; bottom: 78px; }
 }
+
+/* AI SAYFASI MİKROFON BUTONU */
+.ai-mic-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.ai-mic-btn:hover { color: var(--text); }
+.ai-mic-btn.listening {
+  color: #e05454;
+  animation: fab-mic-pulse 1s ease-in-out infinite;
+}
