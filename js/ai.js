@@ -188,7 +188,7 @@ async function aiExecuteTool(name, input) {
           if (input.date && data.hourly) {
             const hours = data.hourly.time.filter(t => t.startsWith(targetDate));
             if (hours.length) {
-              const temps = hours.map((t, i) => {
+              const temps = hours.map((t) => {
                 const idx = data.hourly.time.indexOf(t);
                 return `${t.split('T')[1]}: ${data.hourly.temperature_2m[idx]}°C`;
               });
@@ -230,7 +230,7 @@ async function aiExecuteTool(name, input) {
         const list = input.list || 'all';
         const result = {};
         if (list === 'watched' || list === 'all') result.watched = (db.f || []).map(f => ({ name: f.name, dir: f.dir, date: f.date, note: f.note }));
-        if (list === 'watchlist' || list === 'all') result.watchlist = (getWl ? getWl() : []).map(f => ({ name: f.name, dir: f.dir }));
+        if (list === 'watchlist' || list === 'all') result.watchlist = (typeof getWl === 'function' ? getWl() : []).map(f => ({ name: f.name, dir: f.dir }));
         return JSON.stringify(result);
       }
 
@@ -238,12 +238,12 @@ async function aiExecuteTool(name, input) {
         const list = input.list || 'all';
         const result = {};
         if (list === 'read' || list === 'all') result.read = (db.b || []).map(b => ({ name: b.name, author: b.author, pages: b.pages, note: b.note }));
-        if (list === 'readlist' || list === 'all') result.readlist = (getRl ? getRl() : []).map(b => ({ name: b.name, author: b.author }));
+        if (list === 'readlist' || list === 'all') result.readlist = (typeof getRl === 'function' ? getRl() : []).map(b => ({ name: b.name, author: b.author }));
         return JSON.stringify(result);
       }
 
       case 'get_chains': {
-        const chains = getCh ? getCh() : [];
+        const chains = typeof getCh === 'function' ? getCh() : [];
         return JSON.stringify(chains.map(ch => {
           const doneSet = new Set(ch.done || []);
           const startMs = new Date(ch.start + 'T00:00:00').getTime();
@@ -336,9 +336,7 @@ function aiSystemPrompt() {
     memorySection = `\n\nUzun süreli bellek (önceki konuşmalardan öğrendiklerim):\n${aiMemory.map((m,i) => `${i+1}. ${m}`).join('\n')}`;
   }
 
-  // ── Kullanıcı adını dinamik al ───────────────────────────────────
   const userName = window._userProfile?.name || 'Kullanıcı';
-  // ─────────────────────────────────────────────────────────────────
 
   return `Siz ${userName}'ın kişisel asistanısınız. Kişisel günlük web sitesine entegre edildiniz.
 
@@ -361,7 +359,7 @@ Kurallar:
 - Önemli kişisel bilgileri (alışkanlıklar, tercihler) save_memory ile kaydedin${memorySection}`;
 }
 
-// ── ANA MESAJ GÖNDERME ───────────────────────────────────────────────
+// ── ANA MESAJ GÖNDERME (AI SAYFASI) ─────────────────────────────────
 async function aiSend() {
   const input = document.getElementById('ai-input');
   const text = input.value.trim();
@@ -369,18 +367,23 @@ async function aiSend() {
 
   input.value = '';
   aiAutoResize(input);
-  aiHideEmpty();
-  aiHideQuick();
+
+  const welcome = document.getElementById('ai-welcome');
+  if (welcome) welcome.style.display = 'none';
 
   aiMessages.push({ role: 'user', content: text });
   aiRenderMessage('user', text);
+
+  // Floating panel da açıksa orada da göster
+  if (fabOpen) fabRenderMsg('user', text);
 
   await aiRun();
 }
 
 async function aiRun() {
   aiLoading = true;
-  document.getElementById('ai-send').disabled = true;
+  const sendBtn = document.getElementById('ai-send');
+  if (sendBtn) sendBtn.disabled = true;
 
   const typingId = aiShowTyping();
 
@@ -390,7 +393,7 @@ async function aiRun() {
       aiHideTyping(typingId);
       aiRenderMessage('assistant', 'API anahtarı bulunamadı. Lütfen Firebase\'de `config/app` dökümanına `anthropicKey` ekleyin.');
       aiLoading = false;
-      document.getElementById('ai-send').disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
       return;
     }
 
@@ -429,7 +432,9 @@ async function aiRun() {
         aiHideTyping(typingId);
         const textBlocks = data.content.filter(b => b.type === 'text');
         if (textBlocks.length) {
-          aiRenderMessage('assistant', textBlocks.map(b => b.text).join('\n'));
+          const responseText = textBlocks.map(b => b.text).join('\n');
+          aiRenderMessage('assistant', responseText);
+          if (fabOpen) fabRenderMsg('assistant', responseText);
         }
         break;
       }
@@ -437,17 +442,11 @@ async function aiRun() {
       if (data.stop_reason === 'tool_use') {
         const toolUses = data.content.filter(b => b.type === 'tool_use');
         const toolResults = [];
-
         for (const tool of toolUses) {
           aiUpdateTypingLabel(typingId, aiToolLabel(tool.name));
           const result = await aiExecuteTool(tool.name, tool.input);
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: tool.id,
-            content: result
-          });
+          toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: result });
         }
-
         aiMessages.push({ role: 'user', content: toolResults });
         continue;
       }
@@ -461,7 +460,7 @@ async function aiRun() {
   }
 
   aiLoading = false;
-  document.getElementById('ai-send').disabled = false;
+  if (sendBtn) sendBtn.disabled = false;
   await aiSaveMessagesToFirebase();
 }
 
@@ -482,19 +481,20 @@ function aiToolLabel(name) {
   return labels[name] || `${name} çalışıyor...`;
 }
 
-// ── RENDER ────────────────────────────────────────────────────────────
+// ── RENDER (AI SAYFASI) ───────────────────────────────────────────────
 function aiRenderMessage(role, text) {
   const container = document.getElementById('ai-messages');
+  if (!container) return;
   const div = document.createElement('div');
   div.className = `ai-msg ${role}`;
 
   const avatar = document.createElement('div');
   avatar.className = `ai-avatar ${role}`;
-
   if (role === 'assistant') {
     avatar.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
   } else {
-    avatar.textContent = 'S';
+    const n = window._userProfile?.name || 'S';
+    avatar.textContent = n.charAt(0).toUpperCase();
   }
 
   const bubble = document.createElement('div');
@@ -517,6 +517,7 @@ function aiFormatText(text) {
 
 function aiShowTyping() {
   const container = document.getElementById('ai-messages');
+  if (!container) return null;
   const id = 'typing-' + Date.now();
   const div = document.createElement('div');
   div.className = 'ai-msg assistant';
@@ -552,37 +553,17 @@ function aiShowTyping() {
 
 function aiUpdateTypingLabel(id, text) {
   const label = document.getElementById(id + '-label');
-  if (label) {
-    label.style.display = 'flex';
-    label.textContent = text;
-  }
+  if (label) { label.style.display = 'flex'; label.textContent = text; }
 }
 
 function aiHideTyping(id) {
+  if (!id) return;
   const el = document.getElementById(id);
   if (el) el.remove();
 }
 
-function aiHideEmpty() {
-  const el = document.getElementById('ai-empty');
-  if (el) el.style.display = 'none';
-}
-
-function aiHideQuick() {
-  const el = document.getElementById('ai-quick');
-  if (el) el.style.display = 'none';
-}
-
-function aiQuick(text) {
-  const input = document.getElementById('ai-input');
-  if (input) { input.value = text; aiSend(); }
-}
-
 function aiKeyDown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    aiSend();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiSend(); }
 }
 
 function aiAutoResize(el) {
@@ -590,39 +571,38 @@ function aiAutoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 140) + 'px';
 }
 
-function aiClearChat() {
+function aiSuggest(text) {
+  const input = document.getElementById('ai-input');
+  if (input) { input.value = text; aiSend(); }
+}
+
+async function aiClearHistory() {
   if (!confirm('Sohbet geçmişi silinsin mi?')) return;
   aiMessages = [];
   const container = document.getElementById('ai-messages');
-  container.innerHTML = '';
-  const empty = document.createElement('div');
-  empty.className = 'ai-empty';
-  empty.id = 'ai-empty';
-  empty.innerHTML = `
-    <div class="ai-empty-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    </div>
-    <div class="ai-empty-title">Merhaba</div>
-    <div class="ai-empty-sub">Size nasıl yardımcı olabilirim? Takvim, hedefler, filmler, kitaplar veya hava durumu hakkında sorabilirsiniz.</div>`;
-  container.appendChild(empty);
-  document.getElementById('ai-quick').style.display = 'flex';
-  aiSaveMessagesToFirebase();
+  if (container) {
+    container.innerHTML = `
+      <div class="ai-welcome" id="ai-welcome">
+        <div class="ai-welcome-icon">
+          <div class="ai-pulse-ring"></div>
+          <div class="ai-pulse-core"></div>
+        </div>
+        <div class="ai-welcome-text">Merhaba. Size nasıl yardımcı olabilirim?</div>
+        <div class="ai-welcome-sub">Takvim, hedefler, hava durumu ve daha fazlası için sorabilirsiniz.</div>
+        <div class="ai-suggestions">
+          <button class="ai-suggestion" onclick="aiSuggest('Bugün planım ne?')">Bugün planım ne?</button>
+          <button class="ai-suggestion" onclick="aiSuggest('Bu hafta hedeflerim nerede?')">Bu hafta hedeflerim nerede?</button>
+          <button class="ai-suggestion" onclick="aiSuggest('Yarın hava nasıl?')">Yarın hava nasıl?</button>
+          <button class="ai-suggestion" onclick="aiSuggest('Son izlediğim filmler neler?')">Son filmlerim neler?</button>
+        </div>
+      </div>`;
+  }
+  // Fab panelini de temizle
+  fabSyncMessages();
+  await aiSaveMessagesToFirebase();
 }
 
 // ── BELLEK YÖNETİMİ ──────────────────────────────────────────────────
-function aiShowMemory() {
-  const panel = document.getElementById('ai-memory-panel');
-  if (panel) panel.style.display = 'block';
-  aiRenderMemory();
-}
-
-function aiHideMemory() {
-  const panel = document.getElementById('ai-memory-panel');
-  if (panel) panel.style.display = 'none';
-}
-
 function aiRenderMemory() {
   const list = document.getElementById('ai-memory-list');
   if (!list) return;
@@ -632,19 +612,9 @@ function aiRenderMemory() {
   }
   list.innerHTML = aiMemory.map((m, i) => `
     <div class="ai-memory-item">
-      <span>${esc(m)}</span>
+      <span>${m.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>
       <button class="ai-memory-del" onclick="aiDelMemory(${i})">×</button>
     </div>`).join('');
-}
-
-async function aiAddMemory() {
-  const input = document.getElementById('ai-memory-input');
-  const text = input.value.trim();
-  if (!text) return;
-  aiMemory.push(text);
-  input.value = '';
-  await aiSaveMemoryToFirebase();
-  aiRenderMemory();
 }
 
 async function aiDelMemory(i) {
@@ -653,16 +623,19 @@ async function aiDelMemory(i) {
   aiRenderMemory();
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────
+// ── INIT (AI SAYFASI) ─────────────────────────────────────────────────
 async function initAi() {
   await aiLoadFromFirebase();
 
+  const container = document.getElementById('ai-messages');
+  if (!container) return;
+
   if (aiMessages.length) {
-    aiHideEmpty();
-    aiHideQuick();
+    container.innerHTML = '';
     aiMessages.forEach(msg => {
       if (msg.role === 'user') {
-        const text = typeof msg.content === 'string' ? msg.content : msg.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
+        const text = typeof msg.content === 'string' ? msg.content
+          : msg.content.filter(b => b.type === 'text').map(b => b.text).join(' ');
         if (text) aiRenderMessage('user', text);
       } else if (msg.role === 'assistant') {
         const blocks = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
@@ -670,16 +643,17 @@ async function initAi() {
         if (text) aiRenderMessage('assistant', text);
       }
     });
-    setTimeout(() => {
-      const c = document.getElementById('ai-messages');
-      if (c) c.scrollTop = c.scrollHeight;
-    }, 50);
-  }// ── FLOATING AI PANEL ───────────────────────────────────────────────
+    setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// ── FLOATING AI PANEL ────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════
 
 let fabOpen = false;
-let fabSpeaking = false;
 let fabRecognition = null;
-let fabSynth = window.speechSynthesis || null;
+const fabSynth = window.speechSynthesis || null;
 
 function fabAiToggle() {
   fabOpen = !fabOpen;
@@ -690,21 +664,18 @@ function fabAiToggle() {
   if (fabOpen) {
     panel.style.display = 'flex';
     btn.classList.add('open');
-    // Kapatma ikonu
-    icon.innerHTML = '<line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>';
+    icon.innerHTML = `<line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`;
     fabSyncMessages();
-    setTimeout(() => {
-      const inp = document.getElementById('fab-input');
-      if (inp) inp.focus();
-    }, 80);
+    setTimeout(() => { const inp = document.getElementById('fab-input'); if (inp) inp.focus(); }, 80);
   } else {
     panel.style.display = 'none';
     btn.classList.remove('open');
-    icon.innerHTML = '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8" fill="none"/>';
+    icon.innerHTML = `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+      stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
   }
 }
 
-// Mevcut aiMessages'ı fab panele yansıt
 function fabSyncMessages() {
   const container = document.getElementById('fab-messages');
   if (!container) return;
@@ -739,7 +710,6 @@ function fabRenderMsg(role, text) {
   const container = document.getElementById('fab-messages');
   if (!container) return;
 
-  // Karşılama mesajını kaldır
   const welcome = container.querySelector('.fab-welcome');
   if (welcome) welcome.remove();
 
@@ -800,8 +770,7 @@ function fabHideTyping(id) {
 function fabUpdateStatus(loading) {
   const dot = document.getElementById('fab-status-dot');
   if (!dot) return;
-  if (loading) { dot.classList.add('active'); }
-  else { dot.classList.remove('active'); }
+  loading ? dot.classList.add('active') : dot.classList.remove('active');
 }
 
 // ── FAB GÖNDERME ─────────────────────────────────────────────────────
@@ -818,29 +787,28 @@ async function fabAiSend() {
   fabRenderMsg('user', text);
 
   // AI sayfası açıksa orada da göster
-  const aiContainer = document.getElementById('ai-messages');
-  if (aiContainer) aiRenderMessage('user', text);
+  if (document.getElementById('ai-messages')) aiRenderMessage('user', text);
 
   await fabAiRun();
 }
 
 async function fabAiRun() {
   aiLoading = true;
-  document.getElementById('fab-send').disabled = true;
+  const sendBtn = document.getElementById('fab-send');
+  if (sendBtn) sendBtn.disabled = true;
   fabUpdateStatus(true);
 
-  const typingId = fabShowTyping();
-  // AI sayfası açıksa orada da typing
+  const fabTypingId = fabShowTyping();
   const pageTypingId = document.getElementById('ai-messages') ? aiShowTyping() : null;
 
   try {
     await window.loadApiKey();
     if (!window.ANTHROPIC_KEY) {
-      fabHideTyping(typingId);
+      fabHideTyping(fabTypingId);
       if (pageTypingId) aiHideTyping(pageTypingId);
       fabRenderMsg('assistant', 'API anahtarı bulunamadı.');
       aiLoading = false;
-      document.getElementById('fab-send').disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
       fabUpdateStatus(false);
       return;
     }
@@ -877,14 +845,13 @@ async function fabAiRun() {
       aiMessages.push({ role: 'assistant', content: data.content });
 
       if (data.stop_reason === 'end_turn') {
-        fabHideTyping(typingId);
+        fabHideTyping(fabTypingId);
         if (pageTypingId) aiHideTyping(pageTypingId);
         const textBlocks = data.content.filter(b => b.type === 'text');
         if (textBlocks.length) {
           const responseText = textBlocks.map(b => b.text).join('\n');
           fabRenderMsg('assistant', responseText);
           if (document.getElementById('ai-messages')) aiRenderMessage('assistant', responseText);
-          // Sesli yanıt
           fabSpeak(responseText);
         }
         break;
@@ -905,13 +872,12 @@ async function fabAiRun() {
     }
 
   } catch (e) {
-    fabHideTyping(typingId);
+    fabHideTyping(fabTypingId);
     if (pageTypingId) aiHideTyping(pageTypingId);
     fabRenderMsg('assistant', `Bir hata oluştu: ${e.message}`);
   }
 
   aiLoading = false;
-  const sendBtn = document.getElementById('fab-send');
   if (sendBtn) sendBtn.disabled = false;
   fabUpdateStatus(false);
   await aiSaveMessagesToFirebase();
@@ -930,7 +896,7 @@ function fabAiMic() {
   if (fabRecognition) {
     fabRecognition.stop();
     fabRecognition = null;
-    btn.classList.remove('listening');
+    if (btn) btn.classList.remove('listening');
     return;
   }
 
@@ -939,29 +905,25 @@ function fabAiMic() {
   fabRecognition.continuous = false;
   fabRecognition.interimResults = false;
 
-  btn.classList.add('listening');
+  if (btn) btn.classList.add('listening');
 
   fabRecognition.onresult = (e) => {
     const transcript = e.results[0][0].transcript;
     const input = document.getElementById('fab-input');
-    if (input) {
-      input.value = transcript;
-      fabAiResize(input);
-    }
+    if (input) { input.value = transcript; fabAiResize(input); }
     fabRecognition = null;
-    btn.classList.remove('listening');
-    // Otomatik gönder
+    if (btn) btn.classList.remove('listening');
     setTimeout(() => fabAiSend(), 100);
   };
 
   fabRecognition.onerror = () => {
     fabRecognition = null;
-    btn.classList.remove('listening');
+    if (btn) btn.classList.remove('listening');
   };
 
   fabRecognition.onend = () => {
     fabRecognition = null;
-    btn.classList.remove('listening');
+    if (btn) btn.classList.remove('listening');
   };
 
   fabRecognition.start();
@@ -970,11 +932,9 @@ function fabAiMic() {
 // ── SES: METİN OKUMA ─────────────────────────────────────────────────
 function fabSpeak(text) {
   if (!fabSynth) return;
-  // HTML taglarını temizle
   const clean = text.replace(/<[^>]+>/g, '').replace(/\*\*/g, '').replace(/`/g, '').trim();
   if (!clean) return;
 
-  // Önceki konuşmayı durdur
   fabSynth.cancel();
 
   const utt = new SpeechSynthesisUtterance(clean);
@@ -982,32 +942,26 @@ function fabSpeak(text) {
   utt.rate = 1.05;
   utt.pitch = 1.0;
 
-  // Türkçe ses seç (varsa)
-  const voices = fabSynth.getVoices();
-  const trVoice = voices.find(v => v.lang.startsWith('tr')) || null;
-  if (trVoice) utt.voice = trVoice;
+  const setVoice = () => {
+    const voices = fabSynth.getVoices();
+    const trVoice = voices.find(v => v.lang.startsWith('tr')) || null;
+    if (trVoice) utt.voice = trVoice;
+    fabSynth.speak(utt);
+  };
 
-  utt.onstart = () => { fabSpeaking = true; };
-  utt.onend = () => { fabSpeaking = false; };
-
-  fabSynth.speak(utt);
+  if (fabSynth.getVoices().length) {
+    setVoice();
+  } else {
+    fabSynth.onvoiceschanged = setVoice;
+  }
 }
 
 // ── YARDIMCI ─────────────────────────────────────────────────────────
 function fabAiKeyDown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    fabAiSend();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fabAiSend(); }
 }
 
 function fabAiResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
-
-// AI sayfası açıkken mesajları fab ile senkron tut
-// initAi çağrıldığında (sayfa değiştiğinde) fabSyncMessages de çalışsın
-const _origInitAi = window.initAi;
-
 }
