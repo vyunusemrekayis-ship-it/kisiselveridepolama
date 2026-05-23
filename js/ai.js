@@ -173,7 +173,7 @@ async function aiCallAPI(onText, onTypingLabel) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': window.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-5-20251001', max_tokens: 1000, system: aiSystemPrompt(), tools: AI_TOOLS, messages: aiMessages })
+      body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 1000, system: aiSystemPrompt(), tools: AI_TOOLS, messages: aiMessages })
     });
     if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `HTTP ${res.status}`); }
     const data = await res.json();
