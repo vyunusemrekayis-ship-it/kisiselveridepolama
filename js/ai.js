@@ -965,3 +965,51 @@ function fabAiResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
 }
+
+// ── AI SAYFASI MİKROFON ───────────────────────────────────────────────
+let aiPageRecognition = null;
+
+function aiPageMic() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Tarayıcınız ses tanımayı desteklemiyor. Chrome önerilir.');
+    return;
+  }
+
+  const btn = document.getElementById('ai-mic');
+
+  if (aiPageRecognition) {
+    aiPageRecognition.stop();
+    aiPageRecognition = null;
+    if (btn) btn.classList.remove('listening');
+    return;
+  }
+
+  aiPageRecognition = new SpeechRecognition();
+  aiPageRecognition.lang = 'tr-TR';
+  aiPageRecognition.continuous = false;
+  aiPageRecognition.interimResults = false;
+
+  if (btn) btn.classList.add('listening');
+
+  aiPageRecognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    const input = document.getElementById('ai-input');
+    if (input) { input.value = transcript; aiAutoResize(input); }
+    aiPageRecognition = null;
+    if (btn) btn.classList.remove('listening');
+    setTimeout(() => aiSend(), 100);
+  };
+
+  aiPageRecognition.onerror = () => {
+    aiPageRecognition = null;
+    if (btn) btn.classList.remove('listening');
+  };
+
+  aiPageRecognition.onend = () => {
+    aiPageRecognition = null;
+    if (btn) btn.classList.remove('listening');
+  };
+
+  aiPageRecognition.start();
+}
