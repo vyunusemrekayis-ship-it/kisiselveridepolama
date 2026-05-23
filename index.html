@@ -10,20 +10,16 @@
 <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/initials/svg?seed=YEK&backgroundColor=FBD100&fontFamily=Georgia&fontSize=40&chars=2">
 <title>Günlüğüm</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <!-- CSS -->
-  <link rel="stylesheet" href="css/common.css?v=3">
-  <link rel="stylesheet" href="css/home.css?v=5">
-  <link rel="stylesheet" href="css/films.css?v=3">
-  <link rel="stylesheet" href="css/books.css?v=3">
-  <link rel="stylesheet" href="css/goals.css?v=3">
-  <link rel="stylesheet" href="css/calendar.css?v=4">
-  <link rel="stylesheet" href="css/clock.css?v=3">
-  <link rel="stylesheet" href="css/chain.css?v=3">
-  <link rel="stylesheet" href="css/ai.css?v=2">
-<style>
-html, body { height: 100%; }
-#app-wrapper { min-height: 100vh; }
-</style>
+<link rel="stylesheet" href="css/common.css?v=3">
+<link rel="stylesheet" href="css/home.css?v=5">
+<link rel="stylesheet" href="css/films.css?v=3">
+<link rel="stylesheet" href="css/books.css?v=3">
+<link rel="stylesheet" href="css/goals.css?v=3">
+<link rel="stylesheet" href="css/calendar.css?v=4">
+<link rel="stylesheet" href="css/clock.css?v=3">
+<link rel="stylesheet" href="css/chain.css?v=3">
+<link rel="stylesheet" href="css/ai.css?v=3">
+<style>html,body{height:100%}#app-wrapper{min-height:100vh}</style>
 </head>
 <body>
 
@@ -46,47 +42,19 @@ html, body { height: 100%; }
     <button onclick="closeDrawer()" style="background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1">×</button>
   </div>
   <nav style="padding:8px 0">
-    <div class="m-nav-item" onclick="nav('home',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
-      Giriş
-    </div>
-    <div class="m-nav-item" onclick="nav('calendar',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Takvim
-    </div>
-    <div class="m-nav-item" onclick="nav('goals',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-      Hedefler
-    </div>
-    <div class="m-nav-item" onclick="nav('films',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-      Filmler
-    </div>
-    <div class="m-nav-item" onclick="nav('books',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      Kitaplar
-    </div>
-    <div class="m-nav-item" onclick="nav('clock',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Kronometre
-    </div>
-    <div class="m-nav-item" onclick="nav('chain',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      Zincir Kırma
-    </div>
-    <div class="m-nav-item" onclick="nav('weather',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-      Hava Durumu
-    </div>
-    <div class="m-nav-item" onclick="nav('ai',this);closeDrawer()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Asistan
-    </div>
+    <div class="m-nav-item" onclick="nav('home',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>Giriş</div>
+    <div class="m-nav-item" onclick="nav('calendar',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Takvim</div>
+    <div class="m-nav-item" onclick="nav('goals',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Hedefler</div>
+    <div class="m-nav-item" onclick="nav('films',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>Filmler</div>
+    <div class="m-nav-item" onclick="nav('books',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Kitaplar</div>
+    <div class="m-nav-item" onclick="nav('clock',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Kronometre</div>
+    <div class="m-nav-item" onclick="nav('chain',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Zincir Kırma</div>
+    <div class="m-nav-item" onclick="nav('weather',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>Hava Durumu</div>
+    <div class="m-nav-item" onclick="nav('ai',this);closeDrawer()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Asistan</div>
   </nav>
-  <div style="padding:10px 16px;border-top:0.5px solid var(--border);margin-top:auto">
+  <div style="padding:10px 16px;border-top:0.5px solid var(--border)">
     <button onclick="doSignOut()" style="width:100%;padding:9px;border-radius:8px;border:0.5px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Çıkış
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Çıkış
     </button>
   </div>
 </div>
@@ -101,63 +69,34 @@ html, body { height: 100%; }
 
 <div id="app-wrapper" style="display:none;width:100vw;min-height:100vh;overflow-x:hidden">
   <aside class="sidebar collapsed" id="sidebar">
-  <div class="sidebar-brand">
-    <div><h1 id="sidebar-username"></h1><p id="sb-date"></p></div>
-    <button class="sidebar-toggle" onclick="toggleSidebar()">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
-  </div>
-  <nav class="sidebar-nav">
-    <div class="nav-group">
-      <div class="nav-group-label">Genel</div>
-      <div class="nav-item active" onclick="nav('home',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
-        <span class="nav-label-text">Giriş</span>
-      </div>
-      <div class="nav-item" onclick="nav('calendar',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span class="nav-label-text">Takvim</span>
-      </div>
-      <div class="nav-item" onclick="nav('goals',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-        <span class="nav-label-text">Hedefler</span>
-      </div>
-      <div class="nav-item" onclick="nav('films',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
-        <span class="nav-label-text">Filmler</span>
-      </div>
-      <div class="nav-item" onclick="nav('books',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        <span class="nav-label-text">Kitaplar</span>
-      </div>
-      <div class="nav-item" onclick="nav('clock',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span class="nav-label-text">Kronometre</span>
-      </div>
-      <div class="nav-item" onclick="nav('chain',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        <span class="nav-label-text">Zincir Kırma</span>
-      </div>
-      <div class="nav-item" onclick="nav('weather',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-        <span class="nav-label-text">Hava Durumu</span>
-      </div>
-      <div class="nav-item" onclick="nav('ai',this)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span class="nav-label-text">Asistan</span>
-      </div>
+    <div class="sidebar-brand">
+      <div><h1 id="sidebar-username"></h1><p id="sb-date"></p></div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
     </div>
-  </nav>
-  <div class="sidebar-footer" style="gap:6px">
-    <button onclick="doSignOut()" title="Çıkış Yap" style="background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;padding:5px 7px;display:flex;align-items:center">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    </button>
-  </div>
-</aside>
+    <nav class="sidebar-nav">
+      <div class="nav-group">
+        <div class="nav-group-label">Genel</div>
+        <div class="nav-item active" onclick="nav('home',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg><span class="nav-label-text">Giriş</span></div>
+        <div class="nav-item" onclick="nav('calendar',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="nav-label-text">Takvim</span></div>
+        <div class="nav-item" onclick="nav('goals',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span class="nav-label-text">Hedefler</span></div>
+        <div class="nav-item" onclick="nav('films',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg><span class="nav-label-text">Filmler</span></div>
+        <div class="nav-item" onclick="nav('books',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="nav-label-text">Kitaplar</span></div>
+        <div class="nav-item" onclick="nav('clock',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="nav-label-text">Kronometre</span></div>
+        <div class="nav-item" onclick="nav('chain',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span class="nav-label-text">Zincir Kırma</span></div>
+        <div class="nav-item" onclick="nav('weather',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span class="nav-label-text">Hava Durumu</span></div>
+        <div class="nav-item" onclick="nav('ai',this)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="nav-label-text">Asistan</span></div>
+      </div>
+    </nav>
+    <div class="sidebar-footer" style="gap:6px">
+      <button onclick="doSignOut()" title="Çıkış Yap" style="background:transparent;border:0.5px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;padding:5px 7px;display:flex;align-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </aside>
   <main class="main expanded" id="main-content">
-    <div id="page-container">
-      <!-- Sayfalar buraya dinamik yüklenir -->
-    </div>
+    <div id="page-container"></div>
   </main>
 </div>
 
@@ -179,12 +118,9 @@ html, body { height: 100%; }
   <div id="login-error" style="font-size:12px;color:#c0392b;display:none;text-align:center"></div>
 </div>
 
-<!-- FLOATING AI BUTONU -->
+<!-- FLOATING AI BUTONU (giriş sonrası gösterilir) -->
 <button id="fab-ai" onclick="fabAiToggle()" title="AI Asistan" style="display:none">
-  <div class="fab-ai-rings">
-    <div class="fab-ring r1"></div>
-    <div class="fab-ring r2"></div>
-  </div>
+  <div class="fab-ai-rings"><div class="fab-ring r1"></div><div class="fab-ring r2"></div></div>
   <svg id="fab-ai-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
   </svg>
@@ -198,7 +134,7 @@ html, body { height: 100%; }
       <span class="fab-panel-title">Asistan</span>
     </div>
     <div style="display:flex;gap:6px;align-items:center">
-      <button class="fab-icon-btn" onclick="nav('ai',document.querySelector('.nav-item[onclick*=\'ai\']'));fabAiToggle()" title="Tam ekran aç">
+      <button class="fab-icon-btn" onclick="nav('ai',document.querySelector('.nav-item[onclick*=\'ai\']'));fabAiToggle()" title="Tam ekran">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
       </button>
       <button class="fab-icon-btn" onclick="fabAiToggle()" title="Kapat">
@@ -231,14 +167,14 @@ html, body { height: 100%; }
 <script src="js/clock.js?v=3"></script>
 <script src="js/chain.js?v=5"></script>
 <script src="js/weather.js?v=34"></script>
-<script src="js/ai.js?v=4"></script>
+<script src="js/ai.js?v=5"></script>
 <script>
-// Giriş yapıldığında fab butonunu göster
+// Giriş sonrası fab butonunu göster
 const _origAppInit = window._appInit;
 window._appInit = function() {
   if (_origAppInit) _origAppInit();
-  const fab = document.getElementById("fab-ai");
-  if (fab) fab.style.display = "flex";
+  const fab = document.getElementById('fab-ai');
+  if (fab) fab.style.display = 'flex';
 };
 </script>
 </body>
