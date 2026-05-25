@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0f13;
+  color: #e8edf5;
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+@layer components {
+  .card {
+    @apply bg-surface border border-border rounded-xl overflow-hidden transition-colors;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.12); }
+
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg border border-accent bg-transparent text-accent text-sm cursor-pointer transition-colors;
+  }
+  .btn-primary:hover { background: rgba(58,123,213,0.08); }
+
+  .btn-save {
+    @apply px-5 py-2 rounded-lg border-0 bg-accent text-white text-sm font-medium cursor-pointer;
+  }
+
+  .btn-cancel {
+    @apply px-4 py-2 rounded-lg border border-border bg-transparent text-muted text-sm cursor-pointer;
+  }
+
+  .form-input {
+    @apply w-full px-3 py-2 rounded-lg border border-border bg-surface2 text-text font-sans text-sm outline-none transition-colors;
+  }
+  .form-input:focus { border-color: #3a7bd5; }
+
+  .form-label {
+    @apply block text-xs text-muted uppercase tracking-wider mb-1;
+  }
+
+  .section-title {
+    @apply font-serif text-xl font-normal text-accent2;
+  }
+
+  .empty-state {
+    @apply text-center py-12 text-muted text-sm;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted text-sm cursor-pointer transition-all;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.04); color: #e8edf5; }
+  .nav-item.active { background: rgba(58,123,213,0.12); color: #e8edf5; }
+
+  .tab-bar {
+    @apply flex gap-1 bg-surface border border-border rounded-xl p-1 w-fit mb-5;
+  }
+  .tab-btn {
+    @apply px-5 py-1.5 rounded-[8px] border-0 bg-transparent text-muted font-sans text-sm cursor-pointer transition-all;
+  }
+  .tab-btn.active { @apply bg-surface3 text-text; }
+
+  .badge {
+    @apply text-xs px-2.5 py-0.5 rounded-full font-normal flex-shrink-0;
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes pulse { 0%,100% { transform: scale(1); opacity:1; } 50% { transform: scale(1.2); opacity:.7; } }
+
+.animate-fadeIn { animation: fadeIn 0.2s ease; }
+.animate-slideUp { animation: slideUp 0.2s cubic-bezier(.22,1,.36,1); }
