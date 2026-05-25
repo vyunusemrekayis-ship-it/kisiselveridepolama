@@ -1,3 +1,4 @@
+import { auth, loadFromFirestore, onAuthStateChanged } from "./lib/firebase";
 import { useEffect, useState } from 'react';
 import Layout from './components/layout/Layout';
 import FloatingAi from './pages/Ai/FloatingAi';
@@ -82,10 +83,10 @@ export default function App() {
     let unsubscribe;
     const waitForFirebase = () => {
       if (window._fbOnAuthStateChanged && window._fbAuth) {
-        unsubscribe = window._fbOnAuthStateChanged(window._fbAuth, async (user) => {
+        unsubscribe = onAuthStateChanged(auth, async (user) => {
           if (user) {
             window._fbUser = user;
-            if (window.loadFromFirestore) await window.loadFromFirestore(user.uid);
+            await loadFromFirestore(user.uid);
             reloadDb();
             const profile = { name: user.displayName || user.email };
             setUserProfile(profile);

@@ -16,12 +16,12 @@ function loadDb() {
 
 function saveDb(db) {
   localStorage.setItem(SK, JSON.stringify(db));
-  window.saveToFirestore?.();
+  if (window._fbUser) { import("../lib/firebase").then(({saveToFirestore}) => { const db = JSON.parse(localStorage.getItem("gunlugum_v3") || "{}"); saveToFirestore(window._fbUser.uid, {main: db}); }); }
 }
 
 // localStorage helpers
 const lsGet = (key, def = '{}') => { try { return JSON.parse(localStorage.getItem(key) || def); } catch { return JSON.parse(def); } };
-const lsSet = (key, val) => { localStorage.setItem(key, JSON.stringify(val)); window.saveToFirestore?.(); };
+const lsSet = (key, val) => { localStorage.setItem(key, JSON.stringify(val)); if (window._fbUser) { import("../lib/firebase").then(({saveToFirestore}) => { const db = JSON.parse(localStorage.getItem("gunlugum_v3") || "{}"); saveToFirestore(window._fbUser.uid, {main: db}); }); } };
 
 export const useStore = create((set, get) => ({
   db: loadDb(),
