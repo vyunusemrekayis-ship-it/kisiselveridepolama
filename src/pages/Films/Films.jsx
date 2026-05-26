@@ -149,7 +149,7 @@ export default function Films() {
 
   const refreshWl = () => setWlState(getWatchlist());
 
-  const sorted = [...(db.f || [])].map((f, i) => ({ f, i })).sort((a, b) => {
+  const sorted = [...(JSON.parse(localStorage.getItem("gunlugum_v3") || "{}").f || [])].map((f, i) => ({ f, i })).sort((a, b) => {
     const da = a.f.date || ''; const db2 = b.f.date || '';
     if (da && db2) return db2.localeCompare(da);
     if (da) return -1; if (db2) return 1; return 0;
