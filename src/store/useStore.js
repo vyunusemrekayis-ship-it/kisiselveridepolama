@@ -155,12 +155,12 @@ export const useStore = create((set, get) => ({
   setChains: (chains) => lsSet('gn_chains', chains),
 
   // ── WATCHLIST ──
-  getWatchlist: () => lsGet('gn_wl', '[]'),
-  setWatchlist: (wl) => lsSet('gn_wl', wl),
+  getWatchlist: () => { const db = lsGet('gunlugum_v3', '{}'); return db.f || []; },
+  setWatchlist: (wl) => { const db = lsGet('gunlugum_v3', '{}'); db.f = wl; lsSet('gunlugum_v3', db); },
 
   // ── READLIST ──
-  getReadlist: () => lsGet('gn_rl', '[]'),
-  setReadlist: (rl) => lsSet('gn_rl', rl),
+  getReadlist: () => { const db = lsGet('gunlugum_v3', '{}'); return db.b || []; },
+  setReadlist: (rl) => { const db = lsGet('gunlugum_v3', '{}'); db.b = rl; lsSet('gunlugum_v3', db); },
 
   // ── STOPWATCH ──
   getSwLog: () => lsGet('gn_sw_log', '[]'),
