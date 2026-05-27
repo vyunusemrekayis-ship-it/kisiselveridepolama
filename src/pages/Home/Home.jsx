@@ -16,7 +16,7 @@ function Widget({ children, className = '', onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-4 ${onClick ? 'cursor-pointer hover:bg-black/40 transition-colors' : ''} ${className}`}
+      className={`bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 ${onClick ? 'cursor-pointer hover:bg-black/40 transition-colors' : ''} ${className}`}
     >
       {children}
     </div>
@@ -31,21 +31,175 @@ function WidgetTitle({ children, onClick }) {
   );
 }
 
+// Todos widget — başlık + dış alan navigate eder, iç etkileşimler etkilemez
+function TodoWidget({ todos, today, onNavigate, getTodos, setTodos }) {
+  const [localTodos, setLocalTodos] = useState(todos);
+  const [addInput, setAddInput] = useState('');
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editText, setEditText] = useState('');
+  const inputRef = useRef(null);
+
+  // todos değişince senkronize et
+  useEffect(() => { setLocalTodos(todos); }, [todos]);
+
+  const refresh = () => {
+    const t = getTodos();
+    setLocalTodos(t[today] || []);
+  };
+
+  const toggle = (e, i) => {
+    e.stopPropagation();
+    const t = getTodos();
+    if (t[today]?.[i]) t[today][i].done = !t[today][i].done;
+    setTodos(t);
+    refresh();
+  };
+
+  const startEdit = (e, i, text) => {
+    e.stopPropagation();
+    setEditingIdx(i);
+    setEditText(text);
+  };
+
+  const saveEdit = (e, i) => {
+    e.stopPropagation();
+    if (!editText.trim()) return;
+    const t = getTodos();
+    if (t[today]?.[i]) t[today][i].text = editText.trim();
+    setTodos(t);
+    setEditingIdx(null);
+    refresh();
+  };
+
+  const deleteTodo = (e, i) => {
+    e.stopPropagation();
+    const t = getTodos();
+    if (t[today]) t[today].splice(i, 1);
+    setTodos(t);
+    refresh();
+  };
+
+  const addTodo = (e) => {
+    e.stopPropagation();
+    if (!addInput.trim()) return;
+    const t = getTodos();
+    if (!t[today]) t[today] = [];
+    t[today].push({ text: addInput.trim(), done: false });
+    setTodos(t);
+    setAddInput('');
+    refresh();
+  };
+
+  const handleInputKeyDown = (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') addTodo(e);
+  };
+
+  const handleEditKeyDown = (e, i) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') saveEdit(e, i);
+    if (e.key === 'Escape') { e.stopPropagation(); setEditingIdx(null); }
+  };
+
+  return (
+    <div
+      onClick={onNavigate}
+      className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-4 cursor-pointer hover:bg-black/40 transition-colors"
+    >
+      {/* Başlık — tıklama navigate */}
+      <div className="text-xs uppercase tracking-wider text-white/60 mb-3 font-medium">
+        Bugünün Görevleri ›
+      </div>
+
+      {/* Görev listesi */}
+      {localTodos.length === 0
+        ? <div className="text-xs text-white/30">Görev yok</div>
+        : localTodos.slice(0, 4).map((t, i) => (
+          <div
+            key={i}
+            onClick={e => e.stopPropagation()}
+            className="flex items-center gap-2 text-sm py-0.5 group"
+          >
+            {/* Checkbox */}
+            <div
+              onClick={e => toggle(e, i)}
+              className={`w-3 h-3 rounded border flex-shrink-0 cursor-pointer transition-colors ${t.done ? 'bg-[#237F52] border-[#237F52]' : 'border-white/30 hover:border-white/60'}`}
+            />
+            {/* Görev metni veya edit input */}
+            {editingIdx === i ? (
+              <input
+                autoFocus
+                value={editText}
+                onClick={e => e.stopPropagation()}
+                onChange={e => setEditText(e.target.value)}
+                onKeyDown={e => handleEditKeyDown(e, i)}
+                onBlur={e => saveEdit(e, i)}
+                style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#e8edf5', outline: 'none' }}
+                className="flex-1 rounded px-1.5 py-0.5 text-xs min-w-0"
+              />
+            ) : (
+              <>
+                <span className={`flex-1 truncate select-none text-xs ${t.done ? 'line-through text-white/30' : 'text-white/80'}`}>
+                  {t.text}
+                </span>
+                <button
+                  onClick={e => startEdit(e, i, t.text)}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '0 2px', lineHeight: 1, flexShrink: 0, fontSize: 11 }}
+                  className="transition-opacity hover:text-white/70"
+                  title="Düzenle"
+                >✎</button>
+                <button
+                  onClick={e => deleteTodo(e, i)}
+                  style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: '0 2px', lineHeight: 1, flexShrink: 0, fontSize: 14 }}
+                  className="transition-opacity hover:text-red-400"
+                  title="Sil"
+                >×</button>
+              </>
+            )}
+          </div>
+        ))
+      }
+
+      {/* Görev ekle input */}
+      <div
+        onClick={e => e.stopPropagation()}
+        className="flex gap-1.5 mt-3"
+      >
+        <input
+          ref={inputRef}
+          value={addInput}
+          onChange={e => { e.stopPropagation(); setAddInput(e.target.value); }}
+          onKeyDown={handleInputKeyDown}
+          onClick={e => e.stopPropagation()}
+          placeholder="Görev ekle..."
+          style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(232,237,245,0.8)', outline: 'none' }}
+          className="flex-1 rounded-lg px-2.5 py-1 text-xs min-w-0 placeholder-white/25 transition-colors"
+        />
+        <button
+          onClick={addTodo}
+          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(232,237,245,0.5)' }}
+          className="w-6 h-6 rounded-lg text-sm leading-none cursor-pointer flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity"
+        >+</button>
+      </div>
+    </div>
+  );
+}
+
 // Stopwatch access
 if (!window._sw) window._sw = { running: false, startTime: null, elapsed: parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), interval: null };
 
 export default function Home() {
-  const { db, setCurrentPage, getTodos, getChains } = useStore();
+  const { db, setCurrentPage, getTodos, setTodos, getChains } = useStore();
   const [time, setTime] = useState(new Date());
   const [bgPhoto, setBgPhoto] = useState('');
   const [swElapsed, setSwElapsed] = useState(window._sw.elapsed);
   const [swRunning, setSwRunning] = useState(window._sw.running);
   const [goalPeriod, setGoalPeriod] = useState('weekly');
+  const [, forceUpdate] = useState(0);
 
   useEffect(() => {
     const idx = Math.floor(Math.random() * PHOTOS.length);
     setBgPhoto(PHOTOS[idx]);
-
   }, []);
 
   // Clock
@@ -58,7 +212,8 @@ export default function Home() {
   useEffect(() => {
     if (swRunning) {
       const t = setInterval(() => {
-        const e = window._sw.startTime ? Date.now() - window._sw.startTime : window._sw.elapsed;
+        const e = window._sw.startTime ?
+          Date.now() - window._sw.startTime : window._sw.elapsed;
         setSwElapsed(e);
       }, 100);
       return () => clearInterval(t);
@@ -98,7 +253,8 @@ export default function Home() {
   const totalBooks = db.b?.length || 0;
   const totalFilms = db.f?.length || 0;
 
-  const { main: swMain } = swFmt(window._sw.running && window._sw.startTime ? Date.now() - window._sw.startTime : window._sw.elapsed);
+  const { main: swMain } = swFmt(window._sw.running && window._sw.startTime ?
+    Date.now() - window._sw.startTime : window._sw.elapsed);
 
   // Mini calendar - current week
   const weekDays = [];
@@ -124,7 +280,7 @@ export default function Home() {
 
         {/* Center: Time */}
         <div className="flex flex-col items-center justify-center py-8">
-          <div className="font-serif text-[72px] md:text-[96px] font-normal leading-none tracking-tighter text-white" style={{ textShadow:'0 2px 24px rgba(0,0,0,.6)' }}>
+          <div className="font-serif font-normal leading-none tracking-tighter text-white" style={{ fontSize: 'clamp(52px, 18vw, 96px)', textShadow:'0 2px 24px rgba(0,0,0,.6)' }}>
             {hh}:{mm}
           </div>
           <div className="text-sm font-light tracking-[4px] uppercase mt-3 text-white/70">
@@ -136,18 +292,13 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
 
           {/* Todos */}
-          <Widget onClick={() => setCurrentPage('calendar')}>
-            <WidgetTitle>Bugünün Görevleri ›</WidgetTitle>
-            {todos.length === 0
-              ? <div className="text-xs text-white/30">Görev yok</div>
-              : todos.slice(0,4).map((t,i) => (
-                <div key={i} className={`flex items-center gap-2 text-sm py-0.5 ${t.done ? 'line-through text-white/30' : 'text-white/80'}`}>
-                  <div className={`w-3 h-3 rounded border flex-shrink-0 ${t.done ? 'bg-[#237F52] border-[#237F52]' : 'border-white/30'}`} />
-                  <span className="truncate">{t.text}</span>
-                </div>
-              ))
-            }
-          </Widget>
+          <TodoWidget
+            todos={todos}
+            today={today}
+            onNavigate={() => setCurrentPage('calendar')}
+            getTodos={getTodos}
+            setTodos={setTodos}
+          />
 
           {/* Goals */}
           <Widget>

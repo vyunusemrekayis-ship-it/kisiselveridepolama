@@ -65,6 +65,15 @@ function GoalCard({ goal, index, totalBooks, totalFilms, onEdit, onDelete, onTog
   const pct = hasTarget ? Math.min(100, Math.round(current / target * 100)) : 0;
   const isDone = hasTarget ? current >= target : goal.done;
 
+  // İki ayrı input state: ekle (delta) ve düzelt (mutlak)
+  const [addVal, setAddVal] = useState('');
+  const handleAdd = () => {
+    const delta = parseFloat(addVal);
+    if (isNaN(delta)) return;
+    onProgress(parseFloat((current + delta).toFixed(4)));
+    setAddVal('');
+  };
+
   return (
     <div className={`card p-3 ${isDone ? 'border-[#237F52]/30' : ''}`}>
       <div className="flex items-start gap-3">
@@ -84,8 +93,8 @@ function GoalCard({ goal, index, totalBooks, totalFilms, onEdit, onDelete, onTog
           <div className="flex items-start justify-between gap-2">
             <div className={`text-sm font-medium ${isDone ? 'line-through text-muted' : 'text-text'}`}>{goal.name}</div>
             <div className="flex gap-1 flex-shrink-0">
-              <button onClick={onEdit} className="text-[12px] text-accent opacity-60 bg-transparent border-0 cursor-pointer px-0.5">✎</button>
-              <button onClick={onDelete} className="text-[12px] text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer px-0.5">×</button>
+              <button onClick={onEdit} className="text-[12px] text-accent opacity-60 hover:opacity-100 bg-transparent border-0 cursor-pointer px-0.5 transition-opacity">✎</button>
+              <button onClick={onDelete} className="text-[12px] text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer px-0.5 transition-colors">×</button>
             </div>
           </div>
 
@@ -95,19 +104,32 @@ function GoalCard({ goal, index, totalBooks, totalFilms, onEdit, onDelete, onTog
                 <div className="text-xs text-muted">{current}/{target} {goal.unit || ''}</div>
                 <div className="text-xs text-accent">{pct}%</div>
               </div>
-              <div className="h-1 bg-border rounded-full overflow-hidden">
+              <div className="h-1 bg-border rounded-full overflow-hidden mb-2">
                 <div className="h-full rounded-full bg-[#237F52] transition-all" style={{ width: `${pct}%` }} />
               </div>
+
               {goal.track === 'manual' && (
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="number"
-                    className="form-input py-1 text-xs w-20"
-                    defaultValue={goal.current || 0}
-                    onBlur={e => onProgress(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
-                  />
-                  <span className="text-xs text-muted">{goal.unit || ''}</span>
+                <div className="space-y-1.5 mt-2">
+                  {/* Tek input, iki buton */}
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <input
+                      type="number"
+                      className="form-input py-1 text-xs w-20"
+                      value={addVal}
+                      onChange={e => setAddVal(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                      placeholder="0"
+                    />
+                    <span className="text-xs text-muted flex-shrink-0">{goal.unit || ''}</span>
+                    <button
+                      onClick={handleAdd}
+                      className="ml-auto px-2.5 py-1 rounded-lg border border-accent/40 bg-accent/10 text-accent text-xs cursor-pointer hover:bg-accent/20 transition-all flex-shrink-0"
+                    >+ Ekle</button>
+                    <button
+                      onClick={() => { const v = parseFloat(addVal); if (!isNaN(v)) { onProgress(v); setAddVal(''); } }}
+                      className="px-2.5 py-1 rounded-lg border border-border bg-surface2 text-muted text-xs cursor-pointer hover:border-border2 hover:text-text transition-all flex-shrink-0"
+                    >Düzelt</button>
+                  </div>
                 </div>
               )}
             </>
@@ -137,9 +159,8 @@ export default function Goals() {
   const active = goalsForPeriod.filter(g => isGoalActive(g));
   const past = goalsForPeriod.filter(g => !isGoalActive(g));
 
-  // Group past by periodKey
   const pastGroups = {};
-  past.forEach((g, i) => {
+  past.forEach((g) => {
     const origIdx = db.g.indexOf(g);
     const key = g.periodKey || todayStr();
     if (!pastGroups[key]) pastGroups[key] = [];
@@ -175,7 +196,6 @@ export default function Goals() {
         />
       )}
 
-      {/* Active goals */}
       {active.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-3">
@@ -210,7 +230,6 @@ export default function Goals() {
         </div>
       )}
 
-      {/* Past goals accordion */}
       {Object.keys(pastGroups).sort((a,b) => b.localeCompare(a)).map(key => {
         const group = pastGroups[key];
         const { start, end } = goalDateRange(group[0].g);

@@ -11,14 +11,12 @@ function getDayData(ds, db, todos, notes, media) {
   const dayMedia = media[ds] || [];
   const films = (db.f||[]).filter(f => f.date === ds);
   const books = (db.b||[]).filter(b => b.start === ds || b.end === ds);
-
   const dots = [
     specials.some(s=>s.t==='h') && { color:'#c0392b' },
     specials.some(s=>s.t==='r') && { color:'#7b5ea7' },
     specials.some(s=>s.t==='i'||s.t==='b'||s.t==='a'||s.t==='custom') && { color:'#2874a6' },
     films.length && { color:'#a06040' },
   ].filter(Boolean);
-
   return { specials, dayTodos, dayNotes, dayMedia, films, books, dots };
 }
 
@@ -43,8 +41,6 @@ function CustomDayModal({ onClose, onAdd, customDays, onDelete }) {
           <span className="font-serif text-[16px] text-accent2">Kişisel Özel Günler</span>
           <button onClick={onClose} className="bg-transparent border-0 text-muted cursor-pointer text-xl leading-none">×</button>
         </div>
-
-        {/* Mevcut listesi */}
         <div className="max-h-[200px] overflow-y-auto mb-4 space-y-1">
           {customDays.length === 0
             ? <div className="text-xs text-muted text-center py-3">Henüz özel gün yok</div>
@@ -60,8 +56,6 @@ function CustomDayModal({ onClose, onAdd, customDays, onDelete }) {
             ))
           }
         </div>
-
-        {/* Yeni ekle */}
         <div className="border-t border-border pt-4 space-y-2">
           <input className="form-input" placeholder="Başlık *" value={name} onChange={e => setName(e.target.value)} />
           <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} />
@@ -110,10 +104,11 @@ export default function Calendar() {
   const [todoInput, setTodoInput] = useState('');
   const [noteInput, setNoteInput] = useState('');
   const [editingNote, setEditingNote] = useState(null);
+  const [editingTodo, setEditingTodo] = useState(null); // { idx, text }
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [mediaViewer, setMediaViewer] = useState(null); // {idx}
+  const [mediaViewer, setMediaViewer] = useState(null);
   const [mediaEditMode, setMediaEditMode] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -155,6 +150,12 @@ export default function Calendar() {
     const t = getTodos();
     if (t[selected]) t[selected].splice(i, 1);
     setTodos(t); refreshData();
+  };
+  const saveTodoEdit = (i, text) => {
+    if (!text.trim()) return;
+    const t = getTodos();
+    if (t[selected]?.[i]) t[selected][i].text = text.trim();
+    setTodos(t); setEditingTodo(null); refreshData();
   };
 
   // Notes
@@ -221,15 +222,8 @@ export default function Calendar() {
   };
 
   // Custom days
-  const handleAddCustomDay = (day) => {
-    addSpecialDay(day);
-    refreshData();
-  };
-  const handleDeleteCustomDay = (i) => {
-    deleteSpecialDay(i);
-    refreshData();
-  };
-
+  const handleAddCustomDay = (day) => { addSpecialDay(day); refreshData(); };
+  const handleDeleteCustomDay = (i) => { deleteSpecialDay(i); refreshData(); };
   const customDays = db.s || [];
 
   return (
@@ -254,8 +248,7 @@ export default function Calendar() {
       <div className="flex flex-col gap-5">
         {/* Takvim */}
         <div>
-          {/* Arama */}
-          <div className="flex gap-2 mb-4 justify-end">
+          <div className="flex flex-wrap gap-2 mb-4 justify-end">
             <input className="form-input w-[220px]" placeholder="Not veya görev ara..." value={searchQ}
               onChange={e => setSearchQ(e.target.value)} onKeyDown={e => e.key==='Enter' && doSearch()} />
             <button className="btn-primary" onClick={doSearch}>Ara</button>
@@ -277,21 +270,18 @@ export default function Calendar() {
             </div>
           )}
 
-          {/* Ay navigasyon */}
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth()-1, 1))} className="w-8 h-8 rounded-lg border border-border bg-transparent text-muted cursor-pointer flex items-center justify-center">‹</button>
             <div className="font-serif text-[18px] text-accent2">{TR_M[month]} {year}</div>
             <button onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth()+1, 1))} className="w-8 h-8 rounded-lg border border-border bg-transparent text-muted cursor-pointer flex items-center justify-center">›</button>
           </div>
 
-          {/* Gün başlıkları */}
           <div className="grid grid-cols-7 border-l border-border">
             {['Pt','Sa','Ça','Pe','Cu','Ct','Pz'].map((d, i) => (
               <div key={d} className={`text-center text-[10px] uppercase tracking-wider text-muted py-1 border-r border-border ${i >= 5 ? 'bg-white/[0.025]' : ''}`}>{d}</div>
             ))}
           </div>
 
-          {/* Günler */}
           <div className="grid grid-cols-7 border-l border-b border-border">
             {cells.map((ds, i) => {
               if (!ds) return <div key={i} className="border-r border-t border-border" />;
@@ -315,7 +305,6 @@ export default function Calendar() {
             })}
           </div>
 
-          {/* Legend */}
           <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border">
             {[
               { color:'#c0392b', label:'Resmi Tatil' },
@@ -340,7 +329,6 @@ export default function Calendar() {
             {TR_D[new Date(selected+'T12:00:00').getDay()]}, {fmtDate(selected)}
           </div>
 
-          {/* Özel günler */}
           {selData.specials.map((s, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
               style={{ background:`${SPEC_COLORS[s.t]||'#3a7bd5'}15`, borderLeft:`3px solid ${SPEC_COLORS[s.t]||'#3a7bd5'}` }}>
@@ -349,7 +337,6 @@ export default function Calendar() {
             </div>
           ))}
 
-          {/* Filmler */}
           {selData.films.map((f, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
               style={{ background:'rgba(160,96,64,.08)', borderLeft:'3px solid #a06040' }}>
@@ -357,7 +344,6 @@ export default function Calendar() {
             </div>
           ))}
 
-          {/* Kitaplar */}
           {selData.books.map((b, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
               style={{ background:'rgba(74,122,90,.08)', borderLeft:'3px solid #4a7a5a' }}>
@@ -369,17 +355,42 @@ export default function Calendar() {
           <div className="mb-4">
             <div className="text-xs text-muted uppercase tracking-wider mb-2">Görevler</div>
             {selData.dayTodos.map((t, i) => (
-              <div key={i} className="flex items-center gap-2 py-1.5">
+              <div key={i} className="flex items-center gap-2 py-1.5 group">
                 <button onClick={() => toggleTodoLocal(i)}
                   className={`w-[18px] h-[18px] rounded-[4px] border flex-shrink-0 flex items-center justify-center text-[11px] cursor-pointer transition-all ${t.done ? 'bg-[#237F52] border-[#237F52] text-white' : 'border-border2 bg-transparent text-transparent'}`}>✓</button>
-                <span className={`flex-1 text-sm ${t.done ? 'line-through text-muted' : 'text-text'}`}>{t.text}</span>
-                <button onClick={() => deleteTodoLocal(i)} className="text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer text-base">×</button>
+
+                {editingTodo?.idx === i ? (
+                  <input
+                    autoFocus
+                    className="form-input flex-1 py-1 text-sm"
+                    value={editingTodo.text}
+                    onChange={e => setEditingTodo(et => ({ ...et, text: e.target.value }))}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveTodoEdit(i, editingTodo.text);
+                      if (e.key === 'Escape') setEditingTodo(null);
+                    }}
+                    onBlur={() => saveTodoEdit(i, editingTodo.text)}
+                  />
+                ) : (
+                  <span className={`flex-1 text-sm ${t.done ? 'line-through text-muted' : 'text-text'}`}>{t.text}</span>
+                )}
+
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {editingTodo?.idx !== i && (
+                    <button
+                      onClick={() => setEditingTodo({ idx: i, text: t.text })}
+                      className="text-accent opacity-60 hover:opacity-100 bg-transparent border-0 cursor-pointer text-xs px-0.5 transition-opacity"
+                      title="Düzenle"
+                    >✎</button>
+                  )}
+                  <button onClick={() => deleteTodoLocal(i)} className="text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer text-base opacity-40 hover:opacity-100 transition-opacity">×</button>
+                </div>
               </div>
             ))}
             <div className="flex gap-2 mt-2">
-              <input className="form-input flex-1 py-1.5 text-sm" placeholder="Görev ekle..." value={todoInput}
+              <input className="form-input flex-1 py-2 text-sm min-w-0" placeholder="Görev ekle..." value={todoInput}
                 onChange={e => setTodoInput(e.target.value)} onKeyDown={e => e.key==='Enter' && addTodoLocal()} />
-              <button className="btn-save py-1.5 px-3 text-sm" onClick={addTodoLocal}>+</button>
+              <button className="btn-save py-2 px-3 text-sm flex-shrink-0" onClick={addTodoLocal}>+</button>
             </div>
           </div>
 

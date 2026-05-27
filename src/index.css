@@ -18,6 +18,39 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 
+/* Mobilde dokunma gecikmesini kaldır */
+button, a, [role="button"] { touch-action: manipulation; }
+
+/* Mobilde yatay taşmayı engelle */
+@media (max-width: 767px) {
+  .animate-fadeIn, .animate-slideUp { animation-duration: 0.15s; }
+
+  /* Tüm grid'lerde min-width sıfırla */
+  [class*="grid"] > * { min-width: 0; }
+
+  /* Büyük font'lar fluid ol */
+  .font-serif { font-size: clamp(16px, 5vw, 22px); }
+
+  /* Tab bar mobilde kaydırılabilir */
+  .tab-bar {
+    overflow-x: auto;
+    width: 100% !important;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn { flex-shrink: 0; padding: 5px 12px; }
+
+  /* Form inputlar tam genişlik */
+  .form-input { font-size: 16px; } /* iOS zoom önleme */
+
+  /* Butonlar daha kolay tıklanabilir */
+  .btn-primary, .btn-save, .btn-cancel {
+    min-height: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
 @layer components {
   .card {
     @apply bg-surface border border-border rounded-xl overflow-hidden transition-colors;
@@ -71,6 +104,14 @@ body {
   .badge {
     @apply text-xs px-2.5 py-0.5 rounded-full font-normal flex-shrink-0;
   }
+
+  /* Yatay kaydırılabilir kapsayıcı — zincir, takvim gibi */
+  .scroll-x {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-x::-webkit-scrollbar { height: 3px; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
