@@ -7,10 +7,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg:       '#0d0f13',
-        surface:  '#141720',
-        surface2: '#1a1e28',
-        surface3: '#222636',
+        bg:       '#1a1a1a',
+        surface:  '#222222',
+        surface2: '#2c2c2c',
+        surface3: '#363636',
         border:   'rgba(255,255,255,0.07)',
         border2:  'rgba(255,255,255,0.12)',
         accent:   '#3a7bd5',

@@ -14,6 +14,7 @@ const PAGES = {
   chain: lazy(() => import('../../pages/Chain/Chain')),
   weather: lazy(() => import('../../pages/Weather/Weather')),
   ai: lazy(() => import('../../pages/Ai/Ai')),
+  radar: lazy(() => import('../../pages/Radar/Radar')),
 };
 
 function Spinner() {
@@ -51,7 +52,7 @@ export default function Layout() {
           sidebarCollapsed ? 'md:ml-[58px]' : 'md:ml-[220px]'
         } pt-[52px] md:pt-0`}
       >
-        <div className={`max-w-full min-h-screen ${currentPage === 'weather' || currentPage === 'home' ? '' : 'p-5 md:p-[26px_30px]'}`}>
+        <div className={`max-w-full min-h-screen ${currentPage === 'weather' || currentPage === 'home' || currentPage === 'radar' ? '' : 'p-5 md:p-[26px_30px]'}`}>
           <Suspense fallback={<Spinner />}>
             <PageComponent key={currentPage} />
           </Suspense>

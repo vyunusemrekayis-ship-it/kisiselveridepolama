@@ -7,6 +7,7 @@ const NAV = [
   { id: 'books', label: 'Kitaplar' }, { id: 'clock', label: 'Kronometre' },
   { id: 'chain', label: 'Zincir Kırma' }, { id: 'weather', label: 'Hava Durumu' },
   { id: 'ai', label: 'Asistan' },
+  { id: 'radar', label: 'Yerel Radar' },
 ];
 
 export default function MobileDrawer({ open, onClose }) {

@@ -139,7 +139,7 @@ export default function Books() {
 
   const refreshRl = () => setRlState(getReadlist());
 
-  const sorted = [...(JSON.parse(localStorage.getItem("gunlugum_v3") || "{}").b || [])].map((b, i) => ({ b, i })).sort((a, b) => {
+  const sorted = [...(db.b || [])].map((b, i) => ({ b, i })).sort((a, b) => {
     const da = a.b.end || a.b.start || ''; const db2 = b.b.end || b.b.start || '';
     if (da && db2) return db2.localeCompare(da);
     if (da) return -1; if (db2) return 1; return 0;

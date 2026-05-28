@@ -3,7 +3,7 @@ import { useStore } from '../../store/useStore';
 const PAGE_TITLES = {
   home:'Giriş', chain:'Zincir Kırma', clock:'Saat & Kronometre',
   calendar:'Takvim', films:'Filmler', books:'Kitaplar',
-  goals:'Hedefler', ai:'Asistan', weather:'Hava Durumu',
+  goals:'Hedefler', ai:'Asistan', weather:'Hava Durumu', radar:'Yerel Radar',
 };
 
 export function MobileHeader({ onMenuClick }) {

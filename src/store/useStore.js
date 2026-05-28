@@ -165,4 +165,12 @@ export const useStore = create((set, get) => ({
   // ── STOPWATCH ──
   getSwLog: () => lsGet('gn_sw_log', '[]'),
   setSwLog: (log) => lsSet('gn_sw_log', log),
+
+  // ── AI PROFİL ──
+  getAiProfile: () => lsGet('gn_ai_profile', '{}'),
+  setAiProfile: (profile) => lsSet('gn_ai_profile', profile),
+
+  // ── AI ÖZET ──
+  getAiSummary: () => { try { return localStorage.getItem('gn_ai_summary') || ''; } catch { return ''; } },
+  setAiSummary: (summary) => { localStorage.setItem('gn_ai_summary', summary); },
 }));
