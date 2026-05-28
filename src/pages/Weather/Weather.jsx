@@ -847,20 +847,35 @@ export default function Weather() {
     });
     if (inR) rainPeriods.push({ start:rStart, dur:rDur, end:null });
 
-    const currentlyRaining = isRainCode(currentCode) || (data.current?.precipitation ?? 0) > 0.05;
+    // Saat aralığı formatla — dakika iddiasında bulunma, API saatlik veri veriyor
+    const fmtRange = (startHour, endHour) => {
+      if (endHour == null) return `${fmt(startHour)}'den itibaren`;
+      return `${fmt(startHour)} – ${fmt(endHour)}`;
+    };
+
+    const currentPrecip = data.current?.precipitation ?? 0; // mm/sa anlık
+    const currentlyRaining = isRainCode(currentCode) || currentPrecip > 0.05;
+
+    // Anlık yoğunluk etiketi
+    const precipIntensity = currentPrecip >= 10 ? 'çok kuvvetli'
+      : currentPrecip >= 5  ? 'kuvvetli'
+      : currentPrecip >= 2  ? 'orta şiddetli'
+      : currentPrecip >  0  ? 'hafif'
+      : null;
+    const precipStr = precipIntensity && currentPrecip > 0
+      ? ` (${precipIntensity}, ${currentPrecip.toFixed(1)} mm/sa)`
+      : '';
 
     if (currentlyRaining) {
       // Şu an yağıyor — ne zaman duruyor
       const stopH = next24.find(x => !isRainCode(x.code) && x.precip <= 0.05);
       if (stopH) {
-        const minsLeft = (stopH.hour - now) * 60 - nowMin;
-        const stopStr = minsLeft < 60 ? `~${minsLeft} dakika içinde (${fmt(stopH.hour)})` : `${fmt(stopH.hour)}'de`;
-        const p = rainPeriods[0];
-        const lvl = p && p.dur >= 6 ? 'warning' : 'info';
-        alerts.push({ level:lvl, icon:'🌦', title:`Yağmur ${fmt(stopH.hour)}'de duruyor`, detail:`Şu an yağmur var${p ? `, ${p.dur} saattir yağıyor` : ''}. ${stopStr} duracak.` });
+        const lvl = currentPrecip >= 5 ? 'warning' : (stopH.hour - now >= 6 ? 'warning' : 'info');
+        alerts.push({ level:lvl, icon:'🌦', title:`Yağmur ${fmt(stopH.hour)}'de duruyor`, detail:`Şu an yağmur var${precipStr}. ${fmt(stopH.hour)}'e kadar sürecek.` });
       } else {
         const p = rainPeriods[0];
-        if (p) alerts.push({ level:'warning', icon:'🌧', title:`${p.dur} saat aralıksız yağmur`, detail:`${fmt(p.start)} itibarıyla gece boyunca kesintisiz yağmur bekleniyor.` });
+        const lvl = currentPrecip >= 5 ? 'danger' : 'warning';
+        if (p) alerts.push({ level:lvl, icon:'🌧', title:'Uzun süreli yağmur', detail:`${fmt(p.start)}'den itibaren kesintisiz yağmur${precipStr}.` });
       }
     } else {
       // Şu an yağmıyor — ne zaman başlıyor
@@ -870,9 +885,9 @@ export default function Weather() {
         const startStr = minsUntil < 60
           ? `${minsUntil} dakika içinde (${fmt(p.start)})`
           : `${fmt(p.start)}'de`;
-        const endStr = p.end != null ? ` – ${fmt(p.end)}'de duruyor` : '';
         const lvl = p.dur >= 6 ? 'warning' : 'info';
-        alerts.push({ level:lvl, icon:'🌧', title:`Yağmur ${startStr} başlıyor`, detail:`${p.dur} saat sürecek${endStr}.` });
+        const endStr = p.end != null ? ` – ${fmt(p.end)}'de duruyor` : ' – bitiş belirsiz';
+        alerts.push({ level:lvl, icon:'🌧', title:`Yağmur ${startStr} başlıyor`, detail:`${fmtRange(p.start, p.end)}${endStr}.` });
       });
     }
     // 2. KUVVETLİ YAĞIŞ / SEL
