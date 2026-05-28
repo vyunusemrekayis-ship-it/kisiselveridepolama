@@ -11,233 +11,123 @@ const DEFAULT_NAV = [
   { id: 'chain',    label: 'Zincir Kırma' },
   { id: 'weather',  label: 'Hava Durumu' },
   { id: 'ai',       label: 'Asistan' },
-  { id: 'radar',    label: 'Yerel Radar' },
+  { id: 'radar',    label: 'Yerel Gelişmeler' },
 ];
 
-// Her sayfanın rengi tamamen farklı
-const COLORS = {
-  home:     '#60a5fa', // mavi
-  calendar: '#f472b6', // pembe
-  goals:    '#fb923c', // turuncu
-  films:    '#a78bfa', // mor
-  books:    '#34d399', // yeşil
-  clock:    '#facc15', // sarı
-  chain:    '#f87171', // kırmızı
-  weather:  '#38bdf8', // açık mavi
-  ai:       '#4ade80', // açık yeşil
-  radar:    '#f472b6', // pembe
-};
-
-// CSS animasyon stilleri
-const ANIM_STYLE = `
-@keyframes spin-slow { to { transform: rotate(360deg); } }
-@keyframes bounce-dot { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
-@keyframes pulse-ring { 0%,100% { opacity:.7; transform:scale(1); } 50% { opacity:1; transform:scale(1.15); } }
-@keyframes flicker { 0%,100% { opacity:1; } 50% { opacity:.6; } }
-@keyframes sway { 0%,100% { transform:rotate(-8deg); } 50% { transform:rotate(8deg); } }
-@keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-2px); } }
-@keyframes blink { 0%,90%,100% { opacity:1; } 95% { opacity:0; } }
-`;
-if (typeof document !== 'undefined' && !document.getElementById('gn-icon-anim')) {
-  const s = document.createElement('style'); s.id = 'gn-icon-anim'; s.textContent = ANIM_STYLE; document.head.appendChild(s);
-}
+const COLOR = '#00C2FF';
 
 const ICONS = {
-  // Ev — dolu çatı, kapıda ışık
-  home: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12L12 4l9 8" stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2.5" />
-      <path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2"
-        fill={active ? color : 'rgba(232,237,245,.06)'} fillOpacity={active ? '.25' : '1'} />
-      {active && (
-        <rect x="10" y="15" width="4" height="5" rx="1"
-          fill={color} opacity=".9"
-          style={{ animation: 'flicker 2.5s ease-in-out infinite' }} />
-      )}
+  // Giriş — Set 3 katmanlar
+  home: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 12l10 5 10-5"/>
+      <path d="M2 17l10 5 10-5"/>
     </svg>
   ),
 
-  // Takvim — dolu gövde, bugün belirgin
-  calendar: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="18" height="16" rx="2.5"
-        fill={active ? color : 'rgba(232,237,245,.06)'}
-        fillOpacity={active ? '.2' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2" />
-      <rect x="3" y="5" width="18" height="5" rx="2.5"
-        fill={active ? color : 'rgba(232,237,245,.15)'} fillOpacity={active ? '.5' : '1'} />
-      <line x1="8" y1="3" x2="8" y2="7" stroke={active ? color : 'rgba(232,237,245,.5)'} strokeWidth="2.5" />
-      <line x1="16" y1="3" x2="16" y2="7" stroke={active ? color : 'rgba(232,237,245,.5)'} strokeWidth="2.5" />
-      {active ? (
-        <rect x="7" y="13" width="4" height="4" rx="1"
-          fill={color}
-          style={{ animation: 'pulse-ring 1.8s ease-in-out infinite' }} />
-      ) : (
-        <rect x="7" y="13" width="4" height="4" rx="1" fill="rgba(232,237,245,.3)" />
-      )}
-      <rect x="13" y="13" width="4" height="4" rx="1" fill={active ? color : 'rgba(232,237,245,.15)'} opacity=".5" />
+  // Takvim — spiral halka
+  calendar: (active) => (
+    <svg width="18" height="18" viewBox="0 0 32 32" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="7" width="22" height="20" rx="2"/>
+      <path d="M5 14h22"/>
+      <path d="M10 4v6M16 4v6M22 4v6"/>
+      <path d="M10 19h4M10 23h8M18 19h4" strokeWidth="1.3"/>
     </svg>
   ),
 
-  // Hedef — dolu iç halka, dönen ok
-  goals: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="9"
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2"
-        fill={active ? color : 'transparent'} fillOpacity={active ? '.12' : '1'} />
-      <circle cx="12" cy="12" r="5"
-        stroke={active ? color : 'rgba(232,237,245,.25)'} strokeWidth="1.5"
-        fill={active ? color : 'transparent'} fillOpacity={active ? '.2' : '1'} />
-      <circle cx="12" cy="12" r="2.5"
-        fill={active ? color : 'rgba(232,237,245,.5)'}
-        style={active ? { animation: 'pulse-ring 1.5s ease-in-out infinite' } : {}} />
-      {active && (
-        <g style={{ transformOrigin: '18px 6px', animation: 'spin-slow 3s linear infinite' }}>
-          <line x1="18" y1="2" x2="18" y2="6" stroke={color} strokeWidth="2" strokeLinecap="round" />
-          <line x1="16" y1="4" x2="20" y2="4" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        </g>
-      )}
+  // Hedefler — Set 2 checkmark daire
+  goals: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
     </svg>
   ),
 
-  // Film — dolu film şeridi, play animasyonu
-  films: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2.5"
-        fill={active ? color : 'rgba(232,237,245,.06)'}
-        fillOpacity={active ? '.2' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2" />
-      <rect x="2" y="7" width="20" height="3.5"
-        fill={active ? color : 'rgba(232,237,245,.12)'} fillOpacity={active ? '.4' : '1'} />
-      <line x1="7" y1="7" x2="7" y2="10.5" stroke={active ? color : 'rgba(232,237,245,.3)'} strokeWidth="1.5" />
-      <line x1="12" y1="7" x2="12" y2="10.5" stroke={active ? color : 'rgba(232,237,245,.3)'} strokeWidth="1.5" />
-      <line x1="17" y1="7" x2="17" y2="10.5" stroke={active ? color : 'rgba(232,237,245,.3)'} strokeWidth="1.5" />
-      <polygon points="10,13 10,19 17,16"
-        fill={active ? color : 'rgba(232,237,245,.35)'}
-        style={active ? { animation: 'pulse-ring 1.6s ease-in-out infinite' } : {}} />
+  // Filmler — play daire
+  films: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M10 9l6 3-6 3V9z"
+        fill={active ? `${COLOR}25` : 'rgba(232,237,245,.1)'}
+        stroke={active ? COLOR : 'rgba(232,237,245,.3)'}/>
     </svg>
   ),
 
-  // Kitap — dolu kapak, sayfalar animasyonlu
-  books: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 4h7a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z"
-        fill={active ? color : 'rgba(232,237,245,.12)'} fillOpacity={active ? '.3' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="1.8" />
-      <path d="M20 4h-7a1 1 0 00-1 1v14a1 1 0 001 1h7a1 1 0 001-1V5a1 1 0 00-1-1z"
-        fill={active ? color : 'rgba(232,237,245,.06)'} fillOpacity={active ? '.18' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.3)'} strokeWidth="1.8" />
-      {active ? <>
-        <line x1="5.5" y1="8" x2="9.5" y2="8" stroke={color} strokeWidth="1.5"
-          style={{ animation: 'float 1.8s ease-in-out infinite' }} />
-        <line x1="5.5" y1="11" x2="9.5" y2="11" stroke={color} strokeWidth="1.5" opacity=".7"
-          style={{ animation: 'float 1.8s ease-in-out infinite .2s' }} />
-        <line x1="5.5" y1="14" x2="8" y2="14" stroke={color} strokeWidth="1.5" opacity=".4"
-          style={{ animation: 'float 1.8s ease-in-out infinite .4s' }} />
-      </> : <>
-        <line x1="5.5" y1="8" x2="9.5" y2="8" stroke="rgba(232,237,245,.3)" strokeWidth="1.5" />
-        <line x1="5.5" y1="11" x2="9.5" y2="11" stroke="rgba(232,237,245,.2)" strokeWidth="1.5" />
-      </>}
+  // Kitaplar — Set 2 açık kitap
+  books: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
     </svg>
   ),
 
-  // Kronometre — dönen ibre animasyonu
-  clock: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="13" r="8.5"
-        fill={active ? color : 'rgba(232,237,245,.06)'} fillOpacity={active ? '.18' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2" />
-      <line x1="9" y1="2.5" x2="15" y2="2.5" stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="12" y1="2.5" x2="12" y2="5" stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2" strokeLinecap="round" />
-      <line x1="12" y1="8" x2="12" y2="13"
-        stroke={active ? color : 'rgba(232,237,245,.6)'} strokeWidth="2.5" strokeLinecap="round"
-        style={active ? { transformOrigin: '12px 13px', animation: 'spin-slow 2s linear infinite' } : {}} />
-      <line x1="12" y1="13" x2="15.5" y2="15"
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2" strokeLinecap="round" />
-      <circle cx="12" cy="13" r="1.5" fill={active ? color : 'rgba(232,237,245,.5)'} />
+  // Kronometre — üst tuşlu
+  clock: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="13" r="8"/>
+      <path d="M12 9v4.5l3 1.5"/>
+      <path d="M10 3h4M12 3v2"/>
+      <path d="M19.5 7l-1.5 1.5"/>
     </svg>
   ),
 
-  // Zincir — alev, titreşim animasyonu
-  chain: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2C8.5 7 7 9.5 7 12a5 5 0 0010 0c0-2.5-1.5-5-5-10z"
-        fill={active ? color : 'rgba(232,237,245,.15)'} fillOpacity={active ? '.35' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="1.8"
-        style={active ? { animation: 'flicker 1.5s ease-in-out infinite' } : {}} />
-      <path d="M12 15c-2 0-3.5-1.5-3.5-3 0 2 1.5 3.5 3.5 5 2-1.5 3.5-3 3.5-5 0 1.5-1.5 3-3.5 3z"
-        fill={active ? color : 'rgba(232,237,245,.4)'}
-        style={active ? { animation: 'flicker 1.2s ease-in-out infinite .3s' } : {}} />
-      {active && (
-        <circle cx="12" cy="19" r="1.5" fill={color} opacity=".7"
-          style={{ animation: 'bounce-dot 1s ease-in-out infinite' }} />
-      )}
+  // Zincir Kırma — kırık link
+  chain: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
     </svg>
   ),
 
-  // Hava Durumu — dönen güneş veya bulut
-  weather: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <g style={active ? { transformOrigin: '9px 9px', animation: 'spin-slow 6s linear infinite' } : {}}>
-        <circle cx="9" cy="9" r="3.5"
-          fill={active ? color : 'rgba(232,237,245,.2)'} fillOpacity={active ? '.5' : '1'}
-          stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="1.8" />
-        <line x1="9" y1="2" x2="9" y2="3.5" stroke={active ? color : 'rgba(232,237,245,.35)'} strokeWidth="2" />
-        <line x1="9" y1="14.5" x2="9" y2="16" stroke={active ? color : 'rgba(232,237,245,.35)'} strokeWidth="2" />
-        <line x1="2" y1="9" x2="3.5" y2="9" stroke={active ? color : 'rgba(232,237,245,.35)'} strokeWidth="2" />
-        <line x1="14.5" y1="9" x2="16" y2="9" stroke={active ? color : 'rgba(232,237,245,.35)'} strokeWidth="2" />
-        <line x1="4.1" y1="4.1" x2="5.2" y2="5.2" stroke={active ? color : 'rgba(232,237,245,.25)'} strokeWidth="1.8" />
-        <line x1="12.8" y1="4.1" x2="13.9" y2="5.2" stroke={active ? color : 'rgba(232,237,245,.25)'} strokeWidth="1.8" />
-      </g>
-      <path d="M15 18H11a4.5 4.5 0 01-.5-9 4 4 0 017.5 1.5A3.5 3.5 0 0115 18z"
-        fill={active ? color : 'rgba(232,237,245,.12)'} fillOpacity={active ? '.3' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="1.8"
-        style={active ? { animation: 'float 2.5s ease-in-out infinite' } : {}} />
+  // Hava Durumu — bulut + yağmur
+  weather: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/>
+      <path d="M8 20l-1 3M13 20v3M18 20l1 3"/>
     </svg>
   ),
 
-  // AI — göz kırpan robot
-  ai: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="6" width="18" height="13" rx="4"
-        fill={active ? color : 'rgba(232,237,245,.06)'} fillOpacity={active ? '.2' : '1'}
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2" />
-      <line x1="9" y1="2" x2="9" y2="6" stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2.5" />
-      <line x1="15" y1="2" x2="15" y2="6" stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2.5" />
-      <circle cx="9" cy="13" r="2"
-        fill={active ? color : 'rgba(232,237,245,.4)'}
-        style={active ? { animation: 'blink 3s ease-in-out infinite' } : {}} />
-      <circle cx="15" cy="13" r="2"
-        fill={active ? color : 'rgba(232,237,245,.4)'}
-        style={active ? { animation: 'blink 3s ease-in-out infinite .4s' } : {}} />
-      {active && (
-        <path d="M8 17.5 Q12 19.5 16 17.5"
-          stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round"
-          style={{ animation: 'sway 2s ease-in-out infinite' }} />
-      )}
+  // Asistan — mikrofon
+  ai: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="11" rx="3"/>
+      <path d="M5 10a7 7 0 0014 0"/>
+      <path d="M12 17v3M9 20h6"/>
     </svg>
   ),
 
-  // Radar — sinyal halkaları, nabız animasyonu
-  radar: (active, color) => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="9"
-        stroke={active ? color : 'rgba(232,237,245,.4)'} strokeWidth="2"
-        fill={active ? color : 'transparent'} fillOpacity={active ? '.08' : '1'}
-        style={active ? { animation: 'pulse-ring 2s ease-in-out infinite' } : {}} />
-      <circle cx="12" cy="12" r="5.5"
-        stroke={active ? color : 'rgba(232,237,245,.25)'} strokeWidth="1.5"
-        fill={active ? color : 'transparent'} fillOpacity={active ? '.12' : '1'}
-        style={active ? { animation: 'pulse-ring 2s ease-in-out infinite .5s' } : {}} />
-      <circle cx="12" cy="12" r="2.5"
-        fill={active ? color : 'rgba(232,237,245,.5)'}
-        style={active ? { animation: 'pulse-ring 2s ease-in-out infinite 1s' } : {}} />
-      {active && (
-        <line x1="12" y1="3" x2="17" y2="8"
-          stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity=".5"
-          style={{ transformOrigin:'12px 12px', animation:'spin-slow 3s linear infinite' }} />
-      )}
+  // Yerel Gelişmeler — iğne + zemin dalgası
+  radar: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a6 6 0 00-6 6c0 5 6 10 6 10s6-5 6-10a6 6 0 00-6-6z"/>
+      <circle cx="12" cy="8" r="2"
+        fill={active ? `${COLOR}25` : 'rgba(232,237,245,.08)'}
+        stroke={active ? COLOR : 'rgba(232,237,245,.3)'}/>
+      <path d="M7 19c1.5.8 3 1.2 5 1.2s3.5-.4 5-1.2" strokeWidth="1.3"/>
+      <path d="M5 22c2 1 4.5 1.5 7 1.5s5-.5 7-1.5"
+        strokeWidth="1.1"
+        stroke={active ? `${COLOR}80` : 'rgba(232,237,245,.15)'}/>
     </svg>
   ),
 };
@@ -247,7 +137,8 @@ const LS_ORDER_KEY = 'gn_nav_order';
 function loadOrder() {
   try {
     const saved = JSON.parse(localStorage.getItem(LS_ORDER_KEY) || '[]');
-    if (saved.length >= DEFAULT_NAV.length - 2) return [...new Set([...saved, ...DEFAULT_NAV.map(i => i.id)])].filter(id => DEFAULT_NAV.find(n => n.id === id));
+    if (saved.length >= DEFAULT_NAV.length - 2)
+      return [...new Set([...saved, ...DEFAULT_NAV.map(i => i.id)])].filter(id => DEFAULT_NAV.find(n => n.id === id));
   } catch {}
   return DEFAULT_NAV.map(i => i.id);
 }
@@ -290,7 +181,9 @@ export default function Sidebar() {
         <button onClick={toggleSidebar}
           className="bg-transparent border-0 text-muted cursor-pointer flex items-center justify-center flex-shrink-0 hover:text-text transition-colors">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
         {!sidebarCollapsed && (
@@ -313,7 +206,6 @@ export default function Sidebar() {
 
         {sortedItems.map((item, idx) => {
           const active = currentPage === item.id;
-          const color = COLORS[item.id];
           const isDraggingThis = dragging === idx;
           const isDragOver = dragOver === idx && !isDraggingThis;
 
@@ -338,10 +230,10 @@ export default function Sidebar() {
                 opacity: isDraggingThis ? 0.35 : 1,
                 transform: isDragOver ? 'translateY(2px)' : 'none',
                 background: active && !editMode
-                  ? `linear-gradient(105deg, ${color}22 0%, ${color}0a 100%)`
+                  ? `rgba(0,194,255,0.08)`
                   : isDragOver ? 'rgba(255,255,255,.04)' : 'transparent',
                 borderLeft: !sidebarCollapsed && active && !editMode
-                  ? `2px solid ${color}`
+                  ? `2px solid ${COLOR}`
                   : '2px solid transparent',
                 transition: 'all .15s ease',
                 position: 'relative',
@@ -360,12 +252,11 @@ export default function Sidebar() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                background: active && !editMode ? `${color}20` : 'rgba(255,255,255,.04)',
-                border: `1px solid ${active && !editMode ? `${color}40` : 'rgba(255,255,255,.07)'}`,
+                background: active && !editMode ? `rgba(0,194,255,0.1)` : 'rgba(255,255,255,.04)',
+                border: `1px solid ${active && !editMode ? 'rgba(0,194,255,0.25)' : 'rgba(255,255,255,.07)'}`,
                 transition: 'all .2s ease',
-                boxShadow: active && !editMode ? `0 0 12px ${color}30` : 'none',
               }}>
-                {ICONS[item.id]?.(active && !editMode, color)}
+                {ICONS[item.id]?.(active && !editMode)}
               </div>
 
               {!sidebarCollapsed && (
@@ -373,7 +264,7 @@ export default function Sidebar() {
                   <span style={{
                     flex: 1,
                     fontSize: 13,
-                    color: active && !editMode ? color : 'rgba(232,237,245,.55)',
+                    color: active && !editMode ? COLOR : 'rgba(232,237,245,.55)',
                     fontWeight: active && !editMode ? 500 : 400,
                     userSelect: 'none',
                     transition: 'color .15s',
@@ -384,8 +275,8 @@ export default function Sidebar() {
                       fontSize: 11,
                       padding: '1px 7px',
                       borderRadius: 10,
-                      background: active ? `${color}25` : 'rgba(255,255,255,.06)',
-                      color: active ? color : 'rgba(232,237,245,.35)',
+                      background: active ? `rgba(0,194,255,0.15)` : 'rgba(255,255,255,.06)',
+                      color: active ? COLOR : 'rgba(232,237,245,.35)',
                       flexShrink: 0,
                     }}>{badges[item.id]}</span>
                   )}
@@ -398,7 +289,7 @@ export default function Sidebar() {
                   position: 'absolute', right: 0, top: '50%',
                   transform: 'translateY(-50%)',
                   width: 3, height: 20, borderRadius: '2px 0 0 2px',
-                  background: color,
+                  background: COLOR,
                 }} />
               )}
             </div>

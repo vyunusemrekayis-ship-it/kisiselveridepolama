@@ -219,7 +219,7 @@ export default function Radar() {
     const key = window.ANTHROPIC_KEY;
     if (!key) { setError('Anthropic API anahtarı bulunamadı. Firebase config/app dökümanına anthropicKey ekleyin.'); setLoading(false); return; }
 
-    const prompt = `Sen bir yerel gündem asistanısın. "${activeCity.name}" şehri için WEB SEARCH aracını kullanarak şu kategorilerde GÜNCEL içerik ara:
+    const prompt = `Sen bir Yerel Gelişmeler asistanısın. "${activeCity.name}" şehri için WEB SEARCH aracını kullanarak şu kategorilerde GÜNCEL içerik ara:
 - Etkinlikler (konser, tiyatro, sergi, festival, fuar)
 - Kültür ve sanat haberleri
 - Üniversite etkinlikleri ve duyuruları
@@ -257,9 +257,9 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
           messages: [{ role: 'user', content: prompt }],
         }),
       });
@@ -293,9 +293,9 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
             'anthropic-dangerous-direct-browser-access': 'true',
           },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
+            model: 'claude-sonnet-4-6',
             max_tokens: 4000,
-            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
             messages: allMessages,
           }),
         });
@@ -420,7 +420,7 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
           <div>
             <div style={{ fontSize:18, fontWeight:600, color:'#e8edf5', letterSpacing:-.3 }}>
               {activeCity.name}
-              <span style={{ fontSize:12, color:'rgba(232,237,245,.3)', fontWeight:400, marginLeft:8 }}>yerel gündem</span>
+              <span style={{ fontSize:12, color:'rgba(232,237,245,.3)', fontWeight:400, marginLeft:8 }}>Yerel Gelişmeler</span>
             </div>
             {lastScanned && (
               <div style={{ fontSize:11, color:'rgba(232,237,245,.3)', marginTop:2 }}>

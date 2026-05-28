@@ -2,12 +2,16 @@ import { useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 
 const NAV = [
-  { id: 'home', label: 'Giriş' }, { id: 'calendar', label: 'Takvim' },
-  { id: 'goals', label: 'Hedefler' }, { id: 'films', label: 'Filmler' },
-  { id: 'books', label: 'Kitaplar' }, { id: 'clock', label: 'Kronometre' },
-  { id: 'chain', label: 'Zincir Kırma' }, { id: 'weather', label: 'Hava Durumu' },
-  { id: 'ai', label: 'Asistan' },
-  { id: 'radar', label: 'Yerel Radar' },
+  { id: 'home',     label: 'Giriş' },
+  { id: 'calendar', label: 'Takvim' },
+  { id: 'goals',    label: 'Hedefler' },
+  { id: 'films',    label: 'Filmler' },
+  { id: 'books',    label: 'Kitaplar' },
+  { id: 'clock',    label: 'Kronometre' },
+  { id: 'chain',    label: 'Zincir Kırma' },
+  { id: 'weather',  label: 'Hava Durumu' },
+  { id: 'ai',       label: 'Asistan' },
+  { id: 'radar',    label: 'Yerel Gelişmeler' },
 ];
 
 export default function MobileDrawer({ open, onClose }) {
@@ -21,13 +25,11 @@ export default function MobileDrawer({ open, onClose }) {
 
   return (
     <>
-      {/* Overlay */}
       <div
         className="fixed inset-0 z-[60] bg-black/60 transition-opacity duration-250"
         style={{ opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }}
         onClick={onClose}
       />
-      {/* Drawer */}
       <div
         className="fixed left-0 top-0 bottom-0 w-64 bg-surface border-r border-border z-[70] flex flex-col transition-transform duration-250"
         style={{ transform: open ? 'translateX(0)' : 'translateX(-100%)' }}
