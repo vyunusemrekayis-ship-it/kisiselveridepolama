@@ -126,12 +126,27 @@ function ItemCard({ item, idx }) {
       </div>
 
       {/* Detay — expand */}
-      {expanded && item.detail && (
-        <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid rgba(255,255,255,.06)', fontSize:12, color:'rgba(232,237,245,.4)', lineHeight:1.6, paddingLeft:18, animation:'radarFade .2s ease' }}>
-          {item.detail}
+      {expanded && (
+        <div style={{ marginTop:10, paddingTop:10, borderTop:'1px solid rgba(255,255,255,.06)', paddingLeft:18, animation:'radarFade .2s ease' }}>
+          {item.detail && (
+            <div style={{ fontSize:12, color:'rgba(232,237,245,.4)', lineHeight:1.6, marginBottom:10 }}>
+              {item.detail}
+            </div>
+          )}
           {item.source && (
-            <div style={{ marginTop:8, fontSize:11, color:'rgba(232,237,245,.25)' }}>
-              Kaynak: {item.source}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+              <span style={{ fontSize:11, color:'rgba(232,237,245,.25)' }}>Kaynak: {item.source}</span>
+              <a
+                href={'https://www.google.com/search?q=' + encodeURIComponent(item.title + ' ' + item.source)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{ fontSize:11, padding:'4px 12px', borderRadius:20, background:'rgba(232,237,245,.06)', border:'1px solid rgba(232,237,245,.15)', color:'rgba(232,237,245,.6)', textDecoration:'none', transition:'background .15s' }}
+                onMouseEnter={e => e.currentTarget.style.background='rgba(232,237,245,.12)'}
+                onMouseLeave={e => e.currentTarget.style.background='rgba(232,237,245,.06)'}
+              >
+                Kaynağa Git →
+              </a>
             </div>
           )}
         </div>
@@ -219,34 +234,30 @@ export default function Radar() {
     const key = window.ANTHROPIC_KEY;
     if (!key) { setError('Anthropic API anahtarı bulunamadı. Firebase config/app dökümanına anthropicKey ekleyin.'); setLoading(false); return; }
 
-    const prompt = `Sen bir Yerel Gelişmeler asistanısın. "${activeCity.name}" şehri için WEB SEARCH aracını kullanarak şu kategorilerde GÜNCEL içerik ara:
-- Etkinlikler (konser, tiyatro, sergi, festival, fuar)
-- Kültür ve sanat haberleri
-- Üniversite etkinlikleri ve duyuruları
-- Belediye duyuruları ve projeleri
-- Spor müsabakaları
-- Sağlık ve sosyal sorumluluk haberleri
-- Önemli yerel haberler
+    const today = new Date();
+    const todayStr = today.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const todayISO = today.toISOString().split('T')[0];
 
-Arama sorguları: "${activeCity.name} etkinlik bugün bu hafta", "${activeCity.name} konser tiyatro sergi", "${activeCity.name} belediye duyuru", "${activeCity.name} üniversite etkinlik", "${activeCity.name} haber güncel"
-
-Bulduğun her içerik için JSON array döndür. Kesinlikle sadece JSON döndür, başka hiçbir şey yazma, markdown kullanma.
-
-Format:
-[
-  {
-    "title": "Başlık (kısa, net)",
-    "summary": "2-3 cümle özet. Nerede, ne zaman, kim, ücretsiz mi gibi detaylar.",
-    "detail": "Daha uzun açıklama (opsiyonel, varsa)",
-    "categories": ["etkinlik", "muzik"],
-    "source": "Kaynak site adı"
-  }
-]
-
-Kategori değerleri (birden fazla olabilir): etkinlik, kultur, universite, muzik, spor, belediye, saglik, haber
-
-En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JSON array döndür, başka HİÇBİR metin yazma, selamlama yapma, açıklama ekleme.`;
-
+    const cityName = activeCity.name;
+    const year = today.getFullYear();
+    const weekLater = new Date(today); weekLater.setDate(weekLater.getDate() + 7);
+    const weekLaterISO = weekLater.toISOString().split('T')[0];
+    const promptLines = [
+      'Sen bir Yerel Gelismeler asistanisin. Bugunun tarihi: ' + todayStr + ' (' + todayISO + ').',
+      '"' + cityName + '" sehri icin WEB SEARCH kullanarak guncel icerik ara.',
+      'KESIN KURALLAR:',
+      '1. Sadece ' + todayISO + ' tarihinde veya sonrasinda olan etkinlik/haberler dahil edilecek.',
+      '2. ' + weekLaterISO + ' sonrasi baslayan etkinlikler EKLENMEYECEK.',
+      '3. Futbol kulubu haberleri (transfer, mac, puan durumu vb.) KESİNLİKLE EKLENMEYECEK.',
+      '4. Gecmis tarihli etkinlikler EKLENMEYECEK.',
+      'Kural disina cikan sonuclar kesinlikle dahil edilmesin, sonuc az olsa bile.',
+      'Arama: "' + cityName + ' etkinlik ' + year + '", "' + cityName + ' konser yaklaşan", "' + cityName + ' haber ' + year + '"',
+      'Her sonuc icin "date" alani ekle (YYYY-MM-DD formatinda, bilinmiyorsa null).',
+      'SADECE JSON array dondur:',
+      '[{"title":"string","summary":"string","date":"YYYY-MM-DD","categories":["etkinlik"],"source":"string"}]',
+      'En fazla 15 sonuc. Kategori degerleri: etkinlik, kultur, universite, muzik, spor, belediye, saglik, haber.',
+    ];
+    const prompt = promptLines.join('\n');
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -258,7 +269,7 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 4000,
+          max_tokens: 8000,
           tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -267,7 +278,6 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
       const data = await res.json();
       if (!res.ok) throw new Error(data.error?.message || 'API hatası');
 
-      // Web search tool loop — son metin yanıtını bul
       let allMessages = [{ role: 'user', content: prompt }];
       let currentData = data;
 
@@ -277,7 +287,7 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
         const toolResults = toolUses.map(t => ({
           type: 'tool_result',
           tool_use_id: t.id,
-          content: t.type === 'tool_use' ? '{}' : '',
+          content: '',
         }));
         allMessages = [
           ...allMessages,
@@ -294,7 +304,7 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-6',
-            max_tokens: 4000,
+            max_tokens: 8000,
             tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
             messages: allMessages,
           }),
@@ -303,15 +313,56 @@ En az 6, en fazla 20 sonuç döndür. Gerçek ve güncel bilgi kullan. SADECE JS
         if (!nextRes.ok) throw new Error(currentData.error?.message || 'API hatası');
       }
 
-      const textBlocks = (currentData.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+      const textBlocks = (currentData.content || [])
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('');
+
+      if (!textBlocks.trim()) {
+        console.error('Radar API boş yanıt (raw):', JSON.stringify(currentData, null, 2));
+        throw new Error('Model metin üretmedi (stop_reason: ' + currentData.stop_reason + '). Konsolu kontrol et.');
+      }
 
       let parsed = [];
       try {
-        const clean = textBlocks.replace(/```json|```/g, '').trim();
+        const clean = textBlocks.split('```json').join('').split('```').join('').trim();
+        // Tam JSON array bul
         const match = clean.match(/\[[\s\S]*\]/);
-        if (match) parsed = JSON.parse(match[0]);
-      } catch {
+        if (!match) throw new Error('JSON array bulunamadı');
+        let jsonStr = match[0];
+        // Token limitine takılıp yanıt yarıda kestiyse, tam olan objeleri kurtar
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch {
+          // Son tam '}' den sonrasını at, array'i kapat
+          const lastClose = jsonStr.lastIndexOf('},');
+          if (lastClose > 0) {
+            jsonStr = jsonStr.substring(0, lastClose + 1) + ']';
+          } else {
+            const lastObj = jsonStr.lastIndexOf('}');
+            jsonStr = jsonStr.substring(0, lastObj + 1) + ']';
+          }
+          parsed = JSON.parse(jsonStr);
+        }
+      } catch (e) {
+        console.error('Radar parse hatası:', e, '\nHam metin:', textBlocks);
         throw new Error('AI yanıtı ayrıştırılamadı. Konsolu kontrol et.');
+      }
+
+      // JS tarafında tarih + futbol kulübü filtresi
+      if (Array.isArray(parsed)) {
+        const clubKeywords = ['trabzonspor', 'beşiktaş', 'galatasaray', 'fenerbahçe', 'transfer', 'fikstür', 'puan durumu', 'süper lig', 'maç sonucu'];
+        parsed = parsed.filter(item => {
+          // Futbol kulübü filtresi
+          const text = ((item.title || '') + ' ' + (item.summary || '')).toLowerCase();
+          if (clubKeywords.some(k => text.includes(k))) return false;
+          // Tarih filtresi
+          if (item.date) {
+            if (item.date < todayISO) return false;
+            if (item.date > weekLaterISO) return false;
+          }
+          return true;
+        });
       }
 
       if (!Array.isArray(parsed) || parsed.length === 0) {
