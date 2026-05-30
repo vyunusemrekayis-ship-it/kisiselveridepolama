@@ -12,6 +12,7 @@ const NAV = [
   { id: 'weather',  label: 'Hava Durumu' },
   { id: 'ai',       label: 'Asistan' },
   { id: 'radar',    label: 'Yerel Gelişmeler' },
+  { id: 'finance',  label: 'Finans' },
 ];
 
 export default function MobileDrawer({ open, onClose }) {

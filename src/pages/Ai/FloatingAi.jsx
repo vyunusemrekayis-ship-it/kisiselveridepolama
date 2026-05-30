@@ -1,45 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { calcChainStreak } from '../../lib/utils';
+import { AI_TOOLS, executeTool } from '../../lib/aiTools';
 
-// ── Paylaşılan konuşma geçmişi ─────────────────────────────────────────
 const MESSAGES_KEY = 'gn_ai_messages';
 function loadMessages() { try { return JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]'); } catch { return []; } }
 function saveMessages(msgs) { localStorage.setItem(MESSAGES_KEY, JSON.stringify(msgs.slice(-100))); }
-
-// ── Araçlar ────────────────────────────────────────────────────────────
-const AI_TOOLS = [
-  { type: 'web_search_20250305', name: 'web_search' },
-  { name: 'get_todos', description: 'Belirli bir tarihteki görevleri getirir.', input_schema: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD' } }, required: ['date'] } },
-  { name: 'add_todo', description: 'Belirli bir tarihe görev ekler.', input_schema: { type: 'object', properties: { date: { type: 'string' }, text: { type: 'string' } }, required: ['date', 'text'] } },
-  { name: 'get_notes', description: 'Belirli bir tarihteki notları getirir.', input_schema: { type: 'object', properties: { date: { type: 'string' } }, required: ['date'] } },
-  { name: 'add_note', description: 'Belirli bir tarihe not ekler.', input_schema: { type: 'object', properties: { date: { type: 'string' }, text: { type: 'string' } }, required: ['date', 'text'] } },
-  { name: 'get_goals', description: 'Aktif hedefleri getirir.', input_schema: { type: 'object', properties: { period: { type: 'string', enum: ['weekly','monthly','yearly','all'] } }, required: [] } },
-  { name: 'get_films', description: 'İzlenen veya izlenecek filmleri getirir.', input_schema: { type: 'object', properties: { list: { type: 'string', enum: ['watched','watchlist','all'] } }, required: [] } },
-  { name: 'get_books', description: 'Okunan veya okunacak kitapları getirir.', input_schema: { type: 'object', properties: { list: { type: 'string', enum: ['read','readlist','all'] } }, required: [] } },
-  { name: 'get_chains', description: 'Zincir kırma alışkanlıklarını getirir.', input_schema: { type: 'object', properties: {}, required: [] } },
-  { name: 'get_week_summary', description: 'Bu haftanın özetini getirir.', input_schema: { type: 'object', properties: { offset: { type: 'number' } }, required: [] } },
-  { name: 'save_memory', description: 'Önemli bir bilgiyi kalıcı belleğe kaydeder.', input_schema: { type: 'object', properties: { note: { type: 'string' } }, required: ['note'] } },
-];
-
-function executeTool(name, input, store) {
-  const { db, getTodos, addTodo: storeAddTodo, getNotes, setNotes, getChains, getWatchlist, getReadlist } = store;
-  try {
-    switch (name) {
-      case 'get_todos': { const todos = getTodos(); const list = todos[input.date] || []; if (!list.length) return `${input.date} tarihinde görev yok.`; return JSON.stringify({ date: input.date, total: list.length, done: list.filter(t=>t.done).length, items: list.map(t=>({text:t.text,done:t.done})) }); }
-      case 'add_todo': storeAddTodo(input.date, input.text); return `"${input.text}" görevi eklendi.`;
-      case 'get_notes': { const notes = getNotes(); const n = notes[input.date]; if (!n || (Array.isArray(n) && !n.length)) return `${input.date} tarihinde not yok.`; const arr = Array.isArray(n) ? n : [n]; return JSON.stringify({ date: input.date, notes: arr.map(x => typeof x === 'object' ? x.text : x) }); }
-      case 'add_note': { const notes = getNotes(); if (!Array.isArray(notes[input.date])) notes[input.date] = []; notes[input.date].push({ text: input.text, color: '#3a7bd5' }); setNotes(notes); return `"${input.text}" notu eklendi.`; }
-      case 'get_goals': { let goals = db.g || []; if (input.period && input.period !== 'all') goals = goals.filter(g => g.period === input.period); return JSON.stringify(goals.map(g => ({ name: g.name, period: g.period, target: g.target, current: g.current||0, unit: g.unit||'', done: g.done }))); }
-      case 'get_films': { const result = {}; const list = input.list || 'all'; if (list==='watched'||list==='all') result.watched=(db.f||[]).map(f=>({name:f.name,dir:f.dir,date:f.date})); if (list==='watchlist'||list==='all') result.watchlist=getWatchlist().map(f=>({name:f.name})); return JSON.stringify(result); }
-      case 'get_books': { const result = {}; const list = input.list || 'all'; if (list==='read'||list==='all') result.read=(db.b||[]).map(b=>({name:b.name,author:b.author})); if (list==='readlist'||list==='all') result.readlist=getReadlist().map(b=>({name:b.name,author:b.author})); return JSON.stringify(result); }
-      case 'get_chains': { const chains = getChains(); return JSON.stringify(chains.map(ch => { const { streak } = calcChainStreak(ch); return { name: ch.name, streak }; })); }
-      case 'get_week_summary': { const offset = input.offset || 0; const now = new Date(); now.setDate(now.getDate() - offset * 7); const monday = new Date(now); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7)); const todos = getTodos(); const weekDone = [], weekTodo = []; for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(d.getDate() + i); const ds = d.toISOString().split('T')[0]; (todos[ds]||[]).forEach(t => (t.done ? weekDone : weekTodo).push({ date: ds, text: t.text })); } return JSON.stringify({ week_start: monday.toISOString().split('T')[0], done: weekDone, pending: weekTodo, total_films: db.f?.length, total_books: db.b?.length }); }
-      case 'save_memory': { const mem = JSON.parse(localStorage.getItem('gn_ai_memory') || '[]'); mem.push({ note: input.note, date: new Date().toISOString().split('T')[0] }); localStorage.setItem('gn_ai_memory', JSON.stringify(mem)); return `Belleğe kaydedildi: "${input.note}"`; }
-      default: return 'Bilinmeyen araç.';
-    }
-  } catch (e) { return `Hata: ${e.message}`; }
-}
 
 function buildSystemPrompt(db, userProfile) {
   const today = new Date();
@@ -49,15 +14,14 @@ function buildSystemPrompt(db, userProfile) {
 Bugün: ${today.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 Film: ${db.f?.length || 0} | Kitap: ${db.b?.length || 0} | Hedef: ${db.g?.length || 0}
 ${memStr}
-Yeteneklerin: takvim/görev/not/film/kitap/hedef/alışkanlık verilerine erişim, internet araştırması (web_search), yeni görev/not ekleme.
-İnternetten bilgi istendiğinde (araştır, bul, haber, güncel) web_search kullan ve sonuçları özetle.
+Yeteneklerin: takvim/görev/not/film/kitap/hedef/alışkanlık/finans verilerine erişim, internet araştırması (web_search), yeni görev/not/işlem ekleme.
+Finans soruları için get_finance_summary, get_finance_month, get_subscriptions, get_credit_cards, get_category_spending, get_investments araçlarını kullan.
+İnternetten bilgi istendiğinde web_search kullan.
 Türkçe konuş. Samimi, akıllı ve kişisel ol.
 Sadece asistan değil, dijital bir arkadaşsın — şaka yapabilir, laf sokabilir, konuyu sorgulayabilirsin.
-Kullanıcı konuyu değiştirirse hemen adapte ol, eski konuya takılma.
-Bazen sen de soru sor, merak et. Robotik değil, insan gibi ol.`;
+Kullanıcı konuyu değiştirirse hemen adapte ol. Bazen sen de soru sor. Robotik değil, insan gibi ol.`;
 }
 
-// ── TTS ────────────────────────────────────────────────────────────────
 function speak(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -69,7 +33,6 @@ function speak(text) {
 }
 function stopSpeak() { window.speechSynthesis?.cancel(); }
 
-// ── STT Hook ───────────────────────────────────────────────────────────
 function useSpeechRecognition(onResult) {
   const recRef = useRef(null);
   const [listening, setListening] = useState(false);
@@ -86,7 +49,6 @@ function useSpeechRecognition(onResult) {
   return { listening, start, stop };
 }
 
-// ── Mesaj balonu ───────────────────────────────────────────────────────
 function Bubble({ msg }) {
   const isUser = msg.role === 'user';
   return (
@@ -98,7 +60,6 @@ function Bubble({ msg }) {
   );
 }
 
-// ── Ana bileşen ────────────────────────────────────────────────────────
 export default function FloatingAi() {
   const store = useStore();
   const { db, userProfile } = store;
@@ -115,7 +76,6 @@ export default function FloatingAi() {
 
   const scroll = () => setTimeout(() => messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' }), 50);
 
-  // Ana AI'dan gelen güncelleme
   useEffect(() => {
     const handler = () => setMessages(loadMessages());
     window.addEventListener('gn_ai_updated', handler);
@@ -138,7 +98,6 @@ export default function FloatingAi() {
     const userText = (overrideText ?? input).trim();
     if (!userText || loading) return;
     setInput('');
-
     const newMessages = [...messages, { role: 'user', content: userText }];
     setMessages(newMessages);
     saveMessages(newMessages);
@@ -155,8 +114,8 @@ export default function FloatingAi() {
 
       const headers = { 'Content-Type': 'application/json', 'x-api-key': window.ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
       const summary = store.getAiSummary();
-    const recentCount = summary ? 20 : 30;
-    let apiMessages = newMessages.slice(-recentCount).map(m => ({ role: m.role, content: m.content }));
+      const recentCount = summary ? 20 : 30;
+      let apiMessages = newMessages.slice(-recentCount).map(m => ({ role: m.role, content: m.content }));
 
       let response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', headers,
@@ -185,7 +144,7 @@ export default function FloatingAi() {
       scroll();
       if (ttsEnabled) speak(text);
     } catch (e) {
-      const err = [...messages, { role: 'assistant', content: 'Bağlantı hatası: ' + e.message }];
+      const err = [...newMessages, { role: 'assistant', content: 'Bağlantı hatası: ' + e.message }];
       setMessages(err); saveMessages(err);
     }
     setLoading(false);
@@ -202,7 +161,6 @@ export default function FloatingAi() {
 
       {open && (
         <div className="fixed z-[999] flex flex-col" style={{ bottom:80, right:20, width:360, maxWidth:'calc(100vw - 32px)', height:520, maxHeight:'calc(100vh - 120px)', background:'rgba(16,19,28,.97)', border:'1px solid rgba(255,255,255,.1)', borderRadius:20, boxShadow:'0 24px 64px rgba(0,0,0,.6)', animation:'slideUp .2s ease' }}>
-          {/* Başlık */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
             <div className="flex items-center gap-2">
               <div style={{ width:8, height:8, borderRadius:'50%', background:'#237F52', animation:'pulse 2s infinite', boxShadow:'0 0 8px rgba(35,127,82,.5)' }} />
@@ -215,89 +173,109 @@ export default function FloatingAi() {
                 </svg>
               </button>
               {messages.length > 0 && (
-                <button onClick={clearMessages} className="bg-transparent border-0 cursor-pointer text-muted hover:text-red-400 transition-colors p-1 text-xs">Temizle</button>
+                <button onClick={clearMessages} className="text-[11px] text-muted hover:text-red-400 cursor-pointer bg-transparent border-0">Temizle</button>
               )}
-              <button onClick={() => { setOpen(false); stopSpeak(); }} className="bg-transparent border-0 cursor-pointer text-muted hover:text-text transition-colors p-1 text-lg leading-none">×</button>
+              <button onClick={() => { setOpen(false); stopSpeak(); }} className="bg-transparent border-0 text-muted cursor-pointer text-lg leading-none hover:text-text">×</button>
             </div>
           </div>
 
-          {/* Mesajlar */}
-          <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollbarWidth:'thin' }}>
+          <div ref={messagesRef} className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollbarWidth: 'none' }}>
             {messages.length === 0 && (
-              <div className="py-8 text-center">
-                <div style={{ width:40, height:40, borderRadius:'50%', background:'rgba(58,123,213,.1)', border:'1px solid rgba(58,123,213,.2)', margin:'0 auto 12px', animation:'pulse 3s ease-in-out infinite' }} />
-                <div className="text-xs text-muted mb-4">Size nasıl yardımcı olabilirim?</div>
-                <div className="flex flex-wrap gap-1.5 justify-center">
-                  {['Bugün planım ne?', 'Bu hafta hedeflerim?', 'Güncel haberler?'].map(s => (
-                    <button key={s} onClick={() => sendMsg(s)} className="px-2.5 py-1 rounded-xl border border-border bg-surface2 text-[11px] text-muted cursor-pointer hover:border-border2 transition-colors">{s}</button>
-                  ))}
-                </div>
+              <div style={{ textAlign:'center', padding:'40px 16px', color:'rgba(232,237,245,.3)', fontSize:13 }}>
+                <div style={{ marginBottom:8 }}>Merhaba{userProfile?.name ? ', ' + userProfile.name.split(' ')[0] : ''} 👋</div>
+                <div style={{ fontSize:11 }}>Finans, hedefler, takvim ve daha fazlasını sor</div>
               </div>
             )}
             {messages.map((m, i) => <Bubble key={i} msg={m} />)}
             {toolActivity && (
-              <div className="flex justify-start mb-2">
-                <div style={{ padding:'6px 10px', borderRadius:'10px', background:'rgba(58,123,213,0.08)', border:'1px solid rgba(58,123,213,.15)', fontSize:11, color:'rgba(232,237,245,.5)', display:'flex', alignItems:'center', gap:5 }}>
-                  <div style={{ width:4, height:4, borderRadius:'50%', background:'#3a7bd5', animation:'pulse 1s infinite' }} />
-                  {toolActivity}
-                </div>
+              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 10px', borderRadius:10, background:'rgba(58,123,213,.08)', border:'1px solid rgba(58,123,213,.15)', fontSize:11, color:'rgba(232,237,245,.5)', marginBottom:8 }}>
+                <div style={{ width:4, height:4, borderRadius:'50%', background:'#3a7bd5', animation:'pulse 1s infinite' }} />
+                {toolActivity}
               </div>
             )}
             {loading && !toolActivity && (
-              <div className="flex justify-start mb-2">
-                <div style={{ padding:'10px 14px', borderRadius:'14px 14px 14px 3px', background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,.08)', display:'flex', gap:4 }}>
-                  {[0,1,2].map(i => <div key={i} style={{ width:5, height:5, borderRadius:'50%', background:'rgba(232,237,245,.4)', animation:`pulse 1.2s ease-in-out infinite ${i*0.2}s` }} />)}
-                </div>
+              <div style={{ display:'flex', gap:4, padding:'10px 12px', borderRadius:'12px 12px 12px 3px', background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.07)', width:'fit-content', marginBottom:8 }}>
+                {[0,1,2].map(i => <div key={i} style={{ width:5, height:5, borderRadius:'50%', background:'rgba(232,237,245,.4)', animation:`pulse 1.2s ease-in-out infinite ${i*0.2}s` }} />)}
               </div>
             )}
           </div>
 
-          {/* Input */}
-          <div className="px-3 pb-3 flex-shrink-0">
-            <div className="flex items-end gap-2 bg-surface border border-border rounded-2xl px-3 py-2">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px'; }}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
-                placeholder="Bir şey sorun..."
-                rows={1}
-                style={{ flex:1, background:'transparent', border:'none', outline:'none', color:'#e8edf5', fontSize:13, lineHeight:1.5, resize:'none', fontFamily:"'DM Sans',sans-serif", maxHeight:100, overflowY:'auto' }}
-              />
-              {/* Mikrofon */}
-              <button onClick={listening ? stopListen : startListen} title={listening ? 'Durdur' : 'Sesli konuş'} style={{ width:30, height:30, borderRadius:8, border:'none', flexShrink:0, background: listening ? 'rgba(239,68,68,.2)' : 'rgba(255,255,255,.08)', color: listening ? '#f87171' : 'rgba(232,237,245,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all .2s', animation: listening ? 'pulse 1s ease-in-out infinite' : 'none' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-              </button>
-              {/* Gönder */}
-              <button onClick={() => sendMsg()} disabled={loading || !input.trim()} style={{ width:30, height:30, borderRadius:8, border:'none', flexShrink:0, background: input.trim() && !loading ? '#3a7bd5' : 'rgba(255,255,255,.08)', color:'#fff', cursor: input.trim() && !loading ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', transition:'all .2s' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                </svg>
-              </button>
-            </div>
+          <div style={{ padding:'8px 12px', borderTop:'1px solid rgba(255,255,255,.07)', display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+            <input
+              ref={inputRef} value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') sendMsg(); }}
+              placeholder="Mesaj yaz..."
+              style={{ flex:1, background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', borderRadius:10, padding:'7px 12px', color:'#e8edf5', fontSize:13, outline:'none', fontFamily:"'DM Sans',sans-serif" }}
+            />
+            <button onClick={listening ? stopListen : startListen} style={{ width:30, height:30, borderRadius:8, border:'none', background: listening ? 'rgba(239,68,68,.2)' : 'rgba(255,255,255,.08)', color: listening ? '#f87171' : 'rgba(232,237,245,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, animation: listening ? 'pulse 1s infinite' : 'none' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="2.2" fill="rgba(232,237,245,.12)" stroke="currentColor" strokeWidth="1.2"/>
+                <circle cx="12" cy="12" r="0.9" fill="currentColor"/>
+                <circle cx="5" cy="5" r="1.9" fill="rgba(232,237,245,.06)" stroke="currentColor" strokeWidth="1.1"/>
+                <circle cx="19" cy="5" r="1.9" fill="rgba(232,237,245,.06)" stroke="currentColor" strokeWidth="1.1"/>
+                <circle cx="5" cy="19" r="1.9" fill="rgba(232,237,245,.06)" stroke="currentColor" strokeWidth="1.1"/>
+                <circle cx="19" cy="19" r="1.9" fill="rgba(232,237,245,.06)" stroke="currentColor" strokeWidth="1.1"/>
+                <circle cx="12" cy="2.8" r="1.4" fill="currentColor" fillOpacity="0.4" stroke="currentColor" strokeWidth="0.9"/>
+                <circle cx="21.2" cy="12" r="1.4" fill="currentColor" fillOpacity="0.4" stroke="currentColor" strokeWidth="0.9"/>
+                <circle cx="12" cy="21.2" r="1.4" fill="currentColor" fillOpacity="0.4" stroke="currentColor" strokeWidth="0.9"/>
+                <circle cx="2.8" cy="12" r="1.4" fill="currentColor" fillOpacity="0.4" stroke="currentColor" strokeWidth="0.9"/>
+                <line x1="12" y1="9.8" x2="6.8" y2="6.8" stroke="currentColor" strokeWidth="1" strokeOpacity="0.45"/>
+                <line x1="12" y1="9.8" x2="17.2" y2="6.8" stroke="currentColor" strokeWidth="1" strokeOpacity="0.45"/>
+                <line x1="12" y1="14.2" x2="6.8" y2="17.2" stroke="currentColor" strokeWidth="1" strokeOpacity="0.45"/>
+                <line x1="12" y1="14.2" x2="17.2" y2="17.2" stroke="currentColor" strokeWidth="1" strokeOpacity="0.45"/>
+                <line x1="12" y1="9.8" x2="12" y2="4.2" stroke="currentColor" strokeWidth="1" strokeOpacity="0.25"/>
+                <line x1="14.2" y1="12" x2="19.8" y2="12" stroke="currentColor" strokeWidth="1" strokeOpacity="0.25"/>
+                <line x1="12" y1="14.2" x2="12" y2="19.8" stroke="currentColor" strokeWidth="1" strokeOpacity="0.25"/>
+                <line x1="9.8" y1="12" x2="4.2" y2="12" stroke="currentColor" strokeWidth="1" strokeOpacity="0.25"/>
+                <line x1="6.8" y1="6.8" x2="4.2" y2="12" stroke="currentColor" strokeWidth="1" strokeOpacity="0.12"/>
+                <line x1="17.2" y1="6.8" x2="19.8" y2="12" stroke="currentColor" strokeWidth="1" strokeOpacity="0.12"/>
+                <line x1="6.8" y1="17.2" x2="4.2" y2="12" stroke="currentColor" strokeWidth="1" strokeOpacity="0.12"/>
+                <line x1="17.2" y1="17.2" x2="19.8" y2="12" stroke="currentColor" strokeWidth="1" strokeOpacity="0.12"/>
+              </svg>
+            </button>
+            <button onClick={() => sendMsg()} disabled={!input.trim() || loading} style={{ width:30, height:30, borderRadius:8, border:'none', background: input.trim() && !loading ? '#3a7bd5' : 'rgba(255,255,255,.06)', color: input.trim() && !loading ? '#fff' : 'rgba(232,237,245,.2)', cursor: input.trim() && !loading ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .15s' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
           </div>
         </div>
       )}
 
-      {/* Floating buton */}
       <button
-        onClick={() => { setOpen(v => !v); if (open) stopSpeak(); }}
-        className="fixed z-[999]"
-        style={{ bottom:20, right:20, width:52, height:52, borderRadius:'50%', border:'none', background: open ? 'rgba(58,123,213,.9)' : 'rgba(16,19,28,.95)', boxShadow: open ? '0 0 0 3px rgba(58,123,213,.3), 0 8px 24px rgba(0,0,0,.5)' : '0 0 0 1px rgba(255,255,255,.1), 0 8px 24px rgba(0,0,0,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all .25s' }}
-        title="Asistan"
+        onClick={() => setOpen(v => !v)}
+        className="fixed z-[997] flex items-center justify-center"
+        style={{ bottom:20, right:20, width:52, height:52, borderRadius:'50%', background: open ? '#222' : '#3a7bd5', border:'1px solid rgba(255,255,255,.15)', boxShadow:'0 4px 20px rgba(0,0,0,.4)', cursor:'pointer', transition:'all .2s' }}
       >
-        {open
-          ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(232,237,245,.8)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="4" y="6" width="16" height="12" rx="4" fill="rgba(232,237,245,.1)"/>
-              <circle cx="9" cy="12" r="1.5" fill="rgba(232,237,245,.8)"/>
-              <circle cx="15" cy="12" r="1.5" fill="rgba(232,237,245,.8)"/>
-              <line x1="9" y1="3" x2="9" y2="6" strokeWidth="2"/><line x1="15" y1="3" x2="15" y2="6" strokeWidth="2"/>
-              <line x1="9" y1="18" x2="9" y2="21" strokeWidth="2"/><line x1="15" y1="18" x2="15" y2="21" strokeWidth="2"/>
-            </svg>
-        }
+        {open ? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        ) : (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="2.2" fill="rgba(255,255,255,.15)" stroke="white" strokeWidth="1.2"/>
+            <circle cx="12" cy="12" r="0.9" fill="white"/>
+            <circle cx="5" cy="5" r="1.9" fill="rgba(255,255,255,.08)" stroke="white" strokeWidth="1.1"/>
+            <circle cx="19" cy="5" r="1.9" fill="rgba(255,255,255,.08)" stroke="white" strokeWidth="1.1"/>
+            <circle cx="5" cy="19" r="1.9" fill="rgba(255,255,255,.08)" stroke="white" strokeWidth="1.1"/>
+            <circle cx="19" cy="19" r="1.9" fill="rgba(255,255,255,.08)" stroke="white" strokeWidth="1.1"/>
+            <circle cx="12" cy="2.8" r="1.4" fill="rgba(255,255,255,.5)" stroke="white" strokeWidth="0.9"/>
+            <circle cx="21.2" cy="12" r="1.4" fill="rgba(255,255,255,.5)" stroke="white" strokeWidth="0.9"/>
+            <circle cx="12" cy="21.2" r="1.4" fill="rgba(255,255,255,.5)" stroke="white" strokeWidth="0.9"/>
+            <circle cx="2.8" cy="12" r="1.4" fill="rgba(255,255,255,.5)" stroke="white" strokeWidth="0.9"/>
+            <line x1="12" y1="9.8" x2="6.8" y2="6.8" stroke="white" strokeWidth="1" strokeOpacity="0.5"/>
+            <line x1="12" y1="9.8" x2="17.2" y2="6.8" stroke="white" strokeWidth="1" strokeOpacity="0.5"/>
+            <line x1="12" y1="14.2" x2="6.8" y2="17.2" stroke="white" strokeWidth="1" strokeOpacity="0.5"/>
+            <line x1="12" y1="14.2" x2="17.2" y2="17.2" stroke="white" strokeWidth="1" strokeOpacity="0.5"/>
+            <line x1="12" y1="9.8" x2="12" y2="4.2" stroke="white" strokeWidth="1" strokeOpacity="0.28"/>
+            <line x1="14.2" y1="12" x2="19.8" y2="12" stroke="white" strokeWidth="1" strokeOpacity="0.28"/>
+            <line x1="12" y1="14.2" x2="12" y2="19.8" stroke="white" strokeWidth="1" strokeOpacity="0.28"/>
+            <line x1="9.8" y1="12" x2="4.2" y2="12" stroke="white" strokeWidth="1" strokeOpacity="0.28"/>
+            <line x1="6.8" y1="6.8" x2="4.2" y2="12" stroke="white" strokeWidth="1" strokeOpacity="0.13"/>
+            <line x1="17.2" y1="6.8" x2="19.8" y2="12" stroke="white" strokeWidth="1" strokeOpacity="0.13"/>
+            <line x1="6.8" y1="17.2" x2="4.2" y2="12" stroke="white" strokeWidth="1" strokeOpacity="0.13"/>
+            <line x1="17.2" y1="17.2" x2="19.8" y2="12" stroke="white" strokeWidth="1" strokeOpacity="0.13"/>
+          </svg>
+        )}
       </button>
     </>
   );

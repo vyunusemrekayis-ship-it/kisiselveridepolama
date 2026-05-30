@@ -12,6 +12,7 @@ const DEFAULT_NAV = [
   { id: 'weather',  label: 'Hava Durumu' },
   { id: 'ai',       label: 'Asistan' },
   { id: 'radar',    label: 'Yerel Gelişmeler' },
+  { id: 'finance',  label: 'Finans' },
 ];
 
 const COLOR = '#00C2FF';
@@ -104,16 +105,44 @@ const ICONS = {
     </svg>
   ),
 
-  // Asistan — mikrofon
-  ai: (active) => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
-      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="2" width="6" height="11" rx="3"/>
-      <path d="M5 10a7 7 0 0014 0"/>
-      <path d="M12 17v3M9 20h6"/>
-    </svg>
-  ),
+  // Asistan — tam bağlı nöral ağ
+  ai: (active) => {
+    const c = active ? COLOR : 'rgba(232,237,245,.3)';
+    const dim = active ? `${COLOR}60` : 'rgba(232,237,245,.12)';
+    const faint = active ? `${COLOR}30` : 'rgba(232,237,245,.07)';
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        {/* merkez */}
+        <circle cx="12" cy="12" r="2.2" fill={active ? `${COLOR}25` : 'rgba(232,237,245,.08)'} stroke={c} strokeWidth="1.2"/>
+        <circle cx="12" cy="12" r="0.9" fill={c}/>
+        {/* köşe düğümleri */}
+        <circle cx="5" cy="5" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
+        <circle cx="19" cy="5" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
+        <circle cx="5" cy="19" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
+        <circle cx="19" cy="19" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
+        {/* kenar orta düğümleri */}
+        <circle cx="12" cy="2.8" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
+        <circle cx="21.2" cy="12" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
+        <circle cx="12" cy="21.2" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
+        <circle cx="2.8" cy="12" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
+        {/* merkez → köşe bağlantıları */}
+        <line x1="12" y1="9.8" x2="6.8" y2="6.8" stroke={dim} strokeWidth="1"/>
+        <line x1="12" y1="9.8" x2="17.2" y2="6.8" stroke={dim} strokeWidth="1"/>
+        <line x1="12" y1="14.2" x2="6.8" y2="17.2" stroke={dim} strokeWidth="1"/>
+        <line x1="12" y1="14.2" x2="17.2" y2="17.2" stroke={dim} strokeWidth="1"/>
+        {/* merkez → kenar orta */}
+        <line x1="12" y1="9.8" x2="12" y2="4.2" stroke={faint} strokeWidth="1"/>
+        <line x1="14.2" y1="12" x2="19.8" y2="12" stroke={faint} strokeWidth="1"/>
+        <line x1="12" y1="14.2" x2="12" y2="19.8" stroke={faint} strokeWidth="1"/>
+        <line x1="9.8" y1="12" x2="4.2" y2="12" stroke={faint} strokeWidth="1"/>
+        {/* köşe → kenar orta çapraz bağlar */}
+        <line x1="6.8" y1="6.8" x2="4.2" y2="12" stroke={faint} strokeWidth="1"/>
+        <line x1="17.2" y1="6.8" x2="19.8" y2="12" stroke={faint} strokeWidth="1"/>
+        <line x1="6.8" y1="17.2" x2="4.2" y2="12" stroke={faint} strokeWidth="1"/>
+        <line x1="17.2" y1="17.2" x2="19.8" y2="12" stroke={faint} strokeWidth="1"/>
+      </svg>
+    );
+  },
 
   // Yerel Gelişmeler — iğne + zemin dalgası
   radar: (active) => (
@@ -128,6 +157,17 @@ const ICONS = {
       <path d="M5 22c2 1 4.5 1.5 7 1.5s5-.5 7-1.5"
         strokeWidth="1.1"
         stroke={active ? `${COLOR}80` : 'rgba(232,237,245,.15)'}/>
+    </svg>
+  ),
+
+  // Finans — $ sembolü daire içinde
+  finance: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v10"/>
+      <path d="M9.5 9.5a2.5 2.5 0 015 0c0 1.38-2.5 2-2.5 2s-2.5.62-2.5 2a2.5 2.5 0 005 0"/>
     </svg>
   ),
 };

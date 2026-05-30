@@ -11,6 +11,7 @@ const PAGE_TITLES = {
   ai:       'Asistan',
   weather:  'Hava Durumu',
   radar:    'Yerel Gelişmeler',
+  finance:  'Finans',
 };
 
 export function MobileHeader({ onMenuClick }) {
