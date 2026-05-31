@@ -171,8 +171,10 @@ export default function Goals() {
   const toggleAccordion = (key) => setOpenAccordions(prev => ({ ...prev, [key]: !prev[key] }));
 
   const fmtD = (d) => {
-    const [y,m,dd] = d.toISOString().split('T')[0].split('-');
-    return `${parseInt(dd)} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][parseInt(m)-1]} ${y}`;
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const dd = d.getDate();
+    return `${dd} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][m-1]} ${y}`;
   };
 
   return (

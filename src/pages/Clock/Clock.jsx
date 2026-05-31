@@ -10,6 +10,7 @@ if (!window._sw) {
     startTime: null,
     elapsed: parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
     sessionStartLabel: null,
+    sessionStartMs: null,
   };
 }
 
@@ -65,6 +66,7 @@ export default function Clock() {
     if (window._sw.running) {
       // Durdur → log'a kaydet
       const elapsed = Date.now() - window._sw.startTime;
+      const partDur = Date.now() - (window._sw.sessionStartMs || Date.now());
       window._sw.running = false;
       window._sw.elapsed = elapsed;
       window._sw.startTime = null;
@@ -78,7 +80,7 @@ export default function Clock() {
         date: todayStr(),
         start: window._sw.sessionStartLabel || '—',
         end: getNowLabel(),
-        dur: elapsed,
+        dur: partDur,
         note: '',
       });
       setSwLog(newLog);
@@ -86,6 +88,7 @@ export default function Clock() {
     } else {
       // Başlat — elapsed'tan devam et
       window._sw.sessionStartLabel = getNowLabel();
+      window._sw.sessionStartMs = Date.now();
       window._sw.startTime = Date.now() - window._sw.elapsed;
       window._sw.running = true;
       setSwRunning(true);
