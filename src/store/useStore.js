@@ -62,9 +62,7 @@ export const useStore = create((set, get) => ({
           window._sw.running = true;
           window._sw.elapsed = Date.now() - incoming.gn_sw_startTime;
           localStorage.setItem('gn_sw_elapsed', String(window._sw.elapsed));
-          window.dispatchEvent(new CustomEvent('sw_remote_start'));
-        } else if (!incoming.gn_sw_running && window._sw && window._sw.running) {
-          // remote stop — sadece bu cihaz başlatmadıysa uygula
+          window.dispatchEvent(new CustomEvent('sw_remote_start', { detail: { startTime: incoming.gn_sw_startTime } }));
         }
       }
     }
