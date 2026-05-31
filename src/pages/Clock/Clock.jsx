@@ -12,6 +12,9 @@ if (!window._sw) {
     sessionStartLabel: null,
     sessionStartMs: null,
   };
+} else if (!window._sw.running) {
+  const stored = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
+  if (stored !== window._sw.elapsed) window._sw.elapsed = stored;
 }
 
 const fmtHMS = (ms) => {
@@ -30,11 +33,10 @@ const getNowLabel = () => {
 export default function Clock() {
   const { getSwLog, setSwLog, db, updateGoalProgress } = useStore();
   const [swRunning, setSwRunning] = useState(window._sw.running);
-  const [displayMs, setDisplayMs] = useState(
-    window._sw.running && window._sw.startTime
-      ? Date.now() - window._sw.startTime
-      : window._sw.elapsed
-  );
+  const [displayMs, setDisplayMs] = useState(() => {
+    if (window._sw.running && window._sw.startTime) return Date.now() - window._sw.startTime;
+    return parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
+  });
   const [log, setLog] = useState(getSwLog());
   const [selected, setSelected] = useState(new Set());
   const [transferModal, setTransferModal] = useState(false);
@@ -50,6 +52,16 @@ export default function Clock() {
       }
     }, 100);
     return () => clearInterval(t);
+  }, []);
+
+  // Diğer cihazdan başlatılınca sync
+  useEffect(() => {
+    const handler = () => {
+      setSwRunning(true);
+      setDisplayMs(Date.now() - window._sw.startTime);
+    };
+    window.addEventListener('sw_remote_start', handler);
+    return () => window.removeEventListener('sw_remote_start', handler);
   }, []);
 
   // Enter kısayolu
@@ -71,7 +83,6 @@ export default function Clock() {
       window._sw.elapsed = elapsed;
       window._sw.startTime = null;
       localStorage.setItem('gn_sw_elapsed', elapsed);
-      if (window._fbUser) { import('../../lib/firebase').then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_elapsed: elapsed}); }); }
       setSwRunning(false);
       setDisplayMs(elapsed);
 
@@ -93,6 +104,8 @@ export default function Clock() {
       window._sw.startTime = Date.now() - window._sw.elapsed;
       window._sw.running = true;
       setSwRunning(true);
+      // startTime'ı Firestore'a kaydet — diğer cihaz buradan devam eder
+      if (window._fbUser) { import('../../lib/firebase').then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_startTime: window._sw.startTime, gn_sw_running: true}); }); }
     }
   };
 

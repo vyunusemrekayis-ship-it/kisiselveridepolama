@@ -56,6 +56,17 @@ export const useStore = create((set, get) => ({
         localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
         if (window._sw && !window._sw.running) { window._sw.elapsed = incoming.gn_sw_elapsed; }
       }
+      if (incoming.gn_sw_running !== undefined && incoming.gn_sw_startTime !== undefined) {
+        if (incoming.gn_sw_running && incoming.gn_sw_startTime && window._sw && !window._sw.running) {
+          window._sw.startTime = incoming.gn_sw_startTime;
+          window._sw.running = true;
+          window._sw.elapsed = Date.now() - incoming.gn_sw_startTime;
+          localStorage.setItem('gn_sw_elapsed', String(window._sw.elapsed));
+          window.dispatchEvent(new CustomEvent('sw_remote_start'));
+        } else if (!incoming.gn_sw_running && window._sw && window._sw.running) {
+          // remote stop — sadece bu cihaz başlatmadıysa uygula
+        }
+      }
     }
     const db = loadDb();
     set({ db });
