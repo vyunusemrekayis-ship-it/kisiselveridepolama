@@ -28,11 +28,9 @@ export async function loadFromFirestore(uid) {
       if (d.gn_notes) localStorage.setItem('gn_notes', JSON.stringify(d.gn_notes));
       if (d.gn_todos) localStorage.setItem('gn_todos', JSON.stringify(d.gn_todos));
       if (d.gn_chains) localStorage.setItem('gn_chains', JSON.stringify(d.gn_chains));
-      if (d.gn_wl) localStorage.setItem('gn_wl', JSON.stringify(d.gn_wl));
-      if (d.gn_rl) localStorage.setItem('gn_rl', JSON.stringify(d.gn_rl));
       if (d.gn_sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(d.gn_sw_log));
       if (d.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(d.gn_sw_elapsed));
-      // eski key'lerden göç
+      // eski key göç
       if (!d.main && d.gunlugum_v3) localStorage.setItem('gn_db', JSON.stringify(d.gunlugum_v3));
       if (!d.gn_sw_log && d.sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(d.sw_log));
     }

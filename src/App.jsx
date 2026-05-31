@@ -1,4 +1,4 @@
-import { auth, loadFromFirestore, onAuthStateChanged } from "./lib/firebase";
+import { auth, fsdb, loadFromFirestore, onAuthStateChanged, doc, onSnapshot } from "./lib/firebase";
 import { useEffect, useState } from 'react';
 import Layout from './components/layout/Layout';
 import FloatingAi from './pages/Ai/FloatingAi';
@@ -80,18 +80,32 @@ export default function App() {
   const [authState, setAuthState] = useState('loading');
 
   useEffect(() => {
-    let unsubscribe;
+    let unsubscribeAuth;
+    let unsubscribeSnapshot;
+
     const waitForFirebase = () => {
       if (window._fbOnAuthStateChanged && window._fbAuth) {
-        unsubscribe = onAuthStateChanged(auth, async (user) => {
+        unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+          // Önceki snapshot dinleyicisini temizle
+          if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+
           if (user) {
             window._fbUser = user;
+            // İlk yükleme
             await loadFromFirestore(user.uid);
             reloadDb();
             const profile = { name: user.displayName || user.email };
             setUserProfile(profile);
             window._userProfile = profile;
             setAuthState('logged-in');
+
+            // Gerçek zamanlı sync — Firestore değişince React state güncellenir
+            const ref = doc(fsdb, 'users', user.uid);
+            unsubscribeSnapshot = onSnapshot(ref, (snap) => {
+              if (snap.exists()) {
+                reloadDb(snap.data());
+              }
+            });
           } else {
             window._fbUser = null;
             setAuthState('logged-out');
@@ -102,7 +116,7 @@ export default function App() {
       }
     };
     waitForFirebase();
-    return () => unsubscribe?.();
+    return () => { unsubscribeAuth?.(); unsubscribeSnapshot?.(); };
   }, []);
 
   if (authState === 'loading') return <LoadingScreen />;
