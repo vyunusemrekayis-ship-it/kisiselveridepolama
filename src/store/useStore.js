@@ -35,7 +35,12 @@ export const useStore = create((set, get) => ({
   setUserProfile: (profile) => set({ userProfile: profile }),
 
   // ── DB RELOAD (Firestore sync) ──
-  reloadDb: () => set({ db: loadDb() }),
+  reloadDb: () => {
+    set({ db: loadDb() });
+    // elapsed'ı da window._sw'ye yükle
+    const elapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
+    if (window._sw) { window._sw.elapsed = elapsed; }
+  },
   setDb: (db) => { saveDb(db); set({ db }); },
 
   // ── FILMS ──
@@ -164,7 +169,12 @@ export const useStore = create((set, get) => ({
 
   // ── STOPWATCH ──
   getSwLog: () => lsGet('gn_sw_log', '[]'),
-  setSwLog: (log) => lsSet('gn_sw_log', log),
+  setSwLog: (log) => {
+    lsSet('gn_sw_log', log);
+    // elapsed'ı da Firestore'a kaydet
+    const elapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
+    if (window._fbUser) { import("../lib/firebase").then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_elapsed: elapsed}); }); }
+  },
 
   // ── AI PROFİL ──
   getAiProfile: () => lsGet('gn_ai_profile', '{}'),

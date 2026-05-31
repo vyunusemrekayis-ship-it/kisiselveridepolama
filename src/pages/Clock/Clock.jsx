@@ -71,6 +71,7 @@ export default function Clock() {
       window._sw.elapsed = elapsed;
       window._sw.startTime = null;
       localStorage.setItem('gn_sw_elapsed', elapsed);
+      if (window._fbUser) { import('../../lib/firebase').then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_elapsed: elapsed}); }); }
       setSwRunning(false);
       setDisplayMs(elapsed);
 
