@@ -56,14 +56,12 @@ export const useStore = create((set, get) => ({
         localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
         if (window._sw && !window._sw.running) { window._sw.elapsed = incoming.gn_sw_elapsed; }
       }
-      if (incoming.gn_sw_running !== undefined && incoming.gn_sw_startTime !== undefined) {
-        if (incoming.gn_sw_running && incoming.gn_sw_startTime && window._sw && !window._sw.running) {
-          window._sw.startTime = incoming.gn_sw_startTime;
-          window._sw.running = true;
-          window._sw.elapsed = Date.now() - incoming.gn_sw_startTime;
-          localStorage.setItem('gn_sw_elapsed', String(window._sw.elapsed));
-          window.dispatchEvent(new CustomEvent('sw_remote_start', { detail: { startTime: incoming.gn_sw_startTime } }));
-        }
+      if (incoming.gn_sw_running && incoming.gn_sw_startTime) {
+        localStorage.setItem('gn_sw_startTime', String(incoming.gn_sw_startTime));
+        localStorage.setItem('gn_sw_running', '1');
+      } else if (incoming.gn_sw_running === false) {
+        localStorage.removeItem('gn_sw_startTime');
+        localStorage.removeItem('gn_sw_running');
       }
     }
     const db = loadDb();

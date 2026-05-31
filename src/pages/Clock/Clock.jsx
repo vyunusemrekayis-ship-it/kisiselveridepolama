@@ -5,13 +5,25 @@ import { todayStr, isGoalActive } from '../../lib/utils';
 // window._sw: Home widget ve Clock arasında paylaşılan tek kaynak
 // elapsed: aktif sayacın ms cinsinden değeri (log'dan bağımsız)
 if (!window._sw) {
-  window._sw = {
-    running: false,
-    startTime: null,
-    elapsed: parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
-    sessionStartLabel: null,
-    sessionStartMs: null,
-  };
+  const remoteRunning = localStorage.getItem('gn_sw_running') === '1';
+  const remoteStart = parseInt(localStorage.getItem('gn_sw_startTime') || '0');
+  if (remoteRunning && remoteStart) {
+    window._sw = {
+      running: true,
+      startTime: remoteStart,
+      elapsed: Date.now() - remoteStart,
+      sessionStartLabel: null,
+      sessionStartMs: remoteStart,
+    };
+  } else {
+    window._sw = {
+      running: false,
+      startTime: null,
+      elapsed: parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
+      sessionStartLabel: null,
+      sessionStartMs: null,
+    };
+  }
 } else if (!window._sw.running) {
   const stored = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
   if (stored !== window._sw.elapsed) window._sw.elapsed = stored;
@@ -54,16 +66,6 @@ export default function Clock() {
     return () => clearInterval(t);
   }, []);
 
-  // Diğer cihazdan başlatılınca sync
-  useEffect(() => {
-    const handler = () => {
-      setSwRunning(true);
-      setDisplayMs(Date.now() - window._sw.startTime);
-    };
-    window.addEventListener('sw_remote_start', handler);
-    return () => window.removeEventListener('sw_remote_start', handler);
-  }, []);
-
   // Enter kısayolu
   useEffect(() => {
     const handleKey = (e) => {
@@ -83,6 +85,7 @@ export default function Clock() {
       window._sw.elapsed = elapsed;
       window._sw.startTime = null;
       localStorage.setItem('gn_sw_elapsed', elapsed);
+      if (window._fbUser) { import('../../lib/firebase').then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_elapsed: elapsed, gn_sw_startTime: null, gn_sw_running: false}); }); }
       setSwRunning(false);
       setDisplayMs(elapsed);
 
@@ -104,7 +107,6 @@ export default function Clock() {
       window._sw.startTime = Date.now() - window._sw.elapsed;
       window._sw.running = true;
       setSwRunning(true);
-      // startTime'ı Firestore'a kaydet — diğer cihaz buradan devam eder
       if (window._fbUser) { import('../../lib/firebase').then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_startTime: window._sw.startTime, gn_sw_running: true}); }); }
     }
   };
