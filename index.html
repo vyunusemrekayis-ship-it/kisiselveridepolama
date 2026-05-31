@@ -37,7 +37,7 @@
       window._fbSignInWithPopup = signInWithPopup;
       window._fbOnAuthStateChanged = onAuthStateChanged;
 
-      const SK = 'gunlugum_v3';
+      const SK = 'gn_db';
 
       // Firestore sync
       window.loadFromFirestore = async function(uid) {
@@ -51,9 +51,9 @@
             if (d.notes) localStorage.setItem('gn_notes', JSON.stringify(d.notes));
             if (d.todos) localStorage.setItem('gn_todos', JSON.stringify(d.todos));
             if (d.chains) localStorage.setItem('gn_chains', JSON.stringify(d.chains));
-            if (d.wl) localStorage.setItem('gn_wl', JSON.stringify(d.wl));
-            if (d.rl) localStorage.setItem('gn_rl', JSON.stringify(d.rl));
-            if (d.sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(d.sw_log));
+            if (d.gn_wl) localStorage.setItem('gn_wl', JSON.stringify(d.gn_wl));
+            if (d.gn_rl) localStorage.setItem('gn_rl', JSON.stringify(d.gn_rl));
+            if (d.gn_sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(d.gn_sw_log));
           }
           if (!window._userProfile && auth.currentUser) {
             window._userProfile = { name: auth.currentUser.displayName || auth.currentUser.email };
@@ -67,13 +67,13 @@
         try {
           const ref = doc(fsdb, 'users', window._fbUser.uid);
           await setDoc(ref, {
-            main: JSON.parse(localStorage.getItem(SK) || '{}'),
+            main: JSON.parse(localStorage.getItem('gn_db') || '{}'),
             notes: JSON.parse(localStorage.getItem('gn_notes') || '{}'),
             todos: JSON.parse(localStorage.getItem('gn_todos') || '{}'),
             chains: JSON.parse(localStorage.getItem('gn_chains') || '[]'),
-            wl: JSON.parse(localStorage.getItem('gn_wl') || '[]'),
-            rl: JSON.parse(localStorage.getItem('gn_rl') || '[]'),
-            sw_log: JSON.parse(localStorage.getItem('gn_sw_log') || '[]'),
+            gn_wl: JSON.parse(localStorage.getItem('gn_wl') || '[]'),
+            gn_rl: JSON.parse(localStorage.getItem('gn_rl') || '[]'),
+            gn_sw_log: JSON.parse(localStorage.getItem('gn_sw_log') || '[]'),
           });
         } catch(e) { console.error('Firestore kayıt:', e); }
       };
