@@ -19,14 +19,12 @@ const TABS = [
 ];
 
 export default function Finance() {
-  const { db } = useStore(); // db değişince (onSnapshot) finans da yenile
+  const { finance } = useStore();
   const [data, setData] = useState(loadFinance);
 
   useEffect(() => {
-    // Firestore'dan yeni veri gelince finans state'ini güncelle
-    const fresh = loadFinance();
-    setData(fresh);
-  }, [db]);
+    if (finance) setData({ ...loadFinance(), ...finance });
+  }, [finance]);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleSave = (newData) => {

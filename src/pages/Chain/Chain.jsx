@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { todayStr, calcChainStreak } from '../../lib/utils';
 
@@ -167,8 +167,10 @@ function BigChain({ chain, onToggleDay }) {
 }
 
 export default function Chain() {
-  const { getChains, setChains } = useStore();
+  const { getChains, setChains, chains: storeChains } = useStore();
   const [chains, setLocalChains] = useState(getChains());
+
+  useEffect(() => { setLocalChains(storeChains); }, [storeChains]);
   const [showForm, setShowForm] = useState(false);
   const [editingChain, setEditingChain] = useState(null);
   const [selectedChain, setSelectedChain] = useState(null);

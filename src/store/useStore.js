@@ -20,63 +20,99 @@ function loadDb() {
   } catch { return defaultDb; }
 }
 
+const lsParse = (key, def) => { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); } catch { return def; } };
+
 function saveDb(db) {
   localStorage.setItem(SK, JSON.stringify(db));
+  fsWrite({ main: db });
+}
+
+function fsWrite(data) {
   if (window._fbUser) {
-    import("../lib/firebase").then(({ saveToFirestore }) => {
-      saveToFirestore(window._fbUser.uid, { main: db });
+    import('../lib/firebase').then(({ saveToFirestore }) => {
+      saveToFirestore(window._fbUser.uid, data);
     });
   }
 }
 
-const lsGet = (key, def = '{}') => { try { return JSON.parse(localStorage.getItem(key) || def); } catch { return JSON.parse(def); } };
-const lsSet = (key, val) => {
-  localStorage.setItem(key, JSON.stringify(val));
-  if (window._fbUser) {
-    import("../lib/firebase").then(({ saveToFirestore }) => {
-      saveToFirestore(window._fbUser.uid, { [key]: val });
-    });
-  }
-};
-
 export const useStore = create((set, get) => ({
+  // ── STATE ──
   db: loadDb(),
   currentPage: 'home',
   sidebarCollapsed: false,
   userProfile: null,
-  swState: null, // { running, startTime } — Clock sync için
-  swLog: JSON.parse(localStorage.getItem('gn_sw_log') || '[]'),
 
+  // Reactive state — onSnapshot gelince bunlar güncellenir, component'ler yeniden render olur
+  todos: lsParse('gn_todos', {}),
+  notes: lsParse('gn_notes', {}),
+  chains: lsParse('gn_chains', []),
+  swLog: lsParse('gn_sw_log', []),
+  swState: null, // { running, startTime, elapsed }
+  finance: lsParse('gn_finance_v2', null),
+
+  // ── NAV ──
   setCurrentPage: (page) => set({ currentPage: page }),
   toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setUserProfile: (profile) => set({ userProfile: profile }),
 
+  // ── RELOAD (onSnapshot'tan çağrılır) ──
   reloadDb: (incoming) => {
     if (incoming) {
-      if (incoming.main) localStorage.setItem(SK, JSON.stringify(incoming.main));
-      if (incoming.gn_notes) localStorage.setItem('gn_notes', JSON.stringify(incoming.gn_notes));
-      if (incoming.gn_todos) localStorage.setItem('gn_todos', JSON.stringify(incoming.gn_todos));
-      if (incoming.gn_chains) localStorage.setItem('gn_chains', JSON.stringify(incoming.gn_chains));
+      const updates = {};
+
+      if (incoming.main) {
+        localStorage.setItem(SK, JSON.stringify(incoming.main));
+        updates.db = loadDb();
+      }
+      if (incoming.gn_todos !== undefined) {
+        localStorage.setItem('gn_todos', JSON.stringify(incoming.gn_todos));
+        updates.todos = incoming.gn_todos;
+      }
+      if (incoming.gn_notes !== undefined) {
+        localStorage.setItem('gn_notes', JSON.stringify(incoming.gn_notes));
+        updates.notes = incoming.gn_notes;
+      }
+      if (incoming.gn_chains !== undefined) {
+        localStorage.setItem('gn_chains', JSON.stringify(incoming.gn_chains));
+        updates.chains = incoming.gn_chains;
+      }
       if (incoming.gn_sw_log !== undefined) {
         localStorage.setItem('gn_sw_log', JSON.stringify(incoming.gn_sw_log));
-        set({ swLog: incoming.gn_sw_log });
+        updates.swLog = incoming.gn_sw_log;
       }
-      if (incoming.gn_finance_v2) localStorage.setItem('gn_finance_v2', JSON.stringify(incoming.gn_finance_v2));
-      if (incoming.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
-
-      // Kronometre remote sync — Clock bunu izler
+      if (incoming.gn_finance_v2 !== undefined) {
+        localStorage.setItem('gn_finance_v2', JSON.stringify(incoming.gn_finance_v2));
+        updates.finance = incoming.gn_finance_v2;
+      }
       if (incoming.gn_sw_running !== undefined) {
-        set({ swState: {
+        updates.swState = {
           running: !!incoming.gn_sw_running,
           startTime: incoming.gn_sw_startTime || null,
           elapsed: incoming.gn_sw_elapsed ?? parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
-        }});
+        };
+        if (incoming.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
+        if (incoming.gn_sw_startTime) localStorage.setItem('gn_sw_startTime', String(incoming.gn_sw_startTime));
+        else localStorage.removeItem('gn_sw_startTime');
+        if (incoming.gn_sw_running) localStorage.setItem('gn_sw_running', '1');
+        else localStorage.removeItem('gn_sw_running');
       }
+
+      if (Object.keys(updates).length > 0) set(updates);
+    } else {
+      // İlk yükleme
+      set({
+        db: loadDb(),
+        todos: lsParse('gn_todos', {}),
+        notes: lsParse('gn_notes', {}),
+        chains: lsParse('gn_chains', []),
+        swLog: lsParse('gn_sw_log', []),
+        finance: lsParse('gn_finance_v2', null),
+      });
     }
-    set({ db: loadDb() });
-    // window._sw varsa güncelle ama yoksa dokunma — Clock kendi init eder
+    // window._sw güvenli güncelle
     try { if (window._sw && !window._sw.running) { window._sw.elapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0'); } } catch {}
   },
+
   setDb: (db) => { saveDb(db); set({ db }); },
 
   // ── FILMS ──
@@ -109,31 +145,44 @@ export const useStore = create((set, get) => ({
   setReadlist: (rl) => { const db = get().db; const updated = { ...db, rl }; saveDb(updated); set({ db: updated }); },
 
   // ── TODOS ──
-  getTodos: () => lsGet('gn_todos', '{}'),
-  setTodos: (todos) => lsSet('gn_todos', todos),
-  addTodo: (date, text) => { const todos = lsGet('gn_todos', '{}'); if (!todos[date]) todos[date] = []; todos[date].push({ text, done: false }); lsSet('gn_todos', todos); },
-  toggleTodo: (date, i) => { const todos = lsGet('gn_todos', '{}'); if (todos[date]?.[i]) todos[date][i].done = !todos[date][i].done; lsSet('gn_todos', todos); },
-  deleteTodo: (date, i) => { const todos = lsGet('gn_todos', '{}'); if (todos[date]) todos[date].splice(i, 1); lsSet('gn_todos', todos); },
+  getTodos: () => get().todos,
+  setTodos: (todos) => { localStorage.setItem('gn_todos', JSON.stringify(todos)); fsWrite({ gn_todos: todos }); set({ todos }); },
+  addTodo: (date, text) => {
+    const todos = { ...get().todos };
+    if (!todos[date]) todos[date] = [];
+    todos[date] = [...todos[date], { text, done: false }];
+    localStorage.setItem('gn_todos', JSON.stringify(todos)); fsWrite({ gn_todos: todos }); set({ todos });
+  },
+  toggleTodo: (date, i) => {
+    const todos = JSON.parse(JSON.stringify(get().todos));
+    if (todos[date]?.[i]) todos[date][i].done = !todos[date][i].done;
+    localStorage.setItem('gn_todos', JSON.stringify(todos)); fsWrite({ gn_todos: todos }); set({ todos });
+  },
+  deleteTodo: (date, i) => {
+    const todos = JSON.parse(JSON.stringify(get().todos));
+    if (todos[date]) todos[date].splice(i, 1);
+    localStorage.setItem('gn_todos', JSON.stringify(todos)); fsWrite({ gn_todos: todos }); set({ todos });
+  },
 
   // ── NOTES ──
-  getNotes: () => lsGet('gn_notes', '{}'),
-  setNotes: (notes) => lsSet('gn_notes', notes),
-
-  // ── MEDIA ──
-  getMedia: () => lsGet('gn_media', '{}'),
-  setMedia: (media) => lsSet('gn_media', media),
+  getNotes: () => get().notes,
+  setNotes: (notes) => { localStorage.setItem('gn_notes', JSON.stringify(notes)); fsWrite({ gn_notes: notes }); set({ notes }); },
 
   // ── CHAINS ──
-  getChains: () => lsGet('gn_chains', '[]'),
-  setChains: (chains) => lsSet('gn_chains', chains),
+  getChains: () => get().chains,
+  setChains: (chains) => { localStorage.setItem('gn_chains', JSON.stringify(chains)); fsWrite({ gn_chains: chains }); set({ chains }); },
+
+  // ── MEDIA ──
+  getMedia: () => { try { return JSON.parse(localStorage.getItem('gn_media') || '{}'); } catch { return {}; } },
+  setMedia: (media) => { localStorage.setItem('gn_media', JSON.stringify(media)); },
 
   // ── STOPWATCH ──
-  getSwLog: () => lsGet('gn_sw_log', '[]'),
-  setSwLog: (log) => { lsSet('gn_sw_log', log); set({ swLog: log }); },
+  getSwLog: () => get().swLog,
+  setSwLog: (swLog) => { localStorage.setItem('gn_sw_log', JSON.stringify(swLog)); fsWrite({ gn_sw_log: swLog }); set({ swLog }); },
 
   // ── AI ──
-  getAiProfile: () => lsGet('gn_ai_profile', '{}'),
-  setAiProfile: (profile) => lsSet('gn_ai_profile', profile),
+  getAiProfile: () => { try { return JSON.parse(localStorage.getItem('gn_ai_profile') || '{}'); } catch { return {}; } },
+  setAiProfile: (profile) => { localStorage.setItem('gn_ai_profile', JSON.stringify(profile)); },
   getAiSummary: () => { try { return localStorage.getItem('gn_ai_summary') || ''; } catch { return ''; } },
   setAiSummary: (summary) => { localStorage.setItem('gn_ai_summary', summary); },
 }));

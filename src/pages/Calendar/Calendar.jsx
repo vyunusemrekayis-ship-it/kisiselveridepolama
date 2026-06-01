@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { TR_M, TR_D, todayStr, getSpecialDays, CAL_LABELS, fmtDate } from '../../lib/utils';
 
@@ -94,12 +94,16 @@ function MediaViewer({ media, ds, onClose, idx }) {
 }
 
 export default function Calendar() {
-  const { db, getTodos, setTodos, getNotes, setNotes, getMedia, setMedia, addSpecialDay, deleteSpecialDay } = useStore();
+  const { db, getTodos, setTodos, getNotes, setNotes, getMedia, setMedia, addSpecialDay, deleteSpecialDay, todos: storeTodos, notes: storeNotes } = useStore();
   const today = todayStr();
   const [viewDate, setViewDate] = useState(new Date());
   const [selected, setSelected] = useState(today);
   const [todos, setLocalTodos] = useState(getTodos());
   const [notes, setLocalNotes] = useState(getNotes());
+
+  // onSnapshot gelince store güncellenir, local state de güncellenir
+  useEffect(() => { setLocalTodos(storeTodos); }, [storeTodos]);
+  useEffect(() => { setLocalNotes(storeNotes); }, [storeNotes]);
   const [media, setLocalMedia] = useState(getMedia());
   const [todoInput, setTodoInput] = useState('');
   const [noteInput, setNoteInput] = useState('');
