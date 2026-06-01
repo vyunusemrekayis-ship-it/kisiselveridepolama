@@ -185,6 +185,9 @@ function TodoWidget({ todos, today, onNavigate, getTodos, setTodos }) {
   );
 }
 
+// window._sw her zaman var olsun
+if (!window._sw) window._sw = { running: false, startTime: null, elapsed: parseInt(localStorage.getItem('gn_sw_elapsed') || '0'), sessionStartLabel: null, sessionStartMs: null };
+
 export default function Home() {
   const { db, setCurrentPage, getTodos, setTodos, getChains, swState } = useStore();
   const [time, setTime] = useState(new Date());
