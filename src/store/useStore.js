@@ -49,6 +49,9 @@ export const useStore = create((set, get) => ({
   swLog: lsParse('gn_sw_log', []),
   swState: null, // { running, startTime, elapsed }
   finance: lsParse('gn_finance_v2', null),
+  aiProfile: lsParse('gn_ai_profile', {}),
+  aiMemory: lsParse('gn_ai_memory', []),
+  aiSummary: localStorage.getItem('gn_ai_summary') || '',
 
   // ── NAV ──
   setCurrentPage: (page) => set({ currentPage: page }),
@@ -84,6 +87,18 @@ export const useStore = create((set, get) => ({
         localStorage.setItem('gn_finance_v2', JSON.stringify(incoming.gn_finance_v2));
         updates.finance = incoming.gn_finance_v2;
       }
+      if (incoming.gn_ai_profile !== undefined) {
+        localStorage.setItem('gn_ai_profile', JSON.stringify(incoming.gn_ai_profile));
+        updates.aiProfile = incoming.gn_ai_profile;
+      }
+      if (incoming.gn_ai_memory !== undefined) {
+        localStorage.setItem('gn_ai_memory', JSON.stringify(incoming.gn_ai_memory));
+        updates.aiMemory = incoming.gn_ai_memory;
+      }
+      if (incoming.gn_ai_summary !== undefined) {
+        localStorage.setItem('gn_ai_summary', incoming.gn_ai_summary);
+        updates.aiSummary = incoming.gn_ai_summary;
+      }
       if (incoming.gn_sw_running !== undefined) {
         updates.swState = {
           running: !!incoming.gn_sw_running,
@@ -107,6 +122,9 @@ export const useStore = create((set, get) => ({
         chains: lsParse('gn_chains', []),
         swLog: lsParse('gn_sw_log', []),
         finance: lsParse('gn_finance_v2', null),
+        aiProfile: lsParse('gn_ai_profile', {}),
+        aiMemory: lsParse('gn_ai_memory', []),
+        aiSummary: localStorage.getItem('gn_ai_summary') || '',
       });
     }
     // window._sw güvenli güncelle
@@ -181,8 +199,8 @@ export const useStore = create((set, get) => ({
   setSwLog: (swLog) => { localStorage.setItem('gn_sw_log', JSON.stringify(swLog)); fsWrite({ gn_sw_log: swLog }); set({ swLog }); },
 
   // ── AI ──
-  getAiProfile: () => { try { return JSON.parse(localStorage.getItem('gn_ai_profile') || '{}'); } catch { return {}; } },
-  setAiProfile: (profile) => { localStorage.setItem('gn_ai_profile', JSON.stringify(profile)); },
-  getAiSummary: () => { try { return localStorage.getItem('gn_ai_summary') || ''; } catch { return ''; } },
-  setAiSummary: (summary) => { localStorage.setItem('gn_ai_summary', summary); },
+  getAiProfile: () => get().aiProfile,
+  setAiProfile: (aiProfile) => { localStorage.setItem('gn_ai_profile', JSON.stringify(aiProfile)); set({ aiProfile }); },
+  getAiSummary: () => get().aiSummary,
+  setAiSummary: (aiSummary) => { localStorage.setItem('gn_ai_summary', aiSummary); set({ aiSummary }); },
 }));

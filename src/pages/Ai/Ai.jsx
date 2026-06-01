@@ -7,6 +7,16 @@ const MESSAGES_KEY = 'gn_ai_messages';
 function loadMessages() { try { return JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]'); } catch { return []; } }
 function saveMessages(msgs) { localStorage.setItem(MESSAGES_KEY, JSON.stringify(msgs.slice(-100))); }
 
+function syncAiMeta() {
+  if (!window._fbUser) return;
+  import('../../lib/firebase').then(({ saveToFirestore }) => {
+    const profile = JSON.parse(localStorage.getItem('gn_ai_profile') || '{}');
+    const memory = JSON.parse(localStorage.getItem('gn_ai_memory') || '[]');
+    const summary = localStorage.getItem('gn_ai_summary') || '';
+    saveToFirestore(window._fbUser.uid, { gn_ai_profile: profile, gn_ai_memory: memory, gn_ai_summary: summary });
+  });
+}
+
 function getDailyContext(db, store) {
   const today = new Date().toISOString().split('T')[0];
   const todos = store.getTodos();
@@ -110,7 +120,7 @@ async function updateProfileIfNeeded(messages, store) {
     const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, messages: [{ role: 'user', content: `Kullanıcının mesajlarından onun hakkında öğrenilebilecek bilgileri JSON olarak çıkar.\nMevcut profil: ${JSON.stringify(existingProfile)}\nYeni mesajlar: ${userMsgs}\n\nSadece JSON döndür. Örnek: {"şehir": "Trabzon", "meslek": "öğrenci"}\nYeni bilgi yoksa mevcut profili döndür.` }] }) });
     const data = await res.json();
     const text = data.content?.[0]?.text || '{}';
-    try { const newProfile = JSON.parse(text.replace(/```json|```/g, '').trim()); if (Object.keys(newProfile).length > 0) store.setAiProfile(newProfile); } catch {}
+    try { const newProfile = JSON.parse(text.replace(/```json|```/g, '').trim()); if (Object.keys(newProfile).length > 0) syncAiMeta(); store.setAiProfile(newProfile); } catch {}
   } catch(e) { console.warn('Profil güncelleme hatası:', e); }
 }
 
