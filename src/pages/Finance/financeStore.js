@@ -24,7 +24,7 @@ export function loadFinance() {
 export function saveFinance(data) {
   localStorage.setItem(LS_KEY, JSON.stringify(data));
   if (window._fbUser) {
-    import('../lib/firebase').then(({ saveToFirestore }) => {
+    import('../../lib/firebase').then(({ saveToFirestore }) => {
       saveToFirestore(window._fbUser.uid, { gn_finance_v2: data });
     });
   }
