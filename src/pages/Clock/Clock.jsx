@@ -23,7 +23,7 @@ const fsSync = (data) => {
 };
 
 export default function Clock() {
-  const { getSwLog, setSwLog, db, updateGoalProgress, swState } = useStore();
+  const { getSwLog, setSwLog, db, updateGoalProgress, swState, swLog: storeSwLog } = useStore();
 
   const initStartTime = parseInt(localStorage.getItem('gn_sw_startTime') || '0');
   const initRunning = localStorage.getItem('gn_sw_running') === '1' && initStartTime > 0;
@@ -38,6 +38,9 @@ export default function Clock() {
     initRunning ? Math.max(0, Date.now() - initStartTime) : parseInt(localStorage.getItem('gn_sw_elapsed') || '0')
   );
   const [log, setLog] = useState(getSwLog());
+
+  // Store'daki swLog değişince (onSnapshot) log state'ini güncelle
+  useEffect(() => { setLog(storeSwLog); }, [storeSwLog]);
   const [selected, setSelected] = useState(new Set());
   const [transferModal, setTransferModal] = useState(false);
   const [pickedGoal, setPickedGoal] = useState(null);

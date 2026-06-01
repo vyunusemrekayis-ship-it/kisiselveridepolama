@@ -45,6 +45,7 @@ export const useStore = create((set, get) => ({
   sidebarCollapsed: false,
   userProfile: null,
   swState: null, // { running, startTime } — Clock sync için
+  swLog: JSON.parse(localStorage.getItem('gn_sw_log') || '[]'),
 
   setCurrentPage: (page) => set({ currentPage: page }),
   toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
@@ -56,7 +57,10 @@ export const useStore = create((set, get) => ({
       if (incoming.gn_notes) localStorage.setItem('gn_notes', JSON.stringify(incoming.gn_notes));
       if (incoming.gn_todos) localStorage.setItem('gn_todos', JSON.stringify(incoming.gn_todos));
       if (incoming.gn_chains) localStorage.setItem('gn_chains', JSON.stringify(incoming.gn_chains));
-      if (incoming.gn_sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(incoming.gn_sw_log));
+      if (incoming.gn_sw_log !== undefined) {
+        localStorage.setItem('gn_sw_log', JSON.stringify(incoming.gn_sw_log));
+        set({ swLog: incoming.gn_sw_log });
+      }
       if (incoming.gn_finance_v2) localStorage.setItem('gn_finance_v2', JSON.stringify(incoming.gn_finance_v2));
       if (incoming.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
 
@@ -125,7 +129,7 @@ export const useStore = create((set, get) => ({
 
   // ── STOPWATCH ──
   getSwLog: () => lsGet('gn_sw_log', '[]'),
-  setSwLog: (log) => lsSet('gn_sw_log', log),
+  setSwLog: (log) => { lsSet('gn_sw_log', log); set({ swLog: log }); },
 
   // ── AI ──
   getAiProfile: () => lsGet('gn_ai_profile', '{}'),
