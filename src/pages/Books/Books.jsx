@@ -135,9 +135,9 @@ export default function Books() {
   const [showRlForm, setShowRlForm] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [editingRl, setEditingRl] = useState(null);
-  const [rl, setRlState] = useState(getReadlist());
-
-  const refreshRl = () => setRlState(getReadlist());
+  // db.rl reaktif — onSnapshot gelince db güncellenir, rl otomatik güncellenir
+  const rl = db.rl || [];
+  const refreshRl = () => {};
 
   const sorted = [...(db.b || [])].map((b, i) => ({ b, i })).sort((a, b) => {
     const da = a.b.end || a.b.start || ''; const db2 = b.b.end || b.b.start || '';

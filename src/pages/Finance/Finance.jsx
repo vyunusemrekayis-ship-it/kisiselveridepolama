@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadFinance, saveFinance } from './financeStore';
+import { useStore } from '../../store/useStore';
 import FinanceDashboard from './FinanceDashboard';
 import FinanceSubscriptions from './FinanceSubscriptions';
 import FinanceCategories from './FinanceCategories';
@@ -18,7 +19,14 @@ const TABS = [
 ];
 
 export default function Finance() {
+  const { db } = useStore(); // db değişince (onSnapshot) finans da yenile
   const [data, setData] = useState(loadFinance);
+
+  useEffect(() => {
+    // Firestore'dan yeni veri gelince finans state'ini güncelle
+    const fresh = loadFinance();
+    setData(fresh);
+  }, [db]);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleSave = (newData) => {

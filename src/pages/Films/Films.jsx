@@ -145,9 +145,9 @@ export default function Films() {
   const [showWlForm, setShowWlForm] = useState(false);
   const [editingFilm, setEditingFilm] = useState(null); // {index, data}
   const [editingWl, setEditingWl] = useState(null);
-  const [wl, setWlState] = useState(getWatchlist());
-
-  const refreshWl = () => setWlState(getWatchlist());
+  // db.wl reaktif — onSnapshot gelince db güncellenir, wl otomatik güncellenir
+  const wl = db.wl || [];
+  const refreshWl = () => {}; // artık gerekmiyor, db reaktif
 
   const sorted = [...(db.f || [])].map((f, i) => ({ f, i })).sort((a, b) => {
     const da = a.f.date || ''; const db2 = b.f.date || '';

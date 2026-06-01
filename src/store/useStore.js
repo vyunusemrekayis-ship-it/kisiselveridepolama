@@ -3,23 +3,17 @@ import { create } from 'zustand';
 const SK = 'gn_db';
 
 const defaultDb = {
-  f: [],  // films (izlendi)
-  b: [],  // books (okundu)
-  g: [],  // goals
-  s: [],  // special days
-  wl: [], // watchlist (izlenecek)
-  rl: [], // readlist (okunacak)
+  f: [], b: [], g: [], s: [], wl: [], rl: [],
 };
 
 function loadDb() {
   try {
     const db = { ...defaultDb, ...JSON.parse(localStorage.getItem(SK) || '{}') };
-    // eski gunlugum_v3'ten göç
     if ((!db.wl || db.wl.length === 0) || (!db.rl || db.rl.length === 0)) {
       try {
         const old = JSON.parse(localStorage.getItem('gunlugum_v3') || '{}');
-        if (old.f && old.f.length > 0 && (!db.wl || db.wl.length === 0)) db.wl = old.f;
-        if (old.b && old.b.length > 0 && (!db.rl || db.rl.length === 0)) db.rl = old.b;
+        if (old.f?.length > 0 && (!db.wl || db.wl.length === 0)) db.wl = old.f;
+        if (old.b?.length > 0 && (!db.rl || db.rl.length === 0)) db.rl = old.b;
       } catch {}
     }
     return db;
@@ -28,17 +22,29 @@ function loadDb() {
 
 function saveDb(db) {
   localStorage.setItem(SK, JSON.stringify(db));
-  if (window._fbUser) { import("../lib/firebase").then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {main: db}); }); }
+  if (window._fbUser) {
+    import("../lib/firebase").then(({ saveToFirestore }) => {
+      saveToFirestore(window._fbUser.uid, { main: db });
+    });
+  }
 }
 
 const lsGet = (key, def = '{}') => { try { return JSON.parse(localStorage.getItem(key) || def); } catch { return JSON.parse(def); } };
-const lsSet = (key, val) => { localStorage.setItem(key, JSON.stringify(val)); if (window._fbUser) { import("../lib/firebase").then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {[key]: val}); }); } };
+const lsSet = (key, val) => {
+  localStorage.setItem(key, JSON.stringify(val));
+  if (window._fbUser) {
+    import("../lib/firebase").then(({ saveToFirestore }) => {
+      saveToFirestore(window._fbUser.uid, { [key]: val });
+    });
+  }
+};
 
 export const useStore = create((set, get) => ({
   db: loadDb(),
   currentPage: 'home',
   sidebarCollapsed: false,
   userProfile: null,
+  swState: null, // { running, startTime } — Clock sync için
 
   setCurrentPage: (page) => set({ currentPage: page }),
   toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
@@ -46,28 +52,25 @@ export const useStore = create((set, get) => ({
 
   reloadDb: (incoming) => {
     if (incoming) {
-      // onSnapshot'tan gelen veri — localStorage'a yaz, state'i güncelle
       if (incoming.main) localStorage.setItem(SK, JSON.stringify(incoming.main));
       if (incoming.gn_notes) localStorage.setItem('gn_notes', JSON.stringify(incoming.gn_notes));
       if (incoming.gn_todos) localStorage.setItem('gn_todos', JSON.stringify(incoming.gn_todos));
       if (incoming.gn_chains) localStorage.setItem('gn_chains', JSON.stringify(incoming.gn_chains));
       if (incoming.gn_sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(incoming.gn_sw_log));
-      if (incoming.gn_sw_elapsed !== undefined) {
-        localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
-        if (window._sw && !window._sw.running) { window._sw.elapsed = incoming.gn_sw_elapsed; }
-      }
-      if (incoming.gn_sw_running && incoming.gn_sw_startTime) {
-        localStorage.setItem('gn_sw_startTime', String(incoming.gn_sw_startTime));
-        localStorage.setItem('gn_sw_running', '1');
-      } else if (incoming.gn_sw_running === false) {
-        localStorage.removeItem('gn_sw_startTime');
-        localStorage.removeItem('gn_sw_running');
+      if (incoming.gn_finance_v2) localStorage.setItem('gn_finance_v2', JSON.stringify(incoming.gn_finance_v2));
+      if (incoming.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
+
+      // Kronometre remote sync — Clock bunu izler
+      if (incoming.gn_sw_running !== undefined) {
+        const newSwState = {
+          running: incoming.gn_sw_running,
+          startTime: incoming.gn_sw_startTime || null,
+          elapsed: incoming.gn_sw_elapsed ?? parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
+        };
+        set({ swState: newSwState });
       }
     }
-    const db = loadDb();
-    set({ db });
-    const elapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
-    if (window._sw && !window._sw.running) { window._sw.elapsed = elapsed; }
+    set({ db: loadDb() });
   },
   setDb: (db) => { saveDb(db); set({ db }); },
 
@@ -92,11 +95,11 @@ export const useStore = create((set, get) => ({
   addSpecialDay: (day) => { const db = get().db; const updated = { ...db, s: [...(db.s || []), day] }; saveDb(updated); set({ db: updated }); },
   deleteSpecialDay: (i) => { const db = get().db; const updated = { ...db, s: (db.s || []).filter((_, idx) => idx !== i) }; saveDb(updated); set({ db: updated }); },
 
-  // ── WATCHLIST (artık gn_db içinde) ──
+  // ── WATCHLIST ──
   getWatchlist: () => get().db.wl || [],
   setWatchlist: (wl) => { const db = get().db; const updated = { ...db, wl }; saveDb(updated); set({ db: updated }); },
 
-  // ── READLIST (artık gn_db içinde) ──
+  // ── READLIST ──
   getReadlist: () => get().db.rl || [],
   setReadlist: (rl) => { const db = get().db; const updated = { ...db, rl }; saveDb(updated); set({ db: updated }); },
 
@@ -121,11 +124,7 @@ export const useStore = create((set, get) => ({
 
   // ── STOPWATCH ──
   getSwLog: () => lsGet('gn_sw_log', '[]'),
-  setSwLog: (log) => {
-    lsSet('gn_sw_log', log);
-    const elapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
-    if (window._fbUser) { import("../lib/firebase").then(({saveToFirestore}) => { saveToFirestore(window._fbUser.uid, {gn_sw_elapsed: elapsed}); }); }
-  },
+  setSwLog: (log) => lsSet('gn_sw_log', log),
 
   // ── AI ──
   getAiProfile: () => lsGet('gn_ai_profile', '{}'),

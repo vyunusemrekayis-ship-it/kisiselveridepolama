@@ -185,15 +185,12 @@ function TodoWidget({ todos, today, onNavigate, getTodos, setTodos }) {
   );
 }
 
-// Stopwatch access
-if (!window._sw) window._sw = { running: false, startTime: null, elapsed: parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), interval: null };
-
 export default function Home() {
-  const { db, setCurrentPage, getTodos, setTodos, getChains } = useStore();
+  const { db, setCurrentPage, getTodos, setTodos, getChains, swState } = useStore();
   const [time, setTime] = useState(new Date());
   const [bgPhoto, setBgPhoto] = useState('');
-  const [swElapsed, setSwElapsed] = useState(window._sw.elapsed);
-  const [swRunning, setSwRunning] = useState(window._sw.running);
+  const [swElapsed, setSwElapsed] = useState(() => parseInt(localStorage.getItem('gn_sw_elapsed') || '0'));
+  const [swRunning, setSwRunning] = useState(() => localStorage.getItem('gn_sw_running') === '1');
   const [goalPeriod, setGoalPeriod] = useState('weekly');
   const [, forceUpdate] = useState(0);
 
@@ -201,6 +198,26 @@ export default function Home() {
     const idx = Math.floor(Math.random() * PHOTOS.length);
     setBgPhoto(PHOTOS[idx]);
   }, []);
+
+  // swState (Firestore'dan remote sync)
+  useEffect(() => {
+    if (!swState) return;
+    if (swState.running && swState.startTime) {
+      if (!window._sw) window._sw = {};
+      window._sw.running = true;
+      window._sw.startTime = swState.startTime;
+      setSwRunning(true);
+    } else if (swState.running === false) {
+      if (!window._sw) window._sw = {};
+      window._sw.running = false;
+      window._sw.startTime = null;
+      if (swState.elapsed !== undefined) {
+        window._sw.elapsed = swState.elapsed;
+        setSwElapsed(swState.elapsed);
+      }
+      setSwRunning(false);
+    }
+  }, [swState]);
 
   // Clock
   useEffect(() => {
@@ -222,14 +239,24 @@ export default function Home() {
 
   const toggleSw = (e) => {
     e.stopPropagation();
+    if (!window._sw) window._sw = { running: false, startTime: null, elapsed: parseInt(localStorage.getItem('gn_sw_elapsed') || '0') };
     if (window._sw.running) {
-      window._sw.elapsed = Date.now() - window._sw.startTime;
-      window._sw.running = false; window._sw.startTime = null;
-      localStorage.setItem('gn_sw_elapsed', window._sw.elapsed);
+      const elapsed = Date.now() - window._sw.startTime;
+      window._sw.elapsed = elapsed;
+      window._sw.running = false;
+      window._sw.startTime = null;
+      localStorage.setItem('gn_sw_elapsed', elapsed);
+      localStorage.removeItem('gn_sw_running');
+      localStorage.removeItem('gn_sw_startTime');
+      if (window._fbUser) { import('../../lib/firebase').then(({ saveToFirestore }) => { saveToFirestore(window._fbUser.uid, { gn_sw_elapsed: elapsed, gn_sw_running: false, gn_sw_startTime: null }); }); }
       setSwRunning(false);
     } else {
-      window._sw.startTime = Date.now() - window._sw.elapsed;
+      const startTime = Date.now() - window._sw.elapsed;
+      window._sw.startTime = startTime;
       window._sw.running = true;
+      localStorage.setItem('gn_sw_running', '1');
+      localStorage.setItem('gn_sw_startTime', startTime);
+      if (window._fbUser) { import('../../lib/firebase').then(({ saveToFirestore }) => { saveToFirestore(window._fbUser.uid, { gn_sw_startTime: startTime, gn_sw_running: true }); }); }
       setSwRunning(true);
     }
   };
