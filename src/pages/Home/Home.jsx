@@ -283,8 +283,8 @@ export default function Home() {
   const totalBooks = db.b?.length || 0;
   const totalFilms = db.f?.length || 0;
 
-  const { main: swMain } = swFmt(window._sw.running && window._sw.startTime ?
-    Date.now() - window._sw.startTime : window._sw.elapsed);
+  const _sw = window._sw || { running: false, startTime: null, elapsed: parseInt(localStorage.getItem('gn_sw_elapsed') || '0') };
+  const { main: swMain } = swFmt(_sw.running && _sw.startTime ? Date.now() - _sw.startTime : _sw.elapsed);
 
   // Mini calendar - current week
   const weekDays = [];

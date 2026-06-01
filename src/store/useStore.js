@@ -62,15 +62,16 @@ export const useStore = create((set, get) => ({
 
       // Kronometre remote sync — Clock bunu izler
       if (incoming.gn_sw_running !== undefined) {
-        const newSwState = {
-          running: incoming.gn_sw_running,
+        set({ swState: {
+          running: !!incoming.gn_sw_running,
           startTime: incoming.gn_sw_startTime || null,
           elapsed: incoming.gn_sw_elapsed ?? parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
-        };
-        set({ swState: newSwState });
+        }});
       }
     }
     set({ db: loadDb() });
+    // window._sw varsa güncelle ama yoksa dokunma — Clock kendi init eder
+    try { if (window._sw && !window._sw.running) { window._sw.elapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0'); } } catch {}
   },
   setDb: (db) => { saveDb(db); set({ db }); },
 
