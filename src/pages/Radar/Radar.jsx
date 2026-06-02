@@ -1,8 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const LS_KEY = 'gn_radar_cities';
-const CACHE_KEY = 'gn_radar_cache';
-const CACHE_TTL = 30 * 60 * 1000; // 30 dk
 
 const CATEGORIES = [
   { id: 'all',        label: 'Tümü',         color: '#94a3b8' },
@@ -26,21 +24,51 @@ function loadCities() {
 function saveCities(list) {
   localStorage.setItem(LS_KEY, JSON.stringify(list));
 }
-function loadCache(cityKey) {
+
+// Firebase cache yardımcıları
+async function loadCacheFromFirebase(cityKey) {
+  if (!window._fbUser || !window._fbDb || !window._fbDoc || !window._fbGetDoc) return null;
   try {
-    const all = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-    const entry = all[cityKey];
-    if (!entry) return null;
-    if (Date.now() - entry.ts > CACHE_TTL) return null;
-    return entry.data;
-  } catch { return null; }
+    const { _fbDb: db, _fbDoc: docFn, _fbGetDoc: getDoc } = window;
+    const ref = docFn(db, 'users', window._fbUser.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    const cache = d?.radar_cache;
+    if (!cache || !cache[cityKey]) return null;
+    return cache[cityKey]; // { items, savedAt }
+  } catch (e) {
+    console.error('Radar cache yükleme hatası:', e);
+    return null;
+  }
 }
-function saveCache(cityKey, data) {
+
+async function saveCacheToFirebase(cityKey, items) {
+  if (!window._fbUser || !window._fbDb || !window._fbDoc || !window._fbSetDoc) return;
   try {
-    const all = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
-    all[cityKey] = { ts: Date.now(), data };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(all));
-  } catch {}
+    const { _fbDb: db, _fbDoc: docFn, _fbSetDoc: setDoc } = window;
+    const ref = docFn(db, 'users', window._fbUser.uid);
+    const savedAt = new Date().toISOString();
+    await setDoc(ref, {
+      radar_cache: {
+        [cityKey]: { items, savedAt }
+      }
+    }, { merge: true });
+    return savedAt;
+  } catch (e) {
+    console.error('Radar cache kayıt hatası:', e);
+    return null;
+  }
+}
+
+// Tarih formatlama: "3 Haziran 2025, 14:32"
+function fmtSavedAt(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const h = d.getHours().toString().padStart(2, '0');
+  const m = d.getMinutes().toString().padStart(2, '0');
+  return `${dateStr}, ${h}:${m}`;
 }
 
 // CSS animasyon pulse için inline style
@@ -103,7 +131,6 @@ function ItemCard({ item, idx }) {
           <div style={{ fontSize:13, fontWeight:500, color:'#e8edf5', lineHeight:1.4, marginBottom:4 }}>
             {item.title}
           </div>
-          {/* Kategori etiketleri */}
           <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:6 }}>
             {cats.map(c => {
               const m = getCatMeta(c);
@@ -120,7 +147,7 @@ function ItemCard({ item, idx }) {
         </div>
       </div>
 
-      {/* Özet — her zaman görünür */}
+      {/* Özet */}
       <div style={{ fontSize:12, color:'rgba(232,237,245,.55)', lineHeight:1.6, paddingLeft:18 }}>
         {item.summary}
       </div>
@@ -159,7 +186,6 @@ function EmptyState({ city }) {
   return (
     <div style={{ textAlign:'center', padding:'60px 20px', color:'rgba(232,237,245,.3)' }}>
       <div style={{ marginBottom:16 }}>
-        {/* Radar CSS animasyonu */}
         <div style={{ position:'relative', width:64, height:64, margin:'0 auto' }}>
           <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid rgba(244,114,182,.15)', animation:'radarPulse 2s ease infinite' }} />
           <div style={{ position:'absolute', inset:8, borderRadius:'50%', border:'2px solid rgba(244,114,182,.25)', animation:'radarPulse 2s ease infinite .4s' }} />
@@ -178,7 +204,8 @@ export default function Radar() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [lastScanned, setLastScanned] = useState(null);
+  const [cacheLoading, setCacheLoading] = useState(false);
+  const [savedAt, setSavedAt] = useState(null); // ISO string
   const [activeFilter, setActiveFilter] = useState('all');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQ, setSearchQ] = useState('');
@@ -187,6 +214,23 @@ export default function Radar() {
   const searchRef = useRef(null);
 
   const activeCity = cities[activeIdx];
+
+  // Şehir değiştiğinde Firebase'den cache'i yükle
+  useEffect(() => {
+    if (!activeCity) { setItems([]); setSavedAt(null); return; }
+    setCacheLoading(true);
+    setItems([]);
+    setSavedAt(null);
+    setActiveFilter('all');
+    setError('');
+    loadCacheFromFirebase(activeCity.name).then(entry => {
+      if (entry?.items?.length) {
+        setItems(entry.items);
+        setSavedAt(entry.savedAt || null);
+      }
+      setCacheLoading(false);
+    });
+  }, [activeIdx, activeCity?.name]);
 
   const suggest = async (q) => {
     if (q.length < 2) { setSuggestions([]); return; }
@@ -209,39 +253,35 @@ export default function Radar() {
     setCities(list);
     setActiveIdx(list.length - 1);
     setShowSearch(false); setSearchQ(''); setSuggestions([]);
-    setItems([]); setLastScanned(null);
+    setItems([]); setSavedAt(null);
   };
 
   const removeCity = (i) => {
     const list = [...cities]; list.splice(i, 1);
     saveCities(list); setCities(list);
     if (activeIdx >= list.length) setActiveIdx(Math.max(0, list.length - 1));
-    setItems([]); setLastScanned(null);
+    setItems([]); setSavedAt(null);
   };
 
   const scan = async () => {
     if (!activeCity) return;
-    const cacheKey = activeCity.name;
-    const cached = loadCache(cacheKey);
-    if (cached) { setItems(cached); setLastScanned(new Date()); setActiveFilter('all'); return; }
 
     setLoading(true); setError(''); setItems([]);
 
-    // Key henüz yüklenmemişse Firebase'den çek
     if (!window.ANTHROPIC_KEY && window.loadApiKey) {
       await window.loadApiKey();
     }
     const key = window.ANTHROPIC_KEY;
-    if (!key) { setError('Anthropic API anahtarı bulunamadı. Firebase config/app dökümanına anthropicKey ekleyin.'); setLoading(false); return; }
+    if (!key) { setError('Anthropic API anahtarı bulunamadı.'); setLoading(false); return; }
 
     const today = new Date();
     const todayStr = today.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
     const todayISO = today.toISOString().split('T')[0];
-
     const cityName = activeCity.name;
     const year = today.getFullYear();
     const weekLater = new Date(today); weekLater.setDate(weekLater.getDate() + 7);
     const weekLaterISO = weekLater.toISOString().split('T')[0];
+
     const promptLines = [
       'Sen bir Yerel Gelismeler asistanisin. Bugunun tarihi: ' + todayStr + ' (' + todayISO + ').',
       '"' + cityName + '" sehri icin WEB SEARCH kullanarak guncel icerik ara.',
@@ -258,6 +298,7 @@ export default function Radar() {
       'En fazla 15 sonuc. Kategori degerleri: etkinlik, kultur, universite, muzik, spor, belediye, saglik, haber.',
     ];
     const prompt = promptLines.join('\n');
+
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -319,22 +360,18 @@ export default function Radar() {
         .join('');
 
       if (!textBlocks.trim()) {
-        console.error('Radar API boş yanıt (raw):', JSON.stringify(currentData, null, 2));
         throw new Error('Model metin üretmedi (stop_reason: ' + currentData.stop_reason + '). Konsolu kontrol et.');
       }
 
       let parsed = [];
       try {
         const clean = textBlocks.split('```json').join('').split('```').join('').trim();
-        // Tam JSON array bul
         const match = clean.match(/\[[\s\S]*\]/);
         if (!match) throw new Error('JSON array bulunamadı');
         let jsonStr = match[0];
-        // Token limitine takılıp yanıt yarıda kestiyse, tam olan objeleri kurtar
         try {
           parsed = JSON.parse(jsonStr);
         } catch {
-          // Son tam '}' den sonrasını at, array'i kapat
           const lastClose = jsonStr.lastIndexOf('},');
           if (lastClose > 0) {
             jsonStr = jsonStr.substring(0, lastClose + 1) + ']';
@@ -349,14 +386,11 @@ export default function Radar() {
         throw new Error('AI yanıtı ayrıştırılamadı. Konsolu kontrol et.');
       }
 
-      // JS tarafında tarih + futbol kulübü filtresi
       if (Array.isArray(parsed)) {
         const clubKeywords = ['trabzonspor', 'beşiktaş', 'galatasaray', 'fenerbahçe', 'transfer', 'fikstür', 'puan durumu', 'süper lig', 'maç sonucu'];
         parsed = parsed.filter(item => {
-          // Futbol kulübü filtresi
           const text = ((item.title || '') + ' ' + (item.summary || '')).toLowerCase();
           if (clubKeywords.some(k => text.includes(k))) return false;
-          // Tarih filtresi
           if (item.date) {
             if (item.date < todayISO) return false;
             if (item.date > weekLaterISO) return false;
@@ -369,9 +403,10 @@ export default function Radar() {
         throw new Error('Sonuç bulunamadı. Daha büyük bir şehir deneyin.');
       }
 
-      saveCache(cacheKey, parsed);
+      // Firebase'e kaydet, savedAt'i al
+      const newSavedAt = await saveCacheToFirebase(activeCity.name, parsed);
       setItems(parsed);
-      setLastScanned(new Date());
+      setSavedAt(newSavedAt);
       setActiveFilter('all');
     } catch (e) {
       setError(e.message);
@@ -386,19 +421,11 @@ export default function Radar() {
         return cats.includes(activeFilter);
       });
 
-  // Kategorilerde kaç tane var
   const catCounts = {};
   items.forEach(item => {
     const cats = Array.isArray(item.categories) ? item.categories : [item.categories || 'haber'];
     cats.forEach(c => { catCounts[c] = (catCounts[c] || 0) + 1; });
   });
-
-  const fmtTime = (d) => {
-    if (!d) return '';
-    const h = d.getHours().toString().padStart(2,'0');
-    const m = d.getMinutes().toString().padStart(2,'0');
-    return `${h}:${m}`;
-  };
 
   return (
     <div style={{ minHeight:'100vh', padding:'20px 24px' }}>
@@ -406,12 +433,11 @@ export default function Radar() {
 
       {/* Üst bar */}
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, flexWrap:'wrap' }}>
-        {/* Şehir sekmeleri */}
         <div style={{ display:'flex', gap:4, flex:1, overflowX:'auto', scrollbarWidth:'none' }}>
           {cities.map((c, i) => (
             <button
               key={i}
-              onClick={() => { setActiveIdx(i); setItems([]); setLastScanned(null); setActiveFilter('all'); }}
+              onClick={() => { setActiveIdx(i); setActiveFilter('all'); setError(''); }}
               style={{
                 padding:'5px 14px', borderRadius:20, fontSize:12, cursor:'pointer', whiteSpace:'nowrap',
                 display:'flex', alignItems:'center', gap:6, border:'none', outline:'none',
@@ -473,9 +499,15 @@ export default function Radar() {
               {activeCity.name}
               <span style={{ fontSize:12, color:'rgba(232,237,245,.3)', fontWeight:400, marginLeft:8 }}>Yerel Gelişmeler</span>
             </div>
-            {lastScanned && (
+            {/* Son tarama bilgisi */}
+            {savedAt && !cacheLoading && (
               <div style={{ fontSize:11, color:'rgba(232,237,245,.3)', marginTop:2 }}>
-                Son tarama: {fmtTime(lastScanned)} · {items.length} sonuç
+                Son tarama: {fmtSavedAt(savedAt)} · {items.length} sonuç
+              </div>
+            )}
+            {cacheLoading && (
+              <div style={{ fontSize:11, color:'rgba(232,237,245,.2)', marginTop:2 }}>
+                Yükleniyor…
               </div>
             )}
           </div>
@@ -527,9 +559,7 @@ export default function Radar() {
                 }}
               >
                 {cat.label}
-                {count > 0 && (
-                  <span style={{ fontSize:10, opacity:.7 }}>{count}</span>
-                )}
+                {count > 0 && <span style={{ fontSize:10, opacity:.7 }}>{count}</span>}
               </button>
             );
           })}
@@ -543,11 +573,11 @@ export default function Radar() {
         </div>
       )}
 
-      {activeCity && !loading && items.length === 0 && !error && (
+      {activeCity && !loading && !cacheLoading && items.length === 0 && !error && (
         <EmptyState city={activeCity.name} />
       )}
 
-      {loading && (
+      {(loading || cacheLoading) && (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16, padding:'60px 0' }}>
           <div style={{ position:'relative', width:64, height:64 }}>
             <div style={{ position:'absolute', inset:0, borderRadius:'50%', border:'2px solid rgba(244,114,182,.1)', animation:'radarPulse 1.5s ease infinite' }} />
@@ -555,8 +585,10 @@ export default function Radar() {
             <div style={{ position:'absolute', inset:16, borderRadius:'50%', border:'2px solid rgba(244,114,182,.35)', animation:'radarPulse 1.5s ease infinite .6s' }} />
             <div style={{ position:'absolute', inset:24, borderRadius:'50%', background:'rgba(244,114,182,.4)', animation:'radarPulse 1.5s ease infinite .9s' }} />
           </div>
-          <div style={{ fontSize:13, color:'rgba(232,237,245,.4)' }}>{activeCity.name} taranıyor…</div>
-          <div style={{ fontSize:11, color:'rgba(232,237,245,.25)' }}>Haber & etkinlik kaynakları aranıyor</div>
+          <div style={{ fontSize:13, color:'rgba(232,237,245,.4)' }}>
+            {loading ? `${activeCity?.name} taranıyor…` : 'Yükleniyor…'}
+          </div>
+          {loading && <div style={{ fontSize:11, color:'rgba(232,237,245,.25)' }}>Haber & etkinlik kaynakları aranıyor</div>}
         </div>
       )}
 

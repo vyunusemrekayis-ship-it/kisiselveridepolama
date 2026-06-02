@@ -55,45 +55,73 @@ function ChainForm({ chain, onSave, onCancel }) {
   );
 }
 
-function MiniChain({ chain, color }) {
+// MiniChain: başlangıç gününden bugüne kadar sırayla büyüyen zincir
+// onExpand: "Tüm Zinciri Gör" butonuna tıklanınca çağrılır
+function MiniChain({ chain, color, onExpand }) {
   const { todayIdx, doneSet } = calcChainStreak(chain);
-  const show = 14;
-  const startIdx = todayIdx - show + 2;
+  const startMs = new Date(chain.start + 'T00:00:00').getTime();
+
+  // Başlangıçtan bugüne kadar olan günleri göster (max 30, scroll ile görülebilir)
+  const totalVisible = todayIdx + 1; // 0'dan todayIdx dahil
   const nodes = [];
-  for (let i = 0; i < show; i++) {
-    const idx = startIdx + i;
-    nodes.push({ idx, isToday: idx === todayIdx, done: doneSet.has(idx) });
+  for (let i = 0; i < totalVisible; i++) {
+    nodes.push({ idx: i, isToday: i === todayIdx, done: doneSet.has(i) });
   }
+
   return (
-    <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-      {nodes.map((n, i) => {
-        const d = new Date(new Date(chain.start + 'T00:00:00').getTime() + n.idx * 86400000);
-        const ds = d.toISOString().split('T')[0];
-        const isFuture = ds > todayStr();
-        return (
-          <div key={n.idx} className="flex items-center flex-shrink-0">
-            <div className="flex flex-col items-center justify-center rounded-full flex-shrink-0"
-              style={{
-                width: 28, height: 28,
-                border: `2px solid ${n.done ? color : n.isToday ? color : 'rgba(255,255,255,0.1)'}`,
-                background: n.done ? color : 'transparent',
-                color: n.done ? '#fff' : n.isToday ? color : 'rgba(232,237,245,0.2)',
-                boxShadow: n.isToday && !n.done ? `0 0 0 2px rgba(255,255,255,0.12)` : 'none',
-                fontSize: 9, fontWeight: 500, lineHeight: 1,
-                opacity: isFuture ? 0.25 : 1,
-              }}>
-              <span>{d.getDate()}</span>
-              <span style={{ fontSize: 6.5, opacity: 0.65, marginTop: 1 }}>{DAYS[d.getDay()]}</span>
-            </div>
-            {i < nodes.length - 1 && (
-              <div style={{
-                width: 8, height: 3, flexShrink: 0, borderRadius: 1.5,
-                background: n.done && nodes[i + 1]?.done ? color + '55' : 'rgba(255,255,255,0.07)',
-              }} />
-            )}
-          </div>
-        );
-      })}
+    <div>
+      <div
+        className="flex items-center overflow-x-auto pb-1"
+        style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+      >
+        {nodes.length === 0 ? (
+          <div className="text-xs text-muted italic">Henüz gün yok</div>
+        ) : (
+          nodes.map((n, i) => {
+            const d = new Date(startMs + n.idx * 86400000);
+            return (
+              <div key={n.idx} className="flex items-center flex-shrink-0">
+                <div
+                  className="flex flex-col items-center justify-center rounded-full flex-shrink-0"
+                  style={{
+                    width: 28, height: 28,
+                    border: `2px solid ${n.done ? color : n.isToday ? color : 'rgba(255,255,255,0.18)'}`,
+                    background: n.done ? color : 'transparent',
+                    color: n.done ? '#fff' : n.isToday ? color : 'rgba(232,237,245,0.45)',
+                    boxShadow: n.isToday && !n.done ? `0 0 0 2px rgba(255,255,255,0.12)` : 'none',
+                    fontSize: 9, fontWeight: 500, lineHeight: 1,
+                  }}
+                >
+                  <span>{d.getDate()}</span>
+                  <span style={{ fontSize: 6.5, opacity: 0.7, marginTop: 1 }}>{DAYS[d.getDay()]}</span>
+                </div>
+                {i < nodes.length - 1 && (
+                  <div style={{
+                    width: 8, height: 3, flexShrink: 0, borderRadius: 1.5,
+                    background: n.done && nodes[i + 1]?.done ? color + '55' : 'rgba(255,255,255,0.1)',
+                  }} />
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Tüm Zinciri Gör butonu */}
+      <button
+        onClick={e => { e.stopPropagation(); onExpand(); }}
+        className="mt-2 text-xs cursor-pointer bg-transparent border-0 transition-opacity"
+        style={{
+          color: color,
+          opacity: 0.7,
+          padding: '2px 0',
+          letterSpacing: '0.01em',
+        }}
+        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+        onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
+      >
+        Tüm Zinciri Gör ›
+      </button>
     </div>
   );
 }
@@ -137,13 +165,15 @@ function BigChain({ chain, onToggleDay }) {
                     style={{
                       width: 42, height: 42, borderRadius: '50%',
                       cursor: isFuture ? 'default' : 'pointer',
-                      border: `2px solid ${done ? color : isToday ? color : isFuture ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.12)'}`,
+                      border: `2px solid ${done ? color : isToday ? color : isFuture ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.18)'}`,
                       background: done ? color : 'transparent',
-                      color: done ? '#fff' : isToday ? color : isFuture ? 'rgba(232,237,245,0.15)' : 'rgba(232,237,245,0.25)',
+                      // Gelecek günler: border soluk AMA yazı okunabilir olsun
+                      color: done ? '#fff' : isToday ? color : isFuture ? 'rgba(232,237,245,0.35)' : 'rgba(232,237,245,0.55)',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0, fontSize: 11, fontWeight: 600, lineHeight: 1,
                       boxShadow: isToday ? '0 0 0 3px rgba(255,255,255,0.15)' : 'none',
-                      opacity: isFuture ? 0.3 : 1,
+                      // Gelecek günler için opacity kaldırıldı, renk ile ayırt ediliyor
+                      opacity: 1,
                       transition: 'background .12s, border-color .12s',
                     }}>
                     <span>{d.getDate()}</span>
@@ -152,8 +182,7 @@ function BigChain({ chain, onToggleDay }) {
                   {c < ROW - 1 && dayIdx < totalDays - 1 && (
                     <div style={{
                       width: 8, height: 4, flexShrink: 0, borderRadius: 2,
-                      background: done && nextDone ? color + '45' : 'rgba(255,255,255,0.06)',
-                      opacity: isFuture ? 0.3 : 1,
+                      background: done && nextDone ? color + '45' : isFuture ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)',
                     }} />
                   )}
                 </div>
@@ -313,7 +342,11 @@ export default function Chain() {
                         className="text-xs text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer">×</button>
                     </div>
                   </div>
-                  <MiniChain chain={ch} color={color} />
+                  <MiniChain
+                    chain={ch}
+                    color={color}
+                    onExpand={() => setSelectedChain(i)}
+                  />
                 </div>
               );
             })}
