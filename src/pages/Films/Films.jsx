@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtDate, OMDB_KEY, esc } from '../../lib/utils';
+import { fmtDate, OMDB_KEY } from '../../lib/utils';
 
 const posterCache = {};
 
@@ -9,13 +9,13 @@ async function fetchPoster(name) {
   try {
     const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`);
     const data = await res.json();
-    const url = (data.Poster && data.Poster !== 'N/A') ? data.Poster.replace(/SX\d+/, 'SX1000').replace('http://','https://') : null;
+    const url = (data.Poster && data.Poster !== 'N/A') ? data.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://') : null;
     posterCache[name] = url;
     return url;
   } catch { posterCache[name] = null; return null; }
 }
 
-function FilmCard({ film, onEdit, onDelete, onMoveTo, type }) {
+function FilmCard({ film, onEdit, onDelete, onMoveTo }) {
   const [poster, setPoster] = useState(posterCache[film.name]);
 
   useEffect(() => {
@@ -25,20 +25,22 @@ function FilmCard({ film, onEdit, onDelete, onMoveTo, type }) {
   }, [film.name]);
 
   return (
-    <div className="card group" style={{width:275}}>
+    <div className="card group" style={{ width: 275 }}>
       {poster
-        ? <img src={poster} alt={film.name} className="rounded-t-xl block" style={{width:275,height:388,objectFit:'cover',objectPosition:'center top',display:'block'}} />
-        : <div className="rounded-t-xl flex items-center justify-center text-4xl opacity-40" style={{width:275,height:388,background:'var(--surface2)'}}>🎬</div>
+        ? <img src={poster} alt={film.name} className="rounded-t-xl block" style={{ width: 275, height: 388, objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
+        : <div className="rounded-t-xl flex items-center justify-center text-4xl opacity-40" style={{ width: 275, height: 388, background: 'var(--surface2)' }}>🎬</div>
       }
       <div className="p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="font-medium text-sm text-text truncate">{film.name}</div>
-            {(film.dir || film.date) && (
-              <div className="text-xs text-muted mt-0.5">
-                {[film.dir, fmtDate(film.date)].filter(Boolean).join(' · ')}
-              </div>
-            )}
+            <div className="text-xs text-muted mt-0.5">
+              {film.old
+                ? <span style={{ color: 'rgba(232,237,245,0.3)', fontStyle: 'italic' }}>eskiden izledim</span>
+                : [film.dir, fmtDate(film.date)].filter(Boolean).join(' · ')
+              }
+              {!film.old && film.dir && !film.date && film.dir}
+            </div>
           </div>
           <div className="flex gap-1 flex-shrink-0">
             {onMoveTo && (
@@ -54,8 +56,8 @@ function FilmCard({ film, onEdit, onDelete, onMoveTo, type }) {
   );
 }
 
-function FilmForm({ film, onSave, onCancel, title }) {
-  const [form, setForm] = useState({ name: '', dir: '', date: '', note: '', ...film });
+function FilmForm({ film, onSave, onCancel }) {
+  const [form, setForm] = useState({ name: '', dir: '', date: '', note: '', old: false, ...film });
   const [dirLoading, setDirLoading] = useState(false);
 
   const autoFill = async () => {
@@ -74,23 +76,49 @@ function FilmForm({ film, onSave, onCancel, title }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
           <label className="form-label">Film Adı *</label>
-          <input className="form-input" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Örn: Inception" />
+          <input className="form-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Örn: Inception" />
         </div>
         <div>
           <label className="form-label">Yönetmen {dirLoading && <span className="text-[10px] text-muted ml-1">yükleniyor...</span>}</label>
           <div className="flex gap-2">
-            <input className="form-input" value={form.dir} onChange={e => setForm(f => ({...f, dir: e.target.value}))} placeholder="Otomatik doldur →" />
+            <input className="form-input" value={form.dir} onChange={e => setForm(f => ({ ...f, dir: e.target.value }))} placeholder="Otomatik doldur →" />
             <button onClick={autoFill} className="px-3 py-2 rounded-lg border border-border bg-surface2 text-muted text-xs whitespace-nowrap cursor-pointer">✦</button>
           </div>
         </div>
-        <div>
-          <label className="form-label">İzlenme Tarihi</label>
-          <input type="date" className="form-input" value={form.date} onChange={e => setForm(f => ({...f, date: e.target.value}))} />
-        </div>
+        {!form.old && (
+          <div>
+            <label className="form-label">İzlenme Tarihi</label>
+            <input type="date" className="form-input" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+          </div>
+        )}
       </div>
+
+      {/* Eskiden izledim toggle */}
+      <div className="mb-3">
+        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+          <div
+            onClick={() => setForm(f => ({ ...f, old: !f.old, date: !f.old ? '' : f.date }))}
+            style={{
+              width: 36, height: 20, borderRadius: 10,
+              background: form.old ? 'rgba(58,123,213,0.5)' : 'rgba(255,255,255,0.1)',
+              border: `1px solid ${form.old ? '#3a7bd5' : 'rgba(255,255,255,0.15)'}`,
+              position: 'relative', transition: 'all 0.2s', flexShrink: 0,
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: 2, left: form.old ? 17 : 2,
+              width: 14, height: 14, borderRadius: '50%',
+              background: form.old ? '#3a7bd5' : 'rgba(255,255,255,0.4)',
+              transition: 'all 0.2s',
+            }} />
+          </div>
+          <span className="text-xs text-muted">Eskiden izledim (tarihi hatırlamıyorum)</span>
+        </label>
+      </div>
+
       <div className="mb-3">
         <label className="form-label">Notlarım</label>
-        <textarea className="form-input resize-y min-h-[75px]" value={form.note} onChange={e => setForm(f => ({...f, note: e.target.value}))} placeholder="Film hakkında düşüncelerim..." />
+        <textarea className="form-input resize-y min-h-[75px]" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} placeholder="Film hakkında düşüncelerim..." />
       </div>
       <div className="flex gap-2 justify-end">
         <button className="btn-cancel" onClick={onCancel}>İptal</button>
@@ -120,12 +148,12 @@ function WatchlistForm({ film, onSave, onCancel }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
           <label className="form-label">Film Adı *</label>
-          <input className="form-input" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))} placeholder="Örn: Oppenheimer" />
+          <input className="form-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Örn: Oppenheimer" />
         </div>
         <div>
           <label className="form-label">Yönetmen {loading && <span className="text-[10px] text-muted ml-1">yükleniyor...</span>}</label>
           <div className="flex gap-2">
-            <input className="form-input" value={form.dir} onChange={e => setForm(f => ({...f, dir: e.target.value}))} placeholder="Otomatik doldur →" />
+            <input className="form-input" value={form.dir} onChange={e => setForm(f => ({ ...f, dir: e.target.value }))} placeholder="Otomatik doldur →" />
             <button onClick={autoFill} className="px-3 py-2 rounded-lg border border-border bg-surface2 text-muted text-xs whitespace-nowrap cursor-pointer">✦</button>
           </div>
         </div>
@@ -143,17 +171,19 @@ export default function Films() {
   const [tab, setTab] = useState('watched');
   const [showForm, setShowForm] = useState(false);
   const [showWlForm, setShowWlForm] = useState(false);
-  const [editingFilm, setEditingFilm] = useState(null); // {index, data}
+  const [editingFilm, setEditingFilm] = useState(null);
   const [editingWl, setEditingWl] = useState(null);
-  // db.wl reaktif — onSnapshot gelince db güncellenir, wl otomatik güncellenir
   const wl = db.wl || [];
-  const refreshWl = () => {}; // artık gerekmiyor, db reaktif
+  const refreshWl = () => {};
 
-  const sorted = [...(db.f || [])].map((f, i) => ({ f, i })).sort((a, b) => {
+  // Tarihli filmler yeniden eskiye, "eskiden" olanlar en sona
+  const allFilms = [...(db.f || [])].map((f, i) => ({ f, i }));
+  const datedFilms = allFilms.filter(({ f }) => !f.old).sort((a, b) => {
     const da = a.f.date || ''; const db2 = b.f.date || '';
     if (da && db2) return db2.localeCompare(da);
     if (da) return -1; if (db2) return 1; return 0;
   });
+  const oldFilms = allFilms.filter(({ f }) => f.old);
 
   const handleSaveFilm = (form) => {
     if (editingFilm !== null) { updateFilm(editingFilm, form); setEditingFilm(null); }
@@ -177,21 +207,16 @@ export default function Films() {
     setTab('watched');
     setEditingFilm(null);
     setShowForm(true);
-    // pre-fill form with watchlist item
-    setTimeout(() => {
-      setEditingFilm({ prefill: f });
-    }, 0);
+    setTimeout(() => { setEditingFilm({ prefill: f }); }, 0);
   };
 
   return (
     <div className="animate-fadeIn">
-      {/* Tabs */}
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'watched' ? 'active' : ''}`} onClick={() => setTab('watched')}>İzlediklerim</button>
         <button className={`tab-btn ${tab === 'watchlist' ? 'active' : ''}`} onClick={() => setTab('watchlist')}>İzleyeceklerim</button>
       </div>
 
-      {/* Watched */}
       {tab === 'watched' && (
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -210,23 +235,46 @@ export default function Films() {
             />
           )}
 
-          {sorted.length === 0 ? (
+          {datedFilms.length === 0 && oldFilms.length === 0 ? (
             <div className="empty-state"><div className="text-3xl opacity-30 mb-3">🎬</div>Henüz film eklemediniz</div>
           ) : (
-            <div className="flex flex-wrap gap-3 justify-center">
-              {sorted.map(({ f, i }) => (
-                <FilmCard
-                  key={i} film={f}
-                  onEdit={() => { setEditingFilm(i); setShowForm(true); }}
-                  onDelete={() => { if (confirm('Silinsin mi?')) deleteFilm(i); }}
-                />
-              ))}
-            </div>
+            <>
+              {datedFilms.length > 0 && (
+                <div className="flex flex-wrap gap-3 justify-center mb-6">
+                  {datedFilms.map(({ f, i }) => (
+                    <FilmCard
+                      key={i} film={f}
+                      onEdit={() => { setEditingFilm(i); setShowForm(true); }}
+                      onDelete={() => { if (confirm('Silinsin mi?')) deleteFilm(i); }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {oldFilms.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs px-3 py-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(232,237,245,0.35)' }}>
+                      Eskiden izlediklerim · {oldFilms.length} film
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  </div>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {oldFilms.map(({ f, i }) => (
+                      <FilmCard
+                        key={i} film={f}
+                        onEdit={() => { setEditingFilm(i); setShowForm(true); }}
+                        onDelete={() => { if (confirm('Silinsin mi?')) deleteFilm(i); }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
 
-      {/* Watchlist */}
       {tab === 'watchlist' && (
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -253,7 +301,7 @@ export default function Films() {
                 <FilmCard
                   key={i} film={f}
                   onEdit={() => { setEditingWl(i); setShowWlForm(true); }}
-                  onDelete={() => { const list = getWatchlist(); list.splice(i,1); setWatchlist(list); refreshWl(); }}
+                  onDelete={() => { const list = getWatchlist(); list.splice(i, 1); setWatchlist(list); refreshWl(); }}
                   onMoveTo={() => moveToWatched(i)}
                 />
               ))}
