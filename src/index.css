@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Lora:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,9 +9,13 @@
 body {
   background: #1a1a1a;
   color: #e8edf5;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Geist', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -23,13 +27,15 @@ button, a, [role="button"] { touch-action: manipulation; }
 
 /* Mobilde yatay taşmayı engelle */
 @media (max-width: 767px) {
+  body { font-size: 14px; }
+
   .animate-fadeIn, .animate-slideUp { animation-duration: 0.15s; }
 
   /* Tüm grid'lerde min-width sıfırla */
   [class*="grid"] > * { min-width: 0; }
 
   /* Büyük font'lar fluid ol */
-  .font-serif { font-size: clamp(16px, 5vw, 22px); }
+  .font-serif { font-size: clamp(15px, 5vw, 20px); }
 
   /* Tab bar mobilde kaydırılabilir */
   .tab-bar {
