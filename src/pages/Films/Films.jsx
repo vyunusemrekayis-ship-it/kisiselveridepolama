@@ -9,16 +9,20 @@ const posterInFlight = {};
 function fetchPoster(name) {
   if (name in posterCache) return Promise.resolve(posterCache[name]);
   if (posterInFlight[name]) return posterInFlight[name];
-  const p = fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`)
+  const p = fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(name)}&type=movie&apikey=${OMDB_KEY}`)
     .then(r => r.json())
     .then(data => {
-      const url = (data.Poster && data.Poster !== 'N/A')
-        ? data.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://')
-        : null;
-      posterCache[name] = url;
-      delete posterInFlight[name];
-      return url;
+      const first = data.Search?.[0];
+      if (!first) return null;
+      const exact = data.Search.find(x => x.Title.toLowerCase() === name.toLowerCase()) || first;
+      return fetch(`https://www.omdbapi.com/?i=${exact.imdbID}&apikey=${OMDB_KEY}`)
+        .then(r => r.json())
+        .then(d => (d.Poster && d.Poster !== 'N/A')
+          ? d.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://')
+          : null
+        );
     })
+    .then(url => { posterCache[name] = url; delete posterInFlight[name]; return url; })
     .catch(() => { posterCache[name] = null; delete posterInFlight[name]; return null; });
   posterInFlight[name] = p;
   return p;
