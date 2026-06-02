@@ -6,16 +6,29 @@ import { fmtDate, OMDB_KEY } from '../../lib/utils';
 const posterCache = {};
 const posterInFlight = {};
 
+function scoreTitleMatch(title, query) {
+  const t = title.toLowerCase().trim();
+  const q = query.toLowerCase().trim();
+  if (t === q) return 100;
+  if (t.startsWith(q) || q.startsWith(t)) return 80;
+  const qWords = q.split(/\s+/);
+  const tWords = t.split(/\s+/);
+  const matches = qWords.filter(w => tWords.includes(w)).length;
+  return matches / Math.max(qWords.length, tWords.length) * 60;
+}
+
 function fetchPoster(name) {
   if (name in posterCache) return Promise.resolve(posterCache[name]);
   if (posterInFlight[name]) return posterInFlight[name];
   const p = fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(name)}&type=movie&apikey=${OMDB_KEY}`)
     .then(r => r.json())
     .then(data => {
-      const first = data.Search?.[0];
-      if (!first) return null;
-      const exact = data.Search.find(x => x.Title.toLowerCase() === name.toLowerCase()) || first;
-      return fetch(`https://www.omdbapi.com/?i=${exact.imdbID}&apikey=${OMDB_KEY}`)
+      const results = data.Search;
+      if (!results?.length) return null;
+      const scored = results.map(x => ({ ...x, score: scoreTitleMatch(x.Title, name) }));
+      scored.sort((a, b) => b.score - a.score);
+      const best = scored[0];
+      return fetch(`https://www.omdbapi.com/?i=${best.imdbID}&apikey=${OMDB_KEY}`)
         .then(r => r.json())
         .then(d => (d.Poster && d.Poster !== 'N/A')
           ? d.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://')
