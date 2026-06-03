@@ -228,7 +228,7 @@ export default function Sidebar() {
         </button>
         {!sidebarCollapsed && (
           <div className="flex items-center justify-between flex-1">
-            <h1 className="font-serif text-[15px] text-accent2 leading-tight">Günlüğüm</h1>
+            <h1 className="font-serif text-[15px] text-accent2 leading-tight">Lonas</h1>
             <button
               onClick={() => setEditMode(e => !e)}
               title="Sıralamayı düzenle"

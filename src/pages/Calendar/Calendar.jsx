@@ -282,31 +282,36 @@ export default function Calendar() {
 
           <div className="grid grid-cols-7 border-l border-border">
             {['Pt','Sa','Ça','Pe','Cu','Ct','Pz'].map((d, i) => (
-              <div key={d} className={`text-center text-[10px] uppercase tracking-wider text-muted py-1 border-r border-border ${i >= 5 ? 'bg-white/[0.025]' : ''}`}>{d}</div>
+              <div key={d} className={`text-center text-[10px] uppercase tracking-wider py-1 border-r border-border ${i >= 5 ? 'text-[#1D9E75]' : 'text-muted'}`}>{d}</div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 border-l border-b border-border">
-            {cells.map((ds, i) => {
-              if (!ds) return <div key={i} className="border-r border-t border-border" />;
-              const d = parseInt(ds.split('-')[2]);
-              const isToday = ds === today;
-              const isSel = ds === selected;
-              const { dots } = getDayData(ds, db, todos, notes, media);
-              const colIndex = i % 7;
-              const isWeekend = colIndex >= 5;
-              return (
-                <div key={ds} onClick={() => setSelected(ds)}
-                  className={`min-h-[42px] p-[4px_2px] flex flex-col items-center cursor-pointer border-r border-t border-border transition-all hover:bg-surface2 ${isSel ? 'bg-surface3' : isWeekend ? 'bg-white/[0.025]' : ''}`}>
-                  <div className={`w-[26px] h-[26px] flex items-center justify-center text-sm rounded-full transition-all ${isToday ? 'bg-accent text-white font-medium' : isSel ? 'text-text font-medium' : 'text-muted'}`}>{d}</div>
-                  <div className="flex gap-[2px] mt-[2px] flex-wrap justify-center">
-                    {dots.slice(0,4).map((dot, di) => (
-                      <div key={di} style={{ width:4, height:4, borderRadius:'50%', background:dot.color }} />
-                    ))}
+          <div className="grid grid-cols-7 border-l border-border">
+            {(() => {
+              const trailing = (7 - (cells.length % 7)) % 7;
+              const allCells = [...cells, ...Array(trailing).fill(null)];
+              return allCells.map((ds, i) => {
+                if (!ds) return <div key={`e-${i}`} className="border-r border-t border-b border-border min-h-[42px]" />;
+                const d = parseInt(ds.split('-')[2]);
+                const isToday = ds === today;
+                const isSel = ds === selected;
+                const { dots } = getDayData(ds, db, todos, notes, media);
+                const colIndex = i % 7;
+                const isWeekend = colIndex >= 5;
+                return (
+                  <div key={ds} onClick={() => setSelected(ds)}
+                    className={`min-h-[42px] p-[4px_2px] flex flex-col items-center cursor-pointer border-r border-t border-b border-border transition-all hover:bg-surface2 ${isSel ? 'bg-surface3' : ''}`}
+                    style={isWeekend && !isSel ? { borderTop: '2px solid rgba(29,158,117,.55)', borderLeft: '2px solid rgba(29,158,117,.55)', borderRadius: '6px 0 0 0' } : undefined}>
+                    <div className={`w-[26px] h-[26px] flex items-center justify-center text-sm rounded-full transition-all ${isToday ? 'bg-accent text-white font-medium' : isSel ? 'text-text font-medium' : isWeekend ? 'text-[#1D9E75]' : 'text-muted'}`}>{d}</div>
+                    <div className="flex gap-[2px] mt-[2px] flex-wrap justify-center">
+                      {dots.slice(0,4).map((dot, di) => (
+                        <div key={di} style={{ width:4, height:4, borderRadius:'50%', background:dot.color }} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
 
           <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border">

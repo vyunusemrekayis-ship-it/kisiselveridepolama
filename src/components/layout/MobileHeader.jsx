@@ -25,7 +25,7 @@ export function MobileHeader({ onMenuClick }) {
           <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
-      <span className="font-serif text-accent2 text-[15px]">{PAGE_TITLES[currentPage] || 'Günlüğüm'}</span>
+      <span className="font-serif text-accent2 text-[15px]">{PAGE_TITLES[currentPage] || 'Lonas'}</span>
     </header>
   );
 }
