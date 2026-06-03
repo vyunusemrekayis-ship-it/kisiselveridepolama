@@ -15,6 +15,13 @@ const getNowLabel = () => {
   return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
 };
 
+// Timestamp'i HH:MM:SS label'a çevir
+const tsToLabel = (ts) => {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+};
+
 const fsSync = (data) => {
   if (!window._fbUser) return;
   import('../../lib/firebase').then(({ saveToFirestore }) => {
@@ -29,9 +36,9 @@ export default function Clock() {
   const initRunning = localStorage.getItem('gn_sw_running') === '1' && initStartTime > 0;
 
   const startTimeRef = useRef(initRunning ? initStartTime : null);
-  const sessionStartMsRef = useRef(null);
-  const sessionStartLabelRef = useRef(null);
-  const isLocalSessionRef = useRef(false); // bu cihaz başlattı mı
+  const sessionStartMsRef = useRef(initRunning ? Date.now() : null); // FIX: sayfa açıkken çalışıyorsa set et
+  const sessionStartLabelRef = useRef(initRunning ? getNowLabel() : null); // FIX: aynı şekilde label da
+  const isLocalSessionRef = useRef(initRunning); // FIX: sayfa açıkken çalışıyorsa local sayılsın
 
   const [running, setRunning] = useState(initRunning);
   const [displayMs, setDisplayMs] = useState(
@@ -72,6 +79,9 @@ export default function Clock() {
     if (swState.running && swState.startTime && !isLocalSessionRef.current) {
       // Başka cihaz başlattı
       startTimeRef.current = swState.startTime;
+      // FIX: session start zamanını da kaydet ki bu cihazda durdurulunca süre hesaplanabilsin
+      sessionStartMsRef.current = Date.now();
+      sessionStartLabelRef.current = tsToLabel(swState.startTime);
       localStorage.setItem('gn_sw_startTime', swState.startTime);
       localStorage.setItem('gn_sw_running', '1');
       setRunning(true);
@@ -79,6 +89,8 @@ export default function Clock() {
     } else if (!swState.running && !isLocalSessionRef.current && running) {
       // Başka cihaz durdurdu
       startTimeRef.current = null;
+      sessionStartMsRef.current = null;
+      sessionStartLabelRef.current = null;
       localStorage.removeItem('gn_sw_startTime');
       localStorage.removeItem('gn_sw_running');
       if (swState.elapsed !== undefined) {
@@ -103,7 +115,9 @@ export default function Clock() {
   const toggleSw = () => {
     if (running) {
       const elapsed = Math.max(0, Date.now() - startTimeRef.current);
-      const partDur = Math.max(0, Date.now() - (sessionStartMsRef.current || Date.now()));
+      // FIX: sessionStartMsRef null ise startTimeRef'ten hesapla (fallback)
+      const sessionStart = sessionStartMsRef.current || startTimeRef.current || Date.now();
+      const partDur = Math.max(0, Date.now() - sessionStart);
 
       localStorage.setItem('gn_sw_elapsed', elapsed);
       localStorage.removeItem('gn_sw_startTime');
@@ -152,6 +166,7 @@ export default function Clock() {
       isLocalSessionRef.current = false;
       startTimeRef.current = null;
       sessionStartMsRef.current = null;
+      sessionStartLabelRef.current = null;
       localStorage.removeItem('gn_sw_startTime');
       localStorage.removeItem('gn_sw_running');
       fsSync({ gn_sw_startTime: null, gn_sw_running: false, gn_sw_elapsed: 0 });
@@ -167,6 +182,7 @@ export default function Clock() {
     isLocalSessionRef.current = false;
     startTimeRef.current = null;
     sessionStartMsRef.current = null;
+    sessionStartLabelRef.current = null;
     localStorage.setItem('gn_sw_elapsed', '0');
     localStorage.removeItem('gn_sw_startTime');
     localStorage.removeItem('gn_sw_running');
@@ -211,35 +227,51 @@ export default function Clock() {
           <div className="font-serif leading-none tracking-tighter text-text mb-2" style={{ fontSize: 'clamp(52px, 12vw, 86px)', textShadow: '0 2px 32px rgba(58,123,213,.15)' }}>
             {fmtHMS(displayMs)}
           </div>
-          <div className="text-xs text-muted2 tracking-widest uppercase">{running ? 'Çalışıyor' : 'Duraklatıldı'}</div>
+          <div className="text-xs text-muted2 tracking-widest uppercase">{running ? 'Çalışıyor' : 'Duraklat\u0131ld\u0131'}</div>
         </div>
 
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <button onClick={toggleSw} className={`px-6 py-2 rounded-xl border text-sm font-medium cursor-pointer transition-all min-w-[120px] ${running ? 'border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/20'}`}>
-            {running ? 'Durdur' : 'Başlat / Devam'}
+        <div className="flex justify-center gap-3 mb-8">
+          <button
+            onClick={toggleSw}
+            className="px-6 py-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all bg-accent text-white border border-accent/50 hover:bg-accent/90"
+          >
+            Başlat / Devam
           </button>
-          <button onClick={resetActive} className="px-4 py-2 rounded-xl border border-border bg-transparent text-muted text-xs cursor-pointer hover:border-border2 hover:text-text transition-all">↺ Sıfırla</button>
-          <button onClick={resetAll} className="px-4 py-2 rounded-xl border border-border bg-transparent text-muted text-xs cursor-pointer hover:border-red-500/30 hover:text-red-400 transition-all">Tümünü Sil</button>
+          <button
+            onClick={resetActive}
+            className="px-4 py-2.5 rounded-xl text-sm cursor-pointer transition-all bg-surface2 border border-border text-muted hover:text-text"
+          >
+            ↺ Sıfırla
+          </button>
+          <button
+            onClick={resetAll}
+            className="px-4 py-2.5 rounded-xl text-sm cursor-pointer transition-all bg-surface2 border border-border text-muted hover:text-red-400"
+          >
+            Tümünü Sil
+          </button>
         </div>
 
         {log.length > 0 && (
-          <div className="flex items-center justify-between mb-3 px-1">
-            <button onClick={selectAll} className="text-xs text-muted hover:text-text cursor-pointer bg-transparent border-0 transition-colors">
-              {selected.size === log.length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
-            </button>
-            {selected.size > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted2">{selected.size} oturum — <span className="text-accent font-medium">{fmtHMS(selectedMs)}</span></span>
-                <button onClick={() => { setPickedGoal(null); setTransferModal(true); }} className="px-3 py-1 rounded-lg border border-accent/40 bg-accent/10 text-accent text-xs cursor-pointer hover:bg-accent/20 transition-all">Hedefe Aktar →</button>
-              </div>
-            )}
-          </div>
-        )}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={selectAll} className="text-xs text-muted hover:text-text bg-transparent border-0 cursor-pointer transition-colors">
+                {selected.size === log.length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
+              </button>
+              {selected.size > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted">{fmtHMS(selectedMs)} seçili</span>
+                  <button
+                    onClick={() => setTransferModal(true)}
+                    className="text-xs text-accent hover:text-accent/80 bg-transparent border-0 cursor-pointer transition-colors"
+                  >
+                    Hedefe Aktar →
+                  </button>
+                </div>
+              )}
+            </div>
 
-        {log.length > 0 && (
-          <div className="bg-surface border border-border rounded-2xl overflow-hidden">
             {log.map((entry, i) => (
-              <div key={entry.id} className={`flex items-center gap-2 px-3 py-3 border-b border-border last:border-0 transition-colors ${selected.has(entry.id) ? 'bg-accent/5' : 'hover:bg-surface2'}`}>
+              <div key={entry.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1.5 transition-colors ${selected.has(entry.id) ? 'bg-accent/5' : 'hover:bg-surface2'}`}>
                 <div onClick={() => toggleSelect(entry.id)} className={`w-4 h-4 rounded border flex-shrink-0 cursor-pointer transition-colors flex items-center justify-center text-[10px] ${selected.has(entry.id) ? 'bg-accent border-accent text-white' : 'border-border2'}`}>
                   {selected.has(entry.id) ? '✓' : ''}
                 </div>
@@ -267,30 +299,18 @@ export default function Clock() {
             </div>
             <div className="text-sm text-muted mb-4">Toplam <span className="text-text font-medium">{fmtHMS(selectedMs)}</span> ({selectedHours} saat) aktarılacak:</div>
             {activeGoals.length === 0 ? (
-              <div className="text-sm text-muted text-center py-4">Aktif manuel hedef bulunamadı.</div>
+              <div className="text-sm text-muted text-center py-4">Manuel takipli aktif hedef yok</div>
             ) : (
-              <div className="space-y-2 mb-4 max-h-[240px] overflow-y-auto">
-                {activeGoals.map((g) => {
-                  const origIdx = db.g.indexOf(g);
-                  const cur = parseFloat(g.current) || 0;
-                  const after = parseFloat((cur + selectedHours).toFixed(2));
-                  return (
-                    <div key={origIdx} onClick={() => setPickedGoal(origIdx)} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${pickedGoal === origIdx ? 'border-accent bg-accent/10' : 'border-border hover:border-border2 bg-surface2'}`}>
-                      <div>
-                        <div className="text-sm text-text">{g.name}</div>
-                        <div className="text-xs text-muted mt-0.5">{cur} → <span className="text-accent">{after}</span> / {parseFloat(g.target)} {g.unit || ''}</div>
-                      </div>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] flex-shrink-0 ${pickedGoal === origIdx ? 'bg-accent border-accent text-white' : 'border-border2'}`}>
-                        {pickedGoal === origIdx ? '✓' : ''}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              activeGoals.map((g, i) => (
+                <div key={i} onClick={() => setPickedGoal(i)} className={`flex items-center justify-between px-3 py-2.5 rounded-xl mb-1.5 cursor-pointer transition-colors border ${pickedGoal === i ? 'border-accent bg-accent/8' : 'border-border hover:border-border2'}`}>
+                  <span className="text-sm text-text">{g.name}</span>
+                  <span className="text-xs text-muted">{g.current || 0}/{g.target} {g.unit}</span>
+                </div>
+              ))
             )}
-            <div className="flex gap-2 justify-end">
-              <button className="btn-cancel" onClick={() => setTransferModal(false)}>İptal</button>
-              <button className="btn-save" onClick={doTransfer} disabled={pickedGoal === null} style={{ opacity: pickedGoal === null ? 0.4 : 1 }}>Aktar</button>
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={() => setTransferModal(false)} className="btn-cancel">İptal</button>
+              <button onClick={doTransfer} disabled={pickedGoal === null} className="btn-save">Aktar</button>
             </div>
           </div>
         </div>
