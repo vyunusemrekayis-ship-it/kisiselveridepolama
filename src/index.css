@@ -127,3 +127,39 @@ button, a, [role="button"] { touch-action: manipulation; }
 
 .animate-fadeIn { animation: fadeIn 0.2s ease; }
 .animate-slideUp { animation: slideUp 0.2s cubic-bezier(.22,1,.36,1); }
+
+/* ── HOME WIDGET GRID ── */
+.home-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 1024px) {
+  .home-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .home-grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.home-grid-3 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 1024px) {
+  .home-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .home-grid-3 > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
+  .home-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

@@ -45,9 +45,14 @@ export default function Clock() {
     initRunning ? Math.max(0, Date.now() - initStartTime) : parseInt(localStorage.getItem('gn_sw_elapsed') || '0')
   );
   const [log, setLog] = useState(getSwLog());
+  const justSavedRef = useRef(false); // toggleSw'den hemen sonra gelen onSnapshot'ı engeller
 
   // Store'daki swLog değişince (onSnapshot) log state'ini güncelle
-  useEffect(() => { setLog(storeSwLog); }, [storeSwLog]);
+  // Ama biz az önce kayıt ekledikten sonra onSnapshot gelirse üzerine yazmasın
+  useEffect(() => {
+    if (justSavedRef.current) { justSavedRef.current = false; return; }
+    setLog(storeSwLog);
+  }, [storeSwLog]);
   const [selected, setSelected] = useState(new Set());
   const [transferModal, setTransferModal] = useState(false);
   const [pickedGoal, setPickedGoal] = useState(null);
@@ -131,16 +136,18 @@ export default function Clock() {
       setRunning(false);
       setDisplayMs(elapsed);
 
-      const newLog = getSwLog();
-      newLog.unshift({
+      const newEntry = {
         id: Date.now(),
         date: todayStr(),
         start: sessionStartLabelRef.current || '—',
         end: getNowLabel(),
         dur: partDur,
         note: '',
-      });
+      };
       sessionStartLabelRef.current = null;
+      const currentLog = JSON.parse(localStorage.getItem('gn_sw_log') || '[]');
+      const newLog = [newEntry, ...currentLog];
+      justSavedRef.current = true;
       setSwLog(newLog);
       setLog(newLog);
     } else {

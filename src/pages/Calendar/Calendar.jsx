@@ -4,6 +4,13 @@ import { TR_M, TR_D, todayStr, getSpecialDays, CAL_LABELS, fmtDate } from '../..
 
 const SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
 
+// Öncelik renk haritası — Home.jsx ile senkron
+const PRIORITY_COLORS = {
+  high:   '#ef4444',
+  medium: '#f59e0b',
+  low:    '#6b7280',
+};
+
 function getDayData(ds, db, todos, notes, media) {
   const specials = getSpecialDays(ds, db.s || []);
   const dayTodos = todos[ds] || [];
@@ -106,6 +113,7 @@ export default function Calendar() {
   useEffect(() => { setLocalNotes(storeNotes); }, [storeNotes]);
   const [media, setLocalMedia] = useState(getMedia());
   const [todoInput, setTodoInput] = useState('');
+  const [todoPriority, setTodoPriority] = useState('medium'); // YENİ
   const [noteInput, setNoteInput] = useState('');
   const [editingNote, setEditingNote] = useState(null);
   const [editingTodo, setEditingTodo] = useState(null); // { idx, text }
@@ -114,6 +122,7 @@ export default function Calendar() {
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [mediaViewer, setMediaViewer] = useState(null);
   const [mediaEditMode, setMediaEditMode] = useState(false);
+  const [showOverdue, setShowOverdue] = useState(() => localStorage.getItem('gn_show_overdue') !== 'false');
   const fileInputRef = useRef(null);
 
   const refreshData = () => {
@@ -142,7 +151,7 @@ export default function Calendar() {
     if (!todoInput.trim()) return;
     const t = getTodos();
     if (!t[selected]) t[selected] = [];
-    t[selected].push({ text: todoInput.trim(), done: false });
+    t[selected].push({ text: todoInput.trim(), done: false, priority: todoPriority }); // priority eklendi
     setTodos(t); setTodoInput(''); refreshData();
   };
   const toggleTodoLocal = (i) => {
@@ -161,7 +170,35 @@ export default function Calendar() {
     if (t[selected]?.[i]) t[selected][i].text = text.trim();
     setTodos(t); setEditingTodo(null); refreshData();
   };
+  // YENİ: öncelik döngüsü
+  const cyclePriorityLocal = (i) => {
+    const order = ['high', 'medium', 'low'];
+    const t = getTodos();
+    if (!t[selected]?.[i]) return;
+    const cur = t[selected][i].priority || 'medium';
+    t[selected][i].priority = order[(order.indexOf(cur) + 1) % 3];
+    setTodos(t); refreshData();
+  };
 
+
+  // Gecikmiş görevler
+  const getOverdue = () => {
+    const allTodos = getTodos();
+    const items = [];
+    Object.entries(allTodos).forEach(([dk, list]) => {
+      if (dk >= today) return;
+      (list || []).forEach((t, i) => {
+        if (!t.done) items.push({ ...t, dateKey: dk, idx: i });
+      });
+    });
+    return items.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  };
+
+  const toggleOverdueTodo = (dateKey, idx) => {
+    const t = getTodos();
+    if (t[dateKey]?.[idx]) t[dateKey][idx].done = !t[dateKey][idx].done;
+    setTodos(t); refreshData();
+  };
   // Notes
   const saveNote = () => {
     if (!noteInput.trim()) return;
@@ -252,7 +289,40 @@ export default function Calendar() {
       <div className="flex flex-col gap-5">
         {/* Takvim */}
         <div>
-          <div className="flex flex-wrap gap-2 mb-4 justify-end">
+          <div className="flex flex-wrap gap-2 mb-4 justify-end items-center">
+            {/* Gecikmiş görevler toggle */}
+            {(() => {
+              const overdueCount = getOverdue().length;
+              if (!overdueCount) return null;
+              return (
+                <button
+                  onClick={() => setShowOverdue(v => {
+                    const next = !v;
+                    localStorage.setItem('gn_show_overdue', next ? 'true' : 'false');
+                    return next;
+                  })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: showOverdue ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${showOverdue ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    borderRadius: 8, padding: '5px 10px',
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    transition: 'all .2s',
+                  }}
+                >
+                  <div style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: showOverdue ? '#ef4444' : 'rgba(255,255,255,0.25)',
+                    flexShrink: 0,
+                    boxShadow: showOverdue ? '0 0 5px #ef4444' : 'none',
+                    transition: 'all .2s',
+                  }} />
+                  <span style={{ fontSize: 11, color: showOverdue ? '#fca5a5' : 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                    Gecikmiş görevleri göster {overdueCount > 0 ? `(${overdueCount})` : ''}
+                  </span>
+                </button>
+              );
+            })()}
             <input className="form-input w-[220px]" placeholder="Not veya görev ara..." value={searchQ}
               onChange={e => setSearchQ(e.target.value)} onKeyDown={e => e.key==='Enter' && doSearch()} />
             <button className="btn-primary" onClick={doSearch}>Ara</button>
@@ -298,14 +368,17 @@ export default function Calendar() {
                 const { dots } = getDayData(ds, db, todos, notes, media);
                 const colIndex = i % 7;
                 const isWeekend = colIndex >= 5;
+                const isPast = ds < today;
+                const hasOverdue = showOverdue && isPast && (todos[ds] || []).some(t => !t.done);
+                const allDots = hasOverdue ? [{ color: '#ef4444', overdue: true }, ...dots] : dots;
                 return (
                   <div key={ds} onClick={() => setSelected(ds)}
                     className={`min-h-[42px] p-[4px_2px] flex flex-col items-center cursor-pointer border-r border-t border-b border-border transition-all hover:bg-surface2 ${isSel ? 'bg-surface3' : ''}`}
                     style={isWeekend && !isSel ? { borderTop: '2px solid rgba(29,158,117,.55)', borderLeft: '2px solid rgba(29,158,117,.55)', borderRadius: '6px 0 0 0' } : undefined}>
                     <div className={`w-[26px] h-[26px] flex items-center justify-center text-sm rounded-full transition-all ${isToday ? 'bg-accent text-white font-medium' : isSel ? 'text-text font-medium' : isWeekend ? 'text-[#1D9E75]' : 'text-muted'}`}>{d}</div>
                     <div className="flex gap-[2px] mt-[2px] flex-wrap justify-center">
-                      {dots.slice(0,4).map((dot, di) => (
-                        <div key={di} style={{ width:4, height:4, borderRadius:'50%', background:dot.color }} />
+                      {allDots.slice(0,4).map((dot, di) => (
+                        <div key={di} style={{ width:4, height:4, borderRadius:'50%', background:dot.color, boxShadow: dot.overdue ? '0 0 4px #ef4444' : 'none' }} />
                       ))}
                     </div>
                   </div>
@@ -338,6 +411,38 @@ export default function Calendar() {
             {TR_D[new Date(selected+'T12:00:00').getDay()]}, {fmtDate(selected)}
           </div>
 
+
+          {/* Gecikmiş görevler — toggle açıksa ve seçili gün geçmişteyse */}
+          {showOverdue && selected < today && (() => {
+            const dayOverdue = (todos[selected] || [])
+              .map((t, i) => ({ ...t, idx: i }))
+              .filter(t => !t.done);
+            if (!dayOverdue.length) return null;
+            return (
+              <div style={{ marginBottom: 12, borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', overflow: 'hidden', background: 'rgba(239,68,68,0.04)' }}>
+                <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(239,68,68,0.12)', fontSize: 10, color: 'rgba(252,165,165,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+                  Tamamlanmamış — {dayOverdue.length} görev
+                </div>
+                {dayOverdue.map((t, i) => {
+                  const prioColor = { high:'#ef4444', medium:'#f59e0b', low:'#6b7280' }[t.priority||'medium'];
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                      borderBottom: i < dayOverdue.length - 1 ? '1px solid rgba(239,68,68,0.08)' : 'none',
+                    }}>
+                      <div
+                        onClick={() => toggleOverdueTodo(selected, t.idx)}
+                        style={{ width: 14, height: 14, borderRadius: 4, border: '1px solid rgba(252,165,165,0.35)', flexShrink: 0, cursor: 'pointer' }}
+                      />
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: prioColor, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: 13, color: 'rgba(252,165,165,0.85)' }}>{t.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           {selData.specials.map((s, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
               style={{ background:`${SPEC_COLORS[s.t]||'#3a7bd5'}15`, borderLeft:`3px solid ${SPEC_COLORS[s.t]||'#3a7bd5'}` }}>
@@ -365,6 +470,18 @@ export default function Calendar() {
             <div className="text-xs text-muted uppercase tracking-wider mb-2">Görevler</div>
             {selData.dayTodos.map((t, i) => (
               <div key={i} className="flex items-center gap-2 py-1.5 group">
+                {/* Öncelik dot — tıklayınca döngü */}
+                <div
+                  onClick={() => cyclePriorityLocal(i)}
+                  title={`Öncelik: ${t.priority || 'medium'} (değiştirmek için tıkla)`}
+                  style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: PRIORITY_COLORS[t.priority || 'medium'],
+                    flexShrink: 0, cursor: 'pointer',
+                    transition: 'background .2s',
+                  }}
+                />
+
                 <button onClick={() => toggleTodoLocal(i)}
                   className={`w-[18px] h-[18px] rounded-[4px] border flex-shrink-0 flex items-center justify-center text-[11px] cursor-pointer transition-all ${t.done ? 'bg-[#237F52] border-[#237F52] text-white' : 'border-border2 bg-transparent text-transparent'}`}>✓</button>
 
@@ -396,7 +513,28 @@ export default function Calendar() {
                 </div>
               </div>
             ))}
-            <div className="flex gap-2 mt-2">
+
+            {/* Görev ekle — öncelik seçici + input */}
+            <div className="flex gap-2 mt-2 items-center">
+              {/* Öncelik seçici */}
+              <div className="flex gap-1.5 flex-shrink-0">
+                {['high', 'medium', 'low'].map(p => (
+                  <div
+                    key={p}
+                    onClick={() => setTodoPriority(p)}
+                    title={p}
+                    style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: PRIORITY_COLORS[p],
+                      cursor: 'pointer', flexShrink: 0,
+                      opacity: todoPriority === p ? 1 : 0.3,
+                      outline: todoPriority === p ? `2px solid ${PRIORITY_COLORS[p]}` : 'none',
+                      outlineOffset: 1,
+                      transition: 'opacity .15s',
+                    }}
+                  />
+                ))}
+              </div>
               <input className="form-input flex-1 py-2 text-sm min-w-0" placeholder="Görev ekle..." value={todoInput}
                 onChange={e => setTodoInput(e.target.value)} onKeyDown={e => e.key==='Enter' && addTodoLocal()} />
               <button className="btn-save py-2 px-3 text-sm flex-shrink-0" onClick={addTodoLocal}>+</button>
@@ -453,13 +591,12 @@ export default function Calendar() {
                   {selData.dayMedia.map((m, i) => (
                     <div key={i} className="relative">
                       {m.type === 'video'
-                        ? <video src={m.data} className="w-[100px] h-[75px] rounded-lg object-cover border border-border" controls />
-                        : <img src={m.data} alt="" onClick={() => !mediaEditMode && setMediaViewer(i)}
-                            className={`w-[100px] h-[75px] rounded-lg object-cover border border-border ${!mediaEditMode ? 'cursor-pointer hover:opacity-80' : ''} transition-opacity`} />
+                        ? <video src={m.data} className="w-[80px] h-[80px] object-cover rounded-lg cursor-pointer" onClick={() => setMediaViewer(i)} />
+                        : <img src={m.data} alt="" className="w-[80px] h-[80px] object-cover rounded-lg cursor-pointer" onClick={() => setMediaViewer(i)} />
                       }
                       {mediaEditMode && (
                         <button onClick={() => deleteMedia(i)}
-                          className="absolute top-0 right-0 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center cursor-pointer border-0">×</button>
+                          className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center cursor-pointer border-0">×</button>
                       )}
                     </div>
                   ))}
