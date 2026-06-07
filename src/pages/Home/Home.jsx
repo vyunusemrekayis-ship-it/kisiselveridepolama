@@ -50,6 +50,15 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
   const [editText, setEditText] = useState('');
   const [, forceUpdate] = useState(0);
   const refresh = () => forceUpdate(n => n+1);
+  const [showOverdue, setShowOverdue] = useState(() => localStorage.getItem('gn_show_overdue') !== 'false');
+
+  useEffect(() => {
+    const handler = () => setShowOverdue(localStorage.getItem('gn_show_overdue') !== 'false');
+    window.addEventListener('storage', handler);
+    // aynı sekme için custom event
+    window.addEventListener('gn_overdue_changed', handler);
+    return () => { window.removeEventListener('storage', handler); window.removeEventListener('gn_overdue_changed', handler); };
+  }, []);
 
   const getTabData = () => {
     const all = getTodos();
@@ -105,7 +114,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
           <div style={{height:3,background:'rgba(255,255,255,0.1)',borderRadius:2,overflow:'hidden'}}><div style={{height:'100%',width:`${progress.pct}%`,borderRadius:2,background:progress.pct===100?'linear-gradient(90deg,#34d399,#10b981)':'linear-gradient(90deg,#3a7bd5,#5a9bf5)',transition:'width .4s ease'}}/></div>
         </div>
       )}
-      {tab==='today' && overdue.length>0 && (
+      {showOverdue && tab==='today' && overdue.length>0 && (
         <div onClick={e=>e.stopPropagation()} style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'5px 8px',marginBottom:8}}>
           <div style={{fontSize:10,color:'#fca5a5',fontWeight:500,letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:4}}>{overdue.length} gecikmiş görev</div>
           {overdue.slice(0,3).map((t,i)=>(

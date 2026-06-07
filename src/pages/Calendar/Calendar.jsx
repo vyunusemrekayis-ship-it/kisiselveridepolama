@@ -299,6 +299,7 @@ export default function Calendar() {
                   onClick={() => setShowOverdue(v => {
                     const next = !v;
                     localStorage.setItem('gn_show_overdue', next ? 'true' : 'false');
+                    window.dispatchEvent(new Event('gn_overdue_changed'));
                     return next;
                   })}
                   style={{
