@@ -47,7 +47,6 @@ function FilmCard({ film, onEdit, onDelete, onMoveTo }) {
                 ? <span style={{ color: 'rgba(232,237,245,0.3)', fontStyle: 'italic' }}>eskiden izledim</span>
                 : [film.dir, fmtDate(film.date)].filter(Boolean).join(' · ')
               }
-              {!film.old && film.dir && !film.date && film.dir}
             </div>
           </div>
           <div className="flex gap-1 flex-shrink-0">
