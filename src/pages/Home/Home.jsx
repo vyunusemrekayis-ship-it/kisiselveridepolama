@@ -223,7 +223,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   };
   const today = todayStr();
-  const todaySessions = (swLog||[]).filter(e=>e.date===today).slice(0,3);
+  const todaySessions = (swLog||[]).filter(e=>e.date===today);
   const SESS_COLORS = ['#3a7bd5','#7b5ea7','#34d399','#fb923c','#f87171'];
 
   return (
@@ -258,7 +258,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
           <button onClick={e=>{e.stopPropagation();onReset(e);}} style={{width:40,height:40,borderRadius:11,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(232,237,245,0.55)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>↺</button>
         </div>
         {todaySessions.length>0 && (
-          <div style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:10,display:'flex',flexDirection:'column',gap:6}}>
+          <div onClick={e=>e.stopPropagation()} style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:10,display:'flex',flexDirection:'column',gap:6,maxHeight:120,overflowY:'auto',scrollbarWidth:'none'}}>
             {todaySessions.map((s,i)=>(
               <div key={s.id||i} style={{display:'flex',alignItems:'center',gap:7}}>
                 <div style={{width:5,height:5,borderRadius:'50%',background:SESS_COLORS[i%SESS_COLORS.length],flexShrink:0}}/>
@@ -308,7 +308,7 @@ function ChainWidget({ chains, onNavigate }) {
 // ── KİTAPLAR ─────────────────────────────────────────────────────────────
 function BookWidget({ books, onNavigate }) {
   const minP=80,maxP=1400,minW=24,maxW=46,minH=75,maxH=125;
-  const readCount = books.filter(b=>b.status==='read'||(!b.status&&b.end)).length;
+  const readCount = books.length;
   const spines = books.map(b=>{
     const p=parseInt(b.pages)||200;
     const r=Math.min(1,Math.max(0,(p-minP)/(maxP-minP)));
@@ -420,16 +420,30 @@ export default function Home() {
 
   const toggleSw = (e) => {
     e.stopPropagation();
-    if(!window._sw) window._sw={running:false,startTime:null,elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0')};
+    if(!window._sw) window._sw={running:false,startTime:null,elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0'),sessionStartMs:null,sessionStartLabel:null};
     if(window._sw.running){
       const elapsed=Date.now()-window._sw.startTime;
-      window._sw.elapsed=elapsed; window._sw.running=false; window._sw.startTime=null;
+      const sessionStart=window._sw.sessionStartMs||window._sw.startTime||Date.now();
+      const partDur=Math.max(0,Date.now()-sessionStart);
+      const getNow=()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;};
+      const today=new Date().toISOString().split('T')[0];
+      window._sw.elapsed=elapsed; window._sw.running=false; window._sw.startTime=null; window._sw.sessionStartMs=null;
       localStorage.setItem('gn_sw_elapsed',elapsed); localStorage.removeItem('gn_sw_running'); localStorage.removeItem('gn_sw_startTime');
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_elapsed:elapsed,gn_sw_running:false,gn_sw_startTime:null});});}
+      // Log kaydı ekle
+      const newEntry={id:Date.now(),date:today,start:window._sw.sessionStartLabel||'—',end:getNow(),dur:partDur,note:''};
+      window._sw.sessionStartLabel=null;
+      const currentLog=JSON.parse(localStorage.getItem('gn_sw_log')||'[]');
+      const newLog=[newEntry,...currentLog];
+      localStorage.setItem('gn_sw_log',JSON.stringify(newLog));
+      if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_log:newLog});});}
+      useStore.getState().setSwLog(newLog);
       setSwRunning(false);
     } else {
       const startTime=Date.now()-window._sw.elapsed;
+      const getNow=()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;};
       window._sw.startTime=startTime; window._sw.running=true;
+      window._sw.sessionStartMs=Date.now(); window._sw.sessionStartLabel=getNow();
       localStorage.setItem('gn_sw_running','1'); localStorage.setItem('gn_sw_startTime',startTime);
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_startTime:startTime,gn_sw_running:true});});}
       setSwRunning(true);

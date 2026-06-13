@@ -2,7 +2,46 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { TR_M, TR_D, todayStr, getSpecialDays, CAL_LABELS, fmtDate } from '../../lib/utils';
 
-const SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
+const DEFAULT_SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
+function loadSpecColors() {
+  try { return { ...DEFAULT_SPEC_COLORS, ...JSON.parse(localStorage.getItem('gn_spec_colors') || '{}') }; } catch { return { ...DEFAULT_SPEC_COLORS }; }
+}
+function saveSpecColors(c) { localStorage.setItem('gn_spec_colors', JSON.stringify(c)); }
+
+const DEFAULT_SPEC_VISIBLE = { h:true, r:true, i:true };
+function loadSpecVisible() {
+  try { return { ...DEFAULT_SPEC_VISIBLE, ...JSON.parse(localStorage.getItem('gn_spec_visible') || '{}') }; } catch { return { ...DEFAULT_SPEC_VISIBLE }; }
+}
+function saveSpecVisible(v) { localStorage.setItem('gn_spec_visible', JSON.stringify(v)); }
+const COLOR_PALETTE = [
+  '#c0392b','#e74c3c','#e67e22','#f39c12','#f1c40f','#2ecc71','#27ae60','#1abc9c',
+  '#16a085','#3498db','#2874a6','#2980b9','#8e44ad','#7b5ea7','#9b59b6','#d35400',
+  '#e91e63','#ff5722','#795548','#607d8b','#1D9E75','#00897b','#0288d1','#6a1b9a',
+  '#4a148c','#311b92','#1a237e','#0d47a1','#006064','#004d40','#33691e','#f57f17',
+];
+
+const CAL_THEMES = [
+  { name:'Mor',       grad:'135deg,#1e1b4b,#312e81,#1e3a5f', text:'#e0e7ff', today:'rgba(99,102,241,0.35)',  todayB:'rgba(139,92,246,0.4)',  todayT:'#c4b5fd', dotC:'#818cf8' },
+  { name:'Mavi',      grad:'135deg,#0c1a3a,#1e3a6e,#0c2a5a', text:'#dbeafe', today:'rgba(37,99,235,0.35)',   todayB:'rgba(59,130,246,0.45)', todayT:'#93c5fd', dotC:'#60a5fa' },
+  { name:'Camgöbeği', grad:'135deg,#042f2e,#065f46,#083344', text:'#d1fae5', today:'rgba(16,185,129,0.3)',   todayB:'rgba(52,211,153,0.4)',  todayT:'#6ee7b7', dotC:'#34d399' },
+  { name:'Zümrüt',    grad:'135deg,#052e16,#14532d,#064e3b', text:'#dcfce7', today:'rgba(22,163,74,0.3)',    todayB:'rgba(74,222,128,0.4)',  todayT:'#86efac', dotC:'#4ade80' },
+  { name:'Kırmızı',   grad:'135deg,#3b0a0a,#7f1d1d,#450a0a', text:'#fee2e2', today:'rgba(220,38,38,0.3)',    todayB:'rgba(248,113,113,0.45)',todayT:'#fca5a5', dotC:'#f87171' },
+  { name:'Turuncu',   grad:'135deg,#431407,#7c2d12,#451a03', text:'#ffedd5', today:'rgba(234,88,12,0.3)',    todayB:'rgba(251,146,60,0.45)', todayT:'#fdba74', dotC:'#fb923c' },
+  { name:'Sarı',      grad:'135deg,#422006,#78350f,#3d2006', text:'#fef3c7', today:'rgba(202,138,4,0.3)',    todayB:'rgba(250,204,21,0.45)', todayT:'#fde047', dotC:'#facc15' },
+  { name:'Pembe',     grad:'135deg,#3b0764,#701a75,#500724', text:'#fce7f3', today:'rgba(219,39,119,0.3)',   todayB:'rgba(244,114,182,0.45)',todayT:'#f9a8d4', dotC:'#f472b6' },
+  { name:'Çivit',     grad:'135deg,#1e1b4b,#1e3a5f,#0c2a5a', text:'#e0f2fe', today:'rgba(14,165,233,0.3)',   todayB:'rgba(56,189,248,0.45)', todayT:'#7dd3fc', dotC:'#38bdf8' },
+  { name:'Gri',       grad:'135deg,#111827,#1f2937,#030712', text:'#f9fafb', today:'rgba(107,114,128,0.3)', todayB:'rgba(156,163,175,0.4)', todayT:'#d1d5db', dotC:'#9ca3af' },
+  { name:'Gül',       grad:'135deg,#3b0a2a,#831843,#4a044e', text:'#fce7f3', today:'rgba(190,24,93,0.3)',    todayB:'rgba(236,72,153,0.45)', todayT:'#f9a8d4', dotC:'#ec4899' },
+  { name:'Koyu',      grad:'135deg,#000000,#0a0a0a,#111111', text:'#e8edf5', today:'rgba(255,255,255,0.08)',todayB:'rgba(255,255,255,0.2)', todayT:'#e8edf5', dotC:'#888888' },
+];
+
+function loadCalTheme() {
+  const i = parseInt(localStorage.getItem('gn_cal_theme') || '0');
+  return CAL_THEMES[i] ? i : 0;
+}
+function saveCalTheme(i) { localStorage.setItem('gn_cal_theme', String(i)); }
+
+const WEEK_DAY_NAMES = ['PT','SA','ÇA','PE','CU','CT','PZ'];
 
 // Öncelik renk haritası — Home.jsx ile senkron
 const PRIORITY_COLORS = {
@@ -28,17 +67,40 @@ function getDayData(ds, db, todos, notes, media) {
 }
 
 // ── Kişisel Özel Gün Modal ──────────────────────────────────────────
-function CustomDayModal({ onClose, onAdd, customDays, onDelete }) {
+function CustomDayModal({ onClose, onAdd, onUpdate, customDays, onDelete, initialEditIdx }) {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [desc, setDesc] = useState('');
-  const [type, setType] = useState('custom');
+  const [color, setColor] = useState(COLOR_PALETTE[9]);
+  const [colorOpen, setColorOpen] = useState(false);
+  const [editingIdx, setEditingIdx] = useState(null);
 
-  const add = () => {
+  const resetForm = () => {
+    setName(''); setDate(''); setDesc(''); setColor(COLOR_PALETTE[9]); setEditingIdx(null);
+  };
+
+  const startEdit = (i) => {
+    const s = customDays[i];
+    if (!s) return;
+    const yr = new Date().getFullYear();
+    setName(s.n || '');
+    setDesc(s.desc || '');
+    setColor(s.color || COLOR_PALETTE[9]);
+    setDate(`${yr}-${s.k}`);
+    setEditingIdx(i);
+  };
+
+  useEffect(() => {
+    if (initialEditIdx !== null && initialEditIdx !== undefined) startEdit(initialEditIdx);
+  }, [initialEditIdx]);
+
+  const submit = () => {
     if (!name.trim() || !date.trim()) return;
     const [, m, d] = date.split('-');
-    onAdd({ n: name.trim(), k: `${m}-${d}`, t: type, desc: desc.trim() });
-    setName(''); setDate(''); setDesc('');
+    const day = { n: name.trim(), k: `${m}-${d}`, t: 'custom', desc: desc.trim(), color };
+    if (editingIdx !== null) onUpdate(editingIdx, day);
+    else onAdd(day);
+    resetForm();
   };
 
   return (
@@ -52,28 +114,49 @@ function CustomDayModal({ onClose, onAdd, customDays, onDelete }) {
           {customDays.length === 0
             ? <div className="text-xs text-muted text-center py-3">Henüz özel gün yok</div>
             : customDays.map((s, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg bg-surface2 text-sm">
-                <div>
-                  <span style={{ color: SPEC_COLORS[s.t] || '#3a7bd5' }}>●</span>
-                  <span className="ml-2">{s.n}</span>
-                  <span className="text-xs text-muted ml-2">{s.k}</span>
+              <div key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${editingIdx===i ? 'bg-surface3' : 'bg-surface2 hover:bg-surface3'}`} onClick={() => startEdit(i)}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div style={{ width:10, height:10, borderRadius:'50%', background: s.color || DEFAULT_SPEC_COLORS[s.t] || '#3a7bd5', flexShrink:0 }} />
+                  <span className="truncate">{s.n}</span>
+                  <span className="text-xs text-muted flex-shrink-0">{s.k}</span>
                 </div>
-                <button onClick={() => onDelete(i)} className="text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer">×</button>
+                <button onClick={(e) => { e.stopPropagation(); if (editingIdx===i) resetForm(); onDelete(i); }} className="text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer flex-shrink-0">×</button>
               </div>
             ))
           }
         </div>
         <div className="border-t border-border pt-4 space-y-2">
+          {editingIdx !== null && (
+            <div className="flex items-center justify-between text-xs text-accent mb-1">
+              <span>Düzenleniyor: {customDays[editingIdx]?.n}</span>
+              <button onClick={resetForm} className="text-muted bg-transparent border-0 cursor-pointer underline">Vazgeç</button>
+            </div>
+          )}
           <input className="form-input" placeholder="Başlık *" value={name} onChange={e => setName(e.target.value)} />
-          <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} />
           <textarea className="form-input resize-none text-sm" rows={2} placeholder="Açıklama (isteğe bağlı)" value={desc} onChange={e => setDesc(e.target.value)} />
-          <select className="form-input" value={type} onChange={e => setType(e.target.value)}>
-            <option value="custom">Kişisel</option>
-            <option value="b">Doğum Günü</option>
-            <option value="a">Yıl Dönümü</option>
-            <option value="i">Özel Gün</option>
-          </select>
-          <button className="btn-save w-full" onClick={add}>Ekle</button>
+
+          <div style={{ position:'relative' }}>
+            <div onClick={() => setColorOpen(v => !v)}
+              className="form-input"
+              style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}>
+              <div style={{ width:18, height:18, borderRadius:6, background:color, flexShrink:0, border:'1px solid rgba(255,255,255,0.15)' }} />
+              <span className="text-sm text-muted">Renk seç</span>
+            </div>
+            {colorOpen && (
+              <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:50, background:'#1a1d28', border:'1px solid rgba(255,255,255,0.12)', borderRadius:14, padding:12, display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:6, marginTop:6, boxShadow:'0 8px 32px rgba(0,0,0,0.5)' }}>
+                {COLOR_PALETTE.map(c => (
+                  <div key={c} onClick={() => { setColor(c); setColorOpen(false); }}
+                    style={{ width:22, height:22, borderRadius:6, background:c, cursor:'pointer', border: color===c ? '2px solid rgba(255,255,255,0.8)' : '2px solid transparent', transition:'transform .12s', boxSizing:'border-box' }}
+                    onMouseEnter={e=>e.currentTarget.style.transform='scale(1.15)'}
+                    onMouseLeave={e=>e.currentTarget.style.transform=''}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <input type="date" className="form-input" value={date} onChange={e => setDate(e.target.value)} />
+          <button className="btn-save w-full" onClick={submit}>{editingIdx !== null ? 'Güncelle' : 'Ekle'}</button>
         </div>
       </div>
     </div>
@@ -101,7 +184,7 @@ function MediaViewer({ media, ds, onClose, idx }) {
 }
 
 export default function Calendar() {
-  const { db, getTodos, setTodos, getNotes, setNotes, getMedia, setMedia, addSpecialDay, deleteSpecialDay, todos: storeTodos, notes: storeNotes } = useStore();
+  const { db, setDb, getTodos, setTodos, getNotes, setNotes, getMedia, setMedia, addSpecialDay, deleteSpecialDay, todos: storeTodos, notes: storeNotes } = useStore();
   const today = todayStr();
   const [viewDate, setViewDate] = useState(new Date());
   const [selected, setSelected] = useState(today);
@@ -120,10 +203,51 @@ export default function Calendar() {
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [editCustomIdx, setEditCustomIdx] = useState(null);
   const [mediaViewer, setMediaViewer] = useState(null);
   const [mediaEditMode, setMediaEditMode] = useState(false);
   const [showOverdue, setShowOverdue] = useState(() => localStorage.getItem('gn_show_overdue') !== 'false');
+  const [specColors, setSpecColors] = useState(loadSpecColors);
+  const [specVisible, setSpecVisible] = useState(loadSpecVisible);
+  const [colorPicker, setColorPicker] = useState(null);
+  const [legendEditMode, setLegendEditMode] = useState(false);
+  const [calThemeIdx, setCalThemeIdx] = useState(loadCalTheme);
+  const [themePanelOpen, setThemePanelOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const calTheme = CAL_THEMES[calThemeIdx];
+
+  const pickCalTheme = (i) => { setCalThemeIdx(i); saveCalTheme(i); setThemePanelOpen(false); };
+
+  const toggleSpecVisible = (key) => {
+    const next = { ...specVisible, [key]: !specVisible[key] };
+    setSpecVisible(next);
+    saveSpecVisible(next);
+  };
+
+  const updateSpecColor = (key, color) => {
+    const next = { ...specColors, [key]: color };
+    if (key === 'h') next.b = color;
+    if (key === 'i') { next.a = color; next.custom = color; }
+    setSpecColors(next);
+    saveSpecColors(next);
+    setColorPicker(null);
+  };
+
+  // Renk seçici dışına tıklanınca kapat
+  useEffect(() => {
+    if (!colorPicker) return;
+    const handler = () => setColorPicker(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [colorPicker]);
+
+  // Tema paneli dışına tıklanınca kapat
+  useEffect(() => {
+    if (!themePanelOpen) return;
+    const handler = () => setThemePanelOpen(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [themePanelOpen]);
 
   const refreshData = () => {
     setLocalTodos(getTodos());
@@ -265,6 +389,12 @@ export default function Calendar() {
   // Custom days
   const handleAddCustomDay = (day) => { addSpecialDay(day); refreshData(); };
   const handleDeleteCustomDay = (i) => { deleteSpecialDay(i); refreshData(); };
+  const handleUpdateCustomDay = (i, day) => {
+    const list = [...(db.s || [])];
+    list[i] = day;
+    setDb({ ...db, s: list });
+    refreshData();
+  };
   const customDays = db.s || [];
 
   return (
@@ -272,9 +402,11 @@ export default function Calendar() {
       {showCustomModal && (
         <CustomDayModal
           customDays={customDays}
-          onClose={() => setShowCustomModal(false)}
+          onClose={() => { setShowCustomModal(false); setEditCustomIdx(null); }}
           onAdd={handleAddCustomDay}
+          onUpdate={handleUpdateCustomDay}
           onDelete={handleDeleteCustomDay}
+          initialEditIdx={editCustomIdx}
         />
       )}
       {mediaViewer !== null && (
@@ -345,64 +477,170 @@ export default function Calendar() {
             </div>
           )}
 
-          <div className="flex items-center justify-between mb-3">
-            <button onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth()-1, 1))} className="w-8 h-8 rounded-lg border border-border bg-transparent text-muted cursor-pointer flex items-center justify-center">‹</button>
-            <div className="font-serif text-[18px] text-accent2">{TR_M[month]} {year}</div>
-            <button onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth()+1, 1))} className="w-8 h-8 rounded-lg border border-border bg-transparent text-muted cursor-pointer flex items-center justify-center">›</button>
-          </div>
+          <div style={{ borderRadius:24, overflow:'hidden', background:'#0d1018' }}>
+            {/* Başlık */}
+            <div style={{ position:'relative', padding:'24px 24px 20px', background:`linear-gradient(${calTheme.grad})`, transition:'background .4s' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', position:'relative', zIndex:2 }}>
+                <div>
+                  <div style={{ fontSize:20, fontWeight:300, letterSpacing:'-.3px', color:calTheme.text }}>{TR_M[month]} {year}</div>
+                  <div style={{ fontSize:13, marginTop:6, color:calTheme.text, opacity:.55 }}>
+                    {String(parseInt(today.split('-')[2])).padStart(2,'0')}.{today.split('-')[1]}.{today.split('-')[0]} · {TR_D[new Date(today+'T12:00:00').getDay()]}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:6, alignItems:'center', position:'relative' }}>
+                  <button onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth()-1, 1))}
+                    style={{ width:34, height:34, borderRadius:10, border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.08)', color:calTheme.text, opacity:.7, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, cursor:'pointer' }}>‹</button>
+                  <button onClick={(e) => { e.stopPropagation(); setThemePanelOpen(v=>!v); }}
+                    style={{ fontSize:11, padding:'6px 12px', borderRadius:20, border:'1px solid rgba(255,255,255,0.2)', background:'rgba(255,255,255,0.08)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, color:calTheme.text, opacity:.8 }}>
+                    <div style={{ width:10, height:10, borderRadius:'50%', background:`linear-gradient(${calTheme.grad})`, border:'1.5px solid rgba(255,255,255,0.4)' }} />
+                    Tema
+                  </button>
+                  <button onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth()+1, 1))}
+                    style={{ width:34, height:34, borderRadius:10, border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.08)', color:calTheme.text, opacity:.7, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, cursor:'pointer' }}>›</button>
 
-          <div className="grid grid-cols-7 border-l border-border">
-            {['Pt','Sa','Ça','Pe','Cu','Ct','Pz'].map((d, i) => (
-              <div key={d} className={`text-center text-[10px] uppercase tracking-wider py-1 border-r border-border ${i >= 5 ? 'text-[#1D9E75]' : 'text-muted'}`}>{d}</div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 border-l border-border">
-            {(() => {
-              const trailing = (7 - (cells.length % 7)) % 7;
-              const allCells = [...cells, ...Array(trailing).fill(null)];
-              return allCells.map((ds, i) => {
-                if (!ds) return <div key={`e-${i}`} className="border-r border-t border-b border-border min-h-[42px]" />;
-                const d = parseInt(ds.split('-')[2]);
-                const isToday = ds === today;
-                const isSel = ds === selected;
-                const { dots } = getDayData(ds, db, todos, notes, media);
-                const colIndex = i % 7;
-                const isWeekend = colIndex >= 5;
-                const isPast = ds < today;
-                const hasOverdue = showOverdue && isPast && (todos[ds] || []).some(t => !t.done);
-                const allDots = hasOverdue ? [{ color: '#ef4444', overdue: true }, ...dots] : dots;
-                return (
-                  <div key={ds} onClick={() => setSelected(ds)}
-                    className={`min-h-[42px] p-[4px_2px] flex flex-col items-center cursor-pointer border-r border-t border-b border-border transition-all hover:bg-surface2 ${isSel ? 'bg-surface3' : ''}`}
-                    style={isWeekend && !isSel ? { borderTop: '2px solid rgba(29,158,117,.55)', borderLeft: '2px solid rgba(29,158,117,.55)', borderRadius: '6px 0 0 0' } : undefined}>
-                    <div className={`w-[26px] h-[26px] flex items-center justify-center text-sm rounded-full transition-all ${isToday ? 'bg-accent text-white font-medium' : isSel ? 'text-text font-medium' : isWeekend ? 'text-[#1D9E75]' : 'text-muted'}`}>{d}</div>
-                    <div className="flex gap-[2px] mt-[2px] flex-wrap justify-center">
-                      {allDots.slice(0,4).map((dot, di) => (
-                        <div key={di} style={{ width:4, height:4, borderRadius:'50%', background:dot.color, boxShadow: dot.overdue ? '0 0 4px #ef4444' : 'none' }} />
+                  {themePanelOpen && (
+                    <div onClick={e=>e.stopPropagation()}
+                      style={{ position:'absolute', top:'100%', right:0, zIndex:50, background:'#161a26', border:'1px solid rgba(255,255,255,0.1)', borderRadius:16, padding:14, display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:8, marginTop:8, boxShadow:'0 8px 32px rgba(0,0,0,0.5)' }}>
+                      {CAL_THEMES.map((t, i) => (
+                        <div key={i} onClick={() => pickCalTheme(i)} title={t.name}
+                          style={{ width:32, height:32, borderRadius:10, cursor:'pointer', border: i===calThemeIdx ? '2px solid rgba(255,255,255,0.6)' : '2px solid transparent', background:`linear-gradient(${t.grad})`, transition:'transform .15s' }}
+                          onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
+                          onMouseLeave={e=>e.currentTarget.style.transform=''}
+                        />
                       ))}
                     </div>
-                  </div>
-                );
-              });
-            })()}
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Gün isimleri + Grid */}
+            <div style={{ padding:'20px 20px 24px' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', rowGap:4 }}>
+                {WEEK_DAY_NAMES.map((d, i) => (
+                  <div key={d} style={{ textAlign:'center', fontSize:10, padding:'0 0 12px', letterSpacing:'.07em', fontWeight:500, color:'rgba(232,237,245,0.25)' }}>{d}</div>
+                ))}
+                {(() => {
+                  const trailing = (7 - (cells.length % 7)) % 7;
+                  const allCells = [...cells, ...Array(trailing).fill(null)];
+                  return allCells.map((ds, i) => {
+                    const colIndex = i % 7;
+                    const isWeekend = colIndex >= 5;
+                    if (!ds) return <div key={`e-${i}`} style={{ padding:'13px 0 10px', opacity:.18 }} />;
+                    const d = parseInt(ds.split('-')[2]);
+                    const isToday = ds === today;
+                    const isSel = ds === selected;
+                    const _specs = getSpecialDays(ds, db.s || []);
+                    const customSpecsWithColor = _specs.filter(s => s.t==='custom' && s.color);
+                    const dots = [
+                      specVisible.h && _specs.some(s=>s.t==='h'||s.t==='b') && { color: specColors.h || '#c0392b' },
+                      specVisible.r && _specs.some(s=>s.t==='r') && { color: specColors.r || '#7b5ea7' },
+                      specVisible.i && _specs.some(s=>(s.t==='i'||s.t==='a'||s.t==='custom') && !s.color) && { color: specColors.i || '#2874a6' },
+                      ...customSpecsWithColor.map(s => specVisible.i ? { color: s.color } : null),
+                      (db.f||[]).some(f=>f.date===ds) && { color:'#a06040' },
+                    ].filter(Boolean);
+                    const isPast = ds < today;
+                    const hasOverdue = showOverdue && isPast && (todos[ds] || []).some(t => !t.done);
+                    const allDots = hasOverdue ? [{ color: '#ef4444', overdue: true }, ...dots] : dots;
+                    const isInMonth = ds.startsWith(`${year}-${String(month+1).padStart(2,'0')}`);
+                    return (
+                      <div key={ds} onClick={() => setSelected(ds)}
+                        style={{
+                          textAlign:'center', padding:'13px 0 14px', fontSize:14, borderRadius:14, cursor:'pointer', position:'relative',
+                          color: !isInMonth ? 'rgba(232,237,245,0.15)' : 'rgba(232,237,245,0.55)',
+                          background: isToday ? calTheme.today : isSel ? 'rgba(255,255,255,0.06)' : 'transparent',
+                          border: isToday ? `1px solid ${calTheme.todayB}` : '1px solid transparent',
+                          fontWeight: isToday ? 700 : 400,
+                          transition:'background .12s',
+                        }}>
+                        <span style={{ color: isToday ? calTheme.todayT : undefined }}>{d}</span>
+                        {allDots.length > 0 && (
+                          <div style={{ position:'absolute', bottom:3, left:'50%', transform:'translateX(-50%)', display:'flex', gap:3 }}>
+                            {allDots.slice(0,4).map((dot, di) => (
+                              <div key={di} style={{ width:5, height:5, borderRadius:'50%', background:dot.color, boxShadow: dot.overdue ? '0 0 5px #ef4444' : `0 0 3px ${dot.color}` }} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border">
-            {[
-              { color:'#c0392b', label:'Resmi Tatil' },
-              { color:'#7b5ea7', label:'Dini Bayram' },
-              { color:'#2874a6', label:'Özel Gün' },
-            ].map(item => (
-              <div key={item.label} className="flex items-center gap-1.5">
-                <div style={{ width:8, height:8, borderRadius:'50%', background:item.color, flexShrink:0 }} />
-                <span className="text-[11px] text-muted">{item.label}</span>
-              </div>
-            ))}
-            <button onClick={() => setShowCustomModal(true)}
-              className="ml-auto text-[11px] text-accent border border-accent/30 bg-transparent px-2 py-0.5 rounded-lg cursor-pointer hover:bg-accent/10 transition-colors">
-              + Özel Gün
-            </button>
+          <div className="mt-4 pt-3 border-t border-border" style={{position:'relative'}}>
+            <div className="flex flex-wrap gap-3 items-center">
+              {[
+                { key:'h', label:'Resmi Tatil' },
+                { key:'r', label:'Dini Bayram' },
+                { key:'i', label:'Özel Gün' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center gap-1.5" style={{position:'relative', opacity: specVisible[item.key] ? 1 : 0.35, transition:'opacity .15s'}}>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); legendEditMode && setColorPicker(colorPicker===item.key ? null : item.key); }}
+                    style={{ width:12, height:12, borderRadius:'50%', background:specColors[item.key]||'#888', flexShrink:0, cursor: legendEditMode ? 'pointer' : 'default', border:'2px solid rgba(255,255,255,0.15)', transition:'transform .15s' }}
+                    title={legendEditMode ? 'Rengi değiştir' : ''}
+                  />
+                  <span className="text-[11px] text-muted">{item.label}</span>
+
+                  {legendEditMode && (
+                    <button
+                      onClick={() => toggleSpecVisible(item.key)}
+                      title={specVisible[item.key] ? 'Gizle' : 'Göster'}
+                      style={{
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        width:20, height:20, borderRadius:6, border:'1px solid rgba(255,255,255,0.12)',
+                        background: specVisible[item.key] ? 'rgba(255,255,255,0.05)' : 'rgba(239,68,68,0.12)',
+                        color: specVisible[item.key] ? 'rgba(232,237,245,0.4)' : '#f87171',
+                        cursor:'pointer', fontSize:11, flexShrink:0,
+                      }}
+                    >
+                      {specVisible[item.key] ? '◉' : '◯'}
+                    </button>
+                  )}
+
+                  {colorPicker === item.key && (
+                    <div onClick={e=>e.stopPropagation()} style={{position:'absolute',top:22,left:0,zIndex:100,background:'#1a1d28',border:'1px solid rgba(255,255,255,0.12)',borderRadius:14,padding:12,display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:6,boxShadow:'0 8px 32px rgba(0,0,0,0.5)',width:220}}>
+                      <div style={{gridColumn:'1/-1',fontSize:10,color:'rgba(232,237,245,0.35)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:2}}>{item.label} rengi</div>
+                      {COLOR_PALETTE.map(c => (
+                        <div key={c} onClick={() => updateSpecColor(item.key, c)}
+                          style={{width:20,height:20,borderRadius:6,background:c,cursor:'pointer',border:specColors[item.key]===c?'2px solid rgba(255,255,255,0.8)':'2px solid transparent',transition:'transform .12s',boxSizing:'border-box'}}
+                          onMouseEnter={e=>e.currentTarget.style.transform='scale(1.2)'}
+                          onMouseLeave={e=>e.currentTarget.style.transform=''}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {(db.s || []).filter(s => s.t==='custom' && s.color && s.n).map((s, i) => (
+                <div key={`custom-${i}`} className="flex items-center gap-1.5" style={{opacity: specVisible.i ? 1 : 0.35, transition:'opacity .15s'}}>
+                  <div style={{ width:12, height:12, borderRadius:'50%', background:s.color, flexShrink:0, border:'2px solid rgba(255,255,255,0.15)' }} />
+                  <span className="text-[11px] text-muted">{s.n}</span>
+                </div>
+              ))}
+
+              {legendEditMode && (
+                <button onClick={() => setShowCustomModal(true)}
+                  className="text-[11px] text-accent border border-accent/30 bg-transparent px-2 py-0.5 rounded-lg cursor-pointer hover:bg-accent/10 transition-colors">
+                  + Özel Gün
+                </button>
+              )}
+
+              <button
+                onClick={() => { setLegendEditMode(v => !v); if (legendEditMode) setColorPicker(null); }}
+                className="ml-auto text-[11px] bg-transparent px-2 py-0.5 rounded-lg cursor-pointer transition-colors"
+                style={{
+                  border: `1px solid ${legendEditMode ? 'rgba(58,123,213,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                  color: legendEditMode ? '#7ab8f5' : 'rgba(232,237,245,0.4)',
+                  background: legendEditMode ? 'rgba(58,123,213,0.1)' : 'transparent',
+                }}
+              >
+                {legendEditMode ? 'Bitti' : 'Düzenle'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -444,13 +682,28 @@ export default function Calendar() {
             );
           })()}
 
-          {selData.specials.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
-              style={{ background:`${SPEC_COLORS[s.t]||'#3a7bd5'}15`, borderLeft:`3px solid ${SPEC_COLORS[s.t]||'#3a7bd5'}` }}>
-              <span className="flex-1">{s.n}</span>
-              <span className="text-xs text-muted">{CAL_LABELS[s.t]}</span>
-            </div>
-          ))}
+          {selData.specials.filter(s => {
+            if ((s.t==='h'||s.t==='b') && !specVisible.h) return false;
+            if ((s.t==='r') && !specVisible.r) return false;
+            if ((s.t==='i'||s.t==='a'||s.t==='custom') && !specVisible.i) return false;
+            return true;
+          }).map((s, i) => {
+            const c = (s.t==='custom' && s.color) ? s.color : (specColors[s.t]||'#3a7bd5');
+            const dbIdx = s.t==='custom' ? (db.s||[]).findIndex(x => x === s) : -1;
+            return (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"
+                style={{ background:`${c}15`, borderLeft:`3px solid ${c}` }}>
+                <span className="flex-1">{s.n}</span>
+                {s.desc && <span className="text-xs text-muted2 mr-2">{s.desc}</span>}
+                <span className="text-xs text-muted">{CAL_LABELS[s.t]}</span>
+                {dbIdx !== -1 && (
+                  <button onClick={() => { setEditCustomIdx(dbIdx); setShowCustomModal(true); }}
+                    className="text-accent opacity-60 hover:opacity-100 bg-transparent border-0 cursor-pointer text-xs px-0.5 transition-opacity"
+                    title="Düzenle">✎</button>
+                )}
+              </div>
+            );
+          })}
 
           {selData.films.map((f, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2 text-sm"

@@ -36,9 +36,10 @@ export default function Clock() {
   const initRunning = localStorage.getItem('gn_sw_running') === '1' && initStartTime > 0;
 
   const startTimeRef = useRef(initRunning ? initStartTime : null);
-  const sessionStartMsRef = useRef(initRunning ? Date.now() : null); // FIX: sayfa açıkken çalışıyorsa set et
-  const sessionStartLabelRef = useRef(initRunning ? getNowLabel() : null); // FIX: aynı şekilde label da
-  const isLocalSessionRef = useRef(initRunning); // FIX: sayfa açıkken çalışıyorsa local sayılsın
+  // Sayfa yenilenince gerçek başlatma zamanını initStartTime'dan al
+  const sessionStartMsRef = useRef(initRunning ? initStartTime : null);
+  const sessionStartLabelRef = useRef(initRunning ? tsToLabel(initStartTime) : null);
+  const isLocalSessionRef = useRef(initRunning);
 
   const [running, setRunning] = useState(initRunning);
   const [displayMs, setDisplayMs] = useState(
@@ -120,7 +121,7 @@ export default function Clock() {
   const toggleSw = () => {
     if (running) {
       const elapsed = Math.max(0, Date.now() - startTimeRef.current);
-      // FIX: sessionStartMsRef null ise startTimeRef'ten hesapla (fallback)
+      // partDur: sadece bu session'ın süresi (başlatma anından durdurma anına kadar)
       const sessionStart = sessionStartMsRef.current || startTimeRef.current || Date.now();
       const partDur = Math.max(0, Date.now() - sessionStart);
 
@@ -155,8 +156,8 @@ export default function Clock() {
       const startTime = Date.now() - currentElapsed;
 
       sessionStartLabelRef.current = getNowLabel();
-      sessionStartMsRef.current = Date.now();
-      startTimeRef.current = startTime;
+      sessionStartMsRef.current = Date.now(); // Bu session'ın başlangıcı (birikimli değil)
+      startTimeRef.current = startTime; // Birikimli sayaç için (elapsed hesabı)
       isLocalSessionRef.current = true;
 
       localStorage.setItem('gn_sw_startTime', startTime);

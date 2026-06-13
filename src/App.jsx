@@ -7,7 +7,7 @@ import { useStore } from './store/useStore';
 function LoadingScreen() {
   return (
     <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center gap-3" style={{ background:'#0d0f13' }}>
-      <div className="font-serif text-[22px] text-accent">Günlüğüm</div>
+      <div className="font-serif text-[22px] text-accent">Lonas</div>
       <div style={{ width:32, height:32, border:'2.5px solid rgba(255,255,255,.1)', borderTopColor:'#3a7bd5', borderRadius:'50%', animation:'spin .8s linear infinite' }} />
     </div>
   );
@@ -52,7 +52,7 @@ function LoginScreen() {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background:'rgba(13,15,19,.95)' }}>
       <div className="w-[320px] animate-slideUp">
         <div className="text-center mb-6">
-          <div className="font-serif text-2xl text-accent2 mb-1">Günlüğüm</div>
+          <div className="font-serif text-2xl text-accent2 mb-1">Lonas</div>
           <div className="text-xs text-muted">Kişisel dijital günlük</div>
         </div>
         <div className="bg-surface border border-border rounded-2xl p-6">
@@ -86,12 +86,10 @@ export default function App() {
     const waitForFirebase = () => {
       if (window._fbOnAuthStateChanged && window._fbAuth) {
         unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-          // Önceki snapshot dinleyicisini temizle
           if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
 
           if (user) {
             window._fbUser = user;
-            // İlk yükleme
             await loadFromFirestore(user.uid);
             reloadDb();
             const profile = { name: user.displayName || user.email };
@@ -99,7 +97,6 @@ export default function App() {
             window._userProfile = profile;
             setAuthState('logged-in');
 
-            // Gerçek zamanlı sync — Firestore değişince React state güncellenir
             const ref = doc(fsdb, 'users', user.uid);
             unsubscribeSnapshot = onSnapshot(ref, (snap) => {
               if (snap.exists()) {
