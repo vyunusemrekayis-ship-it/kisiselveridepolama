@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays } from '../../lib/utils';
 
 const PHOTOS = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
@@ -18,8 +18,8 @@ const PRIORITY_COLORS = {
   low:    { dot: '#6b7280' },
 };
 
-const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books'];
-const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar' };
+const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar'];
+const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim' };
 
 function loadWidgetOrder() {
   try { return JSON.parse(localStorage.getItem('gn_widget_order') || JSON.stringify(ALL_WIDGET_IDS)); } catch { return [...ALL_WIDGET_IDS]; }
@@ -350,6 +350,102 @@ function BookWidget({ books, onNavigate }) {
   );
 }
 
+// ── TAKVİM ────────────────────────────────────────────────────────────────
+function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
+  const today = todayStr();
+  const [y, m] = today.split('-').map(Number);
+  const firstDay = new Date(y, m-1, 1).getDay();
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const startOffset = (firstDay + 6) % 7;
+
+  const todos = getTodos();
+  const notes = getNotes();
+
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(`${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+  }
+  const trailing = (7 - (cells.length % 7)) % 7;
+  for (let i = 0; i < trailing; i++) cells.push(null);
+
+  const hasMark = (ds) => {
+    if (!ds) return false;
+    const t = (todos[ds]||[]).length > 0;
+    const n = Array.isArray(notes[ds]) ? notes[ds].length > 0 : !!notes[ds];
+    const sp = getSpecialDays(ds, db.s || []).length > 0;
+    return t || n || sp;
+  };
+
+  const upcoming = [];
+  for (let off = 0; off < 14 && upcoming.length < 3; off++) {
+    const dt = new Date(); dt.setDate(dt.getDate()+off);
+    const ds = dt.toISOString().split('T')[0];
+    const dayTodos = (todos[ds]||[]).filter(t=>!t.done);
+    const specials = getSpecialDays(ds, db.s || []);
+    if (dayTodos.length || specials.length) {
+      upcoming.push({ ds, dayTodos, specials, isToday: ds===today });
+    }
+  }
+
+  const WD = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
+  const fmtShort = (ds) => { const [,mo,da]=ds.split('-'); return `${parseInt(da)} ${TR_M[parseInt(mo)-1]}`; };
+
+  return (
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Takvim ›</div>
+        <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}>{TR_M[m-1]}</div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',rowGap:3,marginBottom:10}}>
+        {WD.map(w=>(
+          <div key={w} style={{textAlign:'center',fontSize:8,color:'rgba(232,237,245,0.25)',letterSpacing:'.05em',paddingBottom:4}}>{w}</div>
+        ))}
+        {cells.map((ds,i)=>{
+          if (!ds) return <div key={`e-${i}`}/>;
+          const day = parseInt(ds.split('-')[2]);
+          const isToday = ds===today;
+          const marked = hasMark(ds);
+          return (
+            <div key={ds} style={{
+              display:'flex',alignItems:'center',justifyContent:'center',
+              height:22,borderRadius:6,fontSize:10,position:'relative',
+              background: isToday?'rgba(58,123,213,0.3)':'transparent',
+              color: isToday?'#93b8f0':'rgba(232,237,245,0.55)',
+              fontWeight: isToday?600:400,
+            }}>
+              {day}
+              {marked && !isToday && (
+                <div style={{position:'absolute',bottom:2,width:3,height:3,borderRadius:'50%',background:'rgba(58,123,213,0.6)'}}/>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:8}}>
+        {upcoming.length===0
+          ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Yaklaşan etkinlik yok</div>
+          : upcoming.map((u,i)=>(
+            <div key={u.ds} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',borderBottom:i<upcoming.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
+              <span style={{fontSize:10,color:u.isToday?'#7ab8f5':'rgba(232,237,245,0.35)',fontWeight:u.isToday?600:400,flexShrink:0,width:42}}>
+                {u.isToday?'Bugün':fmtShort(u.ds)}
+              </span>
+              <span style={{fontSize:11,color:'rgba(232,237,245,0.7)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
+                {u.specials[0]?.n || u.dayTodos[0]?.text}
+              </span>
+              {(u.dayTodos.length + u.specials.length) > 1 && (
+                <span style={{fontSize:9,color:'rgba(232,237,245,0.25)',flexShrink:0}}>+{u.dayTodos.length + u.specials.length - 1}</span>
+              )}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
 // ── WIDGET YÖNETİCİSİ ────────────────────────────────────────────────────
 function WidgetManager({ visible, order, onClose, onToggle, onReorder }) {
   const [dragOver, setDragOver] = useState(null);
@@ -395,7 +491,7 @@ function WidgetManager({ visible, order, onClose, onToggle, onReorder }) {
 if (!window._sw) window._sw = { running:false, startTime:null, elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), sessionStartLabel:null, sessionStartMs:null };
 
 export default function Home() {
-  const { db, setCurrentPage, getTodos, setTodos, getChains, swState, swLog } = useStore();
+  const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog } = useStore();
   const [time, setTime] = useState(new Date());
   const [bgPhoto, setBgPhoto] = useState('');
   const [swElapsed, setSwElapsed] = useState(()=>parseInt(localStorage.getItem('gn_sw_elapsed')||'0'));
@@ -477,6 +573,7 @@ export default function Home() {
       case 'stopwatch': return <StopwatchWidget key="stopwatch" swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')}/>;
       case 'chains': return <ChainWidget key="chains" chains={chains} onNavigate={()=>setCurrentPage('chain')}/>;
       case 'books': return <BookWidget key="books" books={db.b||[]} onNavigate={()=>setCurrentPage('books')}/>;
+      case 'calendar': return <CalendarWidget key="calendar" db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')}/>;
       default: return null;
     }
   };
