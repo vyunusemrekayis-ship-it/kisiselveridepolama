@@ -371,10 +371,9 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
 
   const hasMark = (ds) => {
     if (!ds) return false;
-    const t = (todos[ds]||[]).length > 0;
     const n = Array.isArray(notes[ds]) ? notes[ds].length > 0 : !!notes[ds];
     const sp = getSpecialDays(ds, db.s || []).length > 0;
-    return t || n || sp;
+    return n || sp;
   };
 
   const upcoming = [];
@@ -561,9 +560,6 @@ export default function Home() {
   const hh=String(time.getHours()).padStart(2,'0'), mm=String(time.getMinutes()).padStart(2,'0');
   const today=todayStr();
   const chains=getChains();
-  const weekDays=[];
-  const wd=new Date(time); wd.setDate(wd.getDate()-((wd.getDay()+6)%7));
-  for(let i=0;i<7;i++){ const d=new Date(wd);d.setDate(d.getDate()+i); weekDays.push({d,isToday:d.toISOString().split('T')[0]===today}); }
 
   const renderWidget = (id) => {
     if (!widgetVisible.includes(id)) return null;
@@ -606,19 +602,6 @@ export default function Home() {
           {widgetOrder.map(id => renderWidget(id))}
         </div>
 
-        {/* Mini takvim */}
-        <div className="flex justify-center pb-4">
-          <div className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 w-fit">
-            <div className="flex gap-1">
-              {weekDays.map(({d,isToday},i)=>(
-                <div key={i} className={`w-8 h-8 flex flex-col items-center justify-center rounded-lg text-xs ${isToday?'bg-accent text-white':'text-white/50'}`}>
-                  <div style={{fontSize:8}}>{['Pt','Sa','Ça','Pe','Cu','Ct','Pz'][i]}</div>
-                  <div>{d.getDate()}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       {showManager && (
