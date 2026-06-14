@@ -15,8 +15,14 @@ const PHOTOS = [
 const PRIORITY_COLORS = {
   high:   { dot: '#ef4444' },
   medium: { dot: '#f59e0b' },
-  low:    { dot: '#6b7280' },
+  low:    { dot: '#a78bfa' },
 };
+
+// Özel gün renkleri — Calendar.jsx ile senkron (localStorage: gn_spec_colors)
+const DEFAULT_SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
+function loadSpecColors() {
+  try { return { ...DEFAULT_SPEC_COLORS, ...JSON.parse(localStorage.getItem('gn_spec_colors') || '{}') }; } catch { return { ...DEFAULT_SPEC_COLORS }; }
+}
 
 const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar'];
 const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim' };
@@ -239,8 +245,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
             const pc=PRIORITY_COLORS[t.priority||'medium'];
             const isEditing=editingKey?.dk===t.dateKey&&editingKey?.idx===t.idx;
             return (
-              <div key={`${t.dateKey}-${t.idx}`} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',borderBottom:i<sorted.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
-                <div onClick={e=>{const o=['high','medium','low'];const cur=t.priority||'medium';setPrio(e,t.dateKey,t.idx,o[(o.indexOf(cur)+1)%3]);}} style={{width:6,height:6,borderRadius:'50%',background:pc.dot,flexShrink:0,cursor:'pointer'}}/>
+              <div key={`${t.dateKey}-${t.idx}`} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 6px',marginBottom:2,borderRadius:5,borderLeft:`3px solid ${pc.dot}`,background:'rgba(255,255,255,0.025)',opacity:t.done?0.5:1}}>
                 <div onClick={e=>toggle(e,t.dateKey,t.idx)} style={{width:12,height:12,borderRadius:3,border:t.done?'none':'1px solid rgba(255,255,255,0.3)',background:t.done?'#3a7bd5':'transparent',flexShrink:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {t.done&&<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.5 6L6.5 2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
@@ -248,6 +253,16 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
                   ? <input autoFocus value={editText} onClick={e=>e.stopPropagation()} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveEdit(e);if(e.key==='Escape'){e.stopPropagation();setEditingKey(null);}}} onBlur={saveEdit} style={{flex:1,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#e8edf5',outline:'none',borderRadius:4,padding:'1px 6px',fontSize:11,minWidth:0}}/>
                   : <span onDoubleClick={e=>startEdit(e,t.dateKey,t.idx,t.text)} style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:t.done?'rgba(255,255,255,0.25)':'rgba(232,237,245,0.85)',textDecoration:t.done?'line-through':'none',cursor:'default'}}>{t.text}</span>
                 }
+                <select
+                  value={t.priority||'medium'}
+                  onChange={e=>setPrio(e,t.dateKey,t.idx,e.target.value)}
+                  onClick={e=>e.stopPropagation()}
+                  style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:pc.dot,fontSize:9,fontWeight:500,borderRadius:5,padding:'1px 3px',cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}
+                >
+                  <option value="high" style={{color:'#ef4444'}}>Yüksek</option>
+                  <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
+                  <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
+                </select>
                 {tab==='week'&&<span style={{fontSize:9,color:'rgba(255,255,255,0.25)',flexShrink:0}}>{fmtDate(t.dateKey)}</span>}
                 {!isEditing&&<button onClick={e=>startEdit(e,t.dateKey,t.idx,t.text)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.3)',cursor:'pointer',padding:'0 1px',lineHeight:1,flexShrink:0,fontSize:10}}>✎</button>}
                 <button onClick={e=>delTodo(e,t.dateKey,t.idx)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.25)',cursor:'pointer',padding:'0 1px',lineHeight:1,flexShrink:0,fontSize:13}}>×</button>
@@ -257,9 +272,16 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
         }
       </div>
       <div onClick={e=>e.stopPropagation()} style={{display:'flex',gap:5,alignItems:'center',marginTop:4}}>
-        <div style={{display:'flex',gap:3}}>
-          {['high','medium','low'].map(p=><div key={p} onClick={e=>{e.stopPropagation();setAddPriority(p);}} style={{width:8,height:8,borderRadius:'50%',background:PRIORITY_COLORS[p].dot,cursor:'pointer',flexShrink:0,opacity:addPriority===p?1:0.3,outline:addPriority===p?`2px solid ${PRIORITY_COLORS[p].dot}`:'none',outlineOffset:1}}/>)}
-        </div>
+        <select
+          value={addPriority}
+          onChange={e=>{e.stopPropagation();setAddPriority(e.target.value);}}
+          onClick={e=>e.stopPropagation()}
+          style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:PRIORITY_COLORS[addPriority].dot,fontSize:10,fontWeight:500,borderRadius:7,padding:'4px 4px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',width:62}}
+        >
+          <option value="high" style={{color:'#ef4444'}}>Yüksek</option>
+          <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
+          <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
+        </select>
         <input value={addInput} onChange={e=>{e.stopPropagation();setAddInput(e.target.value);}} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')addTodo(e);}} onClick={e=>e.stopPropagation()} placeholder={tab==='tomorrow'?'Yarın için görev ekle...':'Görev ekle...'} style={{flex:1,background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:'rgba(232,237,245,0.8)',outline:'none',borderRadius:7,padding:'4px 8px',fontSize:11,fontFamily:'inherit',minWidth:0}}/>
         <button onClick={addTodo} style={{background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',color:'rgba(232,237,245,0.5)',width:24,height:24,borderRadius:7,fontSize:14,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
       </div>
@@ -475,11 +497,20 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
   const trailing = (7 - (cells.length % 7)) % 7;
   for (let i = 0; i < trailing; i++) cells.push(null);
 
-  const hasMark = (ds) => {
-    if (!ds) return false;
-    const n = Array.isArray(notes[ds]) ? notes[ds].length > 0 : !!notes[ds];
-    const sp = getSpecialDays(ds, db.s || []).length > 0;
-    return n || sp;
+  const specColors = loadSpecColors();
+  const getDayDots = (ds) => {
+    if (!ds) return [];
+    const dayNotes = Array.isArray(notes[ds]) ? notes[ds] : (notes[ds] ? [notes[ds]] : []);
+    const noteColors = [...new Set(dayNotes.map(n => (typeof n === 'object' && n.color) ? n.color : '#3a7bd5'))];
+    const specials = getSpecialDays(ds, db.s || []);
+    const customSpecsWithColor = specials.filter(s => s.t==='custom' && s.color);
+    const specDots = [
+      specials.some(s=>s.t==='h'||s.t==='b') && { color: specColors.h },
+      specials.some(s=>s.t==='r') && { color: specColors.r },
+      specials.some(s=>(s.t==='i'||s.t==='a'||s.t==='custom') && !s.color) && { color: specColors.i },
+      ...customSpecsWithColor.map(s => ({ color: s.color })),
+    ].filter(Boolean);
+    return [...specDots, ...noteColors.map(c => ({ color: c }))];
   };
 
   const upcoming = [];
@@ -511,7 +542,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
           if (!ds) return <div key={`e-${i}`}/>;
           const day = parseInt(ds.split('-')[2]);
           const isToday = ds===today;
-          const marked = hasMark(ds);
+          const dayDots = getDayDots(ds);
           return (
             <div key={ds} style={{
               display:'flex',alignItems:'center',justifyContent:'center',
@@ -521,8 +552,12 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
               fontWeight: isToday?600:400,
             }}>
               {day}
-              {marked && !isToday && (
-                <div style={{position:'absolute',bottom:2,width:3,height:3,borderRadius:'50%',background:'rgba(58,123,213,0.6)'}}/>
+              {dayDots.length>0 && (
+                <div style={{position:'absolute',bottom:2,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2}}>
+                  {dayDots.slice(0,3).map((dot,di)=>(
+                    <div key={di} style={{width:3,height:3,borderRadius:'50%',background:dot.color}}/>
+                  ))}
+                </div>
               )}
             </div>
           );

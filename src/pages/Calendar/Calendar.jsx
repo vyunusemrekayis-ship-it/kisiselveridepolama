@@ -47,7 +47,7 @@ const WEEK_DAY_NAMES = ['PT','SA','ÇA','PE','CU','CT','PZ'];
 const PRIORITY_COLORS = {
   high:   '#ef4444',
   medium: '#f59e0b',
-  low:    '#6b7280',
+  low:    '#a78bfa',
 };
 
 function getDayData(ds, db, todos, notes, media) {
@@ -57,13 +57,15 @@ function getDayData(ds, db, todos, notes, media) {
   const dayMedia = media[ds] || [];
   const films = (db.f||[]).filter(f => f.date === ds);
   const books = (db.b||[]).filter(b => b.start === ds || b.end === ds);
+  const noteColors = [...new Set(dayNotes.map(n => (typeof n === 'object' && n.color) ? n.color : '#3a7bd5'))];
   const dots = [
     specials.some(s=>s.t==='h') && { color:'#c0392b' },
     specials.some(s=>s.t==='r') && { color:'#7b5ea7' },
     specials.some(s=>s.t==='i'||s.t==='b'||s.t==='a'||s.t==='custom') && { color:'#2874a6' },
     films.length && { color:'#a06040' },
+    ...noteColors.map(c => ({ color: c })),
   ].filter(Boolean);
-  return { specials, dayTodos, dayNotes, dayMedia, films, books, dots };
+  return { specials, dayTodos, dayNotes, dayMedia, films, books, dots, noteColors };
 }
 
 // ── Kişisel Özel Gün Modal ──────────────────────────────────────────
@@ -199,6 +201,8 @@ export default function Calendar() {
   const [todoPriority, setTodoPriority] = useState('medium'); // YENİ
   const [noteInput, setNoteInput] = useState('');
   const [editingNote, setEditingNote] = useState(null);
+  const [noteColor, setNoteColor] = useState('#3a7bd5');
+  const [noteColorOpen, setNoteColorOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState(null); // { idx, text }
   const [searchQ, setSearchQ] = useState('');
   const [searchResults, setSearchResults] = useState(null);
@@ -249,6 +253,14 @@ export default function Calendar() {
     return () => document.removeEventListener('click', handler);
   }, [themePanelOpen]);
 
+  // Not renk paneli dışına tıklanınca kapat
+  useEffect(() => {
+    if (!noteColorOpen) return;
+    const handler = () => setNoteColorOpen(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [noteColorOpen]);
+
   const refreshData = () => {
     setLocalTodos(getTodos());
     setLocalNotes(getNotes());
@@ -294,13 +306,11 @@ export default function Calendar() {
     if (t[selected]?.[i]) t[selected][i].text = text.trim();
     setTodos(t); setEditingTodo(null); refreshData();
   };
-  // YENİ: öncelik döngüsü
-  const cyclePriorityLocal = (i) => {
-    const order = ['high', 'medium', 'low'];
+  // Öncelik dropdown'dan doğrudan ayarla
+  const setPriorityLocal = (i, priority) => {
     const t = getTodos();
     if (!t[selected]?.[i]) return;
-    const cur = t[selected][i].priority || 'medium';
-    t[selected][i].priority = order[(order.indexOf(cur) + 1) % 3];
+    t[selected][i].priority = priority;
     setTodos(t); refreshData();
   };
 
@@ -329,12 +339,12 @@ export default function Calendar() {
     const n = getNotes();
     if (!Array.isArray(n[selected])) n[selected] = [];
     if (editingNote !== null) {
-      n[selected][editingNote.idx] = { ...n[selected][editingNote.idx], text: noteInput.trim() };
+      n[selected][editingNote.idx] = { ...n[selected][editingNote.idx], text: noteInput.trim(), color: noteColor };
       setEditingNote(null);
     } else {
-      n[selected].push({ text: noteInput.trim(), color: '#3a7bd5' });
+      n[selected].push({ text: noteInput.trim(), color: noteColor });
     }
-    setNotes(n); setNoteInput(''); refreshData();
+    setNotes(n); setNoteInput(''); setNoteColor('#3a7bd5'); refreshData();
   };
   const deleteNote = (i) => {
     const n = getNotes();
@@ -532,12 +542,15 @@ export default function Calendar() {
                     const isSel = ds === selected;
                     const _specs = getSpecialDays(ds, db.s || []);
                     const customSpecsWithColor = _specs.filter(s => s.t==='custom' && s.color);
+                    const dayNotesForCell = Array.isArray(notes[ds]) ? notes[ds] : (notes[ds] ? [notes[ds]] : []);
+                    const noteColorsForCell = [...new Set(dayNotesForCell.map(n => (typeof n === 'object' && n.color) ? n.color : '#3a7bd5'))];
                     const dots = [
                       specVisible.h && _specs.some(s=>s.t==='h'||s.t==='b') && { color: specColors.h || '#c0392b' },
                       specVisible.r && _specs.some(s=>s.t==='r') && { color: specColors.r || '#7b5ea7' },
                       specVisible.i && _specs.some(s=>(s.t==='i'||s.t==='a'||s.t==='custom') && !s.color) && { color: specColors.i || '#2874a6' },
                       ...customSpecsWithColor.map(s => specVisible.i ? { color: s.color } : null),
                       (db.f||[]).some(f=>f.date===ds) && { color:'#a06040' },
+                      ...noteColorsForCell.map(c => ({ color: c })),
                     ].filter(Boolean);
                     const isPast = ds < today;
                     const hasOverdue = showOverdue && isPast && (todos[ds] || []).some(t => !t.done);
@@ -722,19 +735,11 @@ export default function Calendar() {
           {/* Görevler */}
           <div className="mb-4">
             <div className="text-xs text-muted uppercase tracking-wider mb-2">Görevler</div>
-            {selData.dayTodos.map((t, i) => (
-              <div key={i} className="flex items-center gap-2 py-1.5 group">
-                {/* Öncelik dot — tıklayınca döngü */}
-                <div
-                  onClick={() => cyclePriorityLocal(i)}
-                  title={`Öncelik: ${t.priority || 'medium'} (değiştirmek için tıkla)`}
-                  style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: PRIORITY_COLORS[t.priority || 'medium'],
-                    flexShrink: 0, cursor: 'pointer',
-                    transition: 'background .2s',
-                  }}
-                />
+            {selData.dayTodos.map((t, i) => {
+              const pColor = PRIORITY_COLORS[t.priority || 'medium'];
+              return (
+              <div key={i} className="flex items-center gap-2 py-1.5 px-2 group rounded-md"
+                style={{ borderLeft: `3px solid ${pColor}`, background: 'rgba(255,255,255,0.025)', opacity: t.done ? 0.55 : 1 }}>
 
                 <button onClick={() => toggleTodoLocal(i)}
                   className={`w-[18px] h-[18px] rounded-[4px] border flex-shrink-0 flex items-center justify-center text-[11px] cursor-pointer transition-all ${t.done ? 'bg-[#237F52] border-[#237F52] text-white' : 'border-border2 bg-transparent text-transparent'}`}>✓</button>
@@ -755,6 +760,17 @@ export default function Calendar() {
                   <span className={`flex-1 text-sm ${t.done ? 'line-through text-muted' : 'text-text'}`}>{t.text}</span>
                 )}
 
+                <select
+                  value={t.priority || 'medium'}
+                  onChange={e => setPriorityLocal(i, e.target.value)}
+                  className="bg-transparent border border-border2 rounded-md text-xs px-1 py-0.5 cursor-pointer flex-shrink-0"
+                  style={{ color: pColor }}
+                >
+                  <option value="high" style={{ color: '#ef4444' }}>Yüksek</option>
+                  <option value="medium" style={{ color: '#f59e0b' }}>Orta</option>
+                  <option value="low" style={{ color: '#a78bfa' }}>Düşük</option>
+                </select>
+
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {editingTodo?.idx !== i && (
                     <button
@@ -766,29 +782,21 @@ export default function Calendar() {
                   <button onClick={() => deleteTodoLocal(i)} className="text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer text-base opacity-40 hover:opacity-100 transition-opacity">×</button>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
-            {/* Görev ekle — öncelik seçici + input */}
+            {/* Görev ekle — öncelik dropdown + input */}
             <div className="flex gap-2 mt-2 items-center">
-              {/* Öncelik seçici */}
-              <div className="flex gap-1.5 flex-shrink-0">
-                {['high', 'medium', 'low'].map(p => (
-                  <div
-                    key={p}
-                    onClick={() => setTodoPriority(p)}
-                    title={p}
-                    style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: PRIORITY_COLORS[p],
-                      cursor: 'pointer', flexShrink: 0,
-                      opacity: todoPriority === p ? 1 : 0.3,
-                      outline: todoPriority === p ? `2px solid ${PRIORITY_COLORS[p]}` : 'none',
-                      outlineOffset: 1,
-                      transition: 'opacity .15s',
-                    }}
-                  />
-                ))}
-              </div>
+              <select
+                value={todoPriority}
+                onChange={e => setTodoPriority(e.target.value)}
+                className="form-input py-2 text-sm flex-shrink-0"
+                style={{ width: 92, color: PRIORITY_COLORS[todoPriority] }}
+              >
+                <option value="high" style={{ color: '#ef4444' }}>Yüksek</option>
+                <option value="medium" style={{ color: '#f59e0b' }}>Orta</option>
+                <option value="low" style={{ color: '#a78bfa' }}>Düşük</option>
+              </select>
               <input className="form-input flex-1 py-2 text-sm min-w-0" placeholder="Görev ekle..." value={todoInput}
                 onChange={e => setTodoInput(e.target.value)} onKeyDown={e => e.key==='Enter' && addTodoLocal()} />
               <button className="btn-save py-2 px-3 text-sm flex-shrink-0" onClick={addTodoLocal}>+</button>
@@ -800,11 +808,13 @@ export default function Calendar() {
             <div className="text-xs text-muted uppercase tracking-wider mb-2">Notlar</div>
             {selData.dayNotes.map((n, i) => {
               const text = typeof n === 'object' ? n.text : n;
+              const noteC = (typeof n === 'object' && n.color) ? n.color : '#3a7bd5';
               return (
-                <div key={i} className="flex items-start gap-2 py-2 border-b border-border last:border-0">
+                <div key={i} className="flex items-start gap-2 py-2 px-2 mb-1.5 rounded-md"
+                  style={{ borderLeft: `3px solid ${noteC}`, background: 'rgba(255,255,255,0.025)' }}>
                   <div className="flex-1 text-sm text-text leading-relaxed">{text}</div>
                   <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => { setNoteInput(text); setEditingNote({idx:i,text}); }} className="text-accent opacity-60 bg-transparent border-0 cursor-pointer text-xs">✎</button>
+                    <button onClick={() => { setNoteInput(text); setNoteColor(noteC); setEditingNote({idx:i,text}); }} className="text-accent opacity-60 bg-transparent border-0 cursor-pointer text-xs">✎</button>
                     <button onClick={() => deleteNote(i)} className="text-muted2 hover:text-red-400 bg-transparent border-0 cursor-pointer">×</button>
                   </div>
                 </div>
@@ -814,9 +824,29 @@ export default function Calendar() {
               <textarea className="form-input resize-y min-h-[70px] text-sm"
                 placeholder={editingNote ? 'Notu düzenle...' : 'Not ekle...'}
                 value={noteInput} onChange={e => setNoteInput(e.target.value)} />
-              <div className="flex gap-2 justify-end mt-2">
-                {editingNote && <button className="btn-cancel py-1 px-3 text-xs" onClick={() => { setEditingNote(null); setNoteInput(''); }}>İptal</button>}
-                <button className="btn-save py-1 px-3 text-xs" onClick={saveNote}>{editingNote ? 'Güncelle' : 'Kaydet'}</button>
+              <div className="flex gap-2 justify-between items-center mt-2">
+                <div style={{ position:'relative' }}>
+                  <div onClick={e => { e.stopPropagation(); setNoteColorOpen(v => !v); }}
+                    style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'4px 8px', borderRadius:8, border:'1px solid var(--color-border-tertiary, rgba(255,255,255,0.1))' }}>
+                    <div style={{ width:16, height:16, borderRadius:'50%', background:noteColor, flexShrink:0, border:'1px solid rgba(255,255,255,0.15)' }} />
+                    <span className="text-xs text-muted">Renk</span>
+                  </div>
+                  {noteColorOpen && (
+                    <div onClick={e=>e.stopPropagation()} style={{ position:'absolute', bottom:'100%', left:0, zIndex:50, background:'#1a1d28', border:'1px solid rgba(255,255,255,0.12)', borderRadius:14, padding:12, display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:6, marginBottom:6, boxShadow:'0 8px 32px rgba(0,0,0,0.5)' }}>
+                      {COLOR_PALETTE.map(c => (
+                        <div key={c} onClick={() => { setNoteColor(c); setNoteColorOpen(false); }}
+                          style={{ width:22, height:22, borderRadius:'50%', background:c, cursor:'pointer', border: noteColor===c ? '2px solid rgba(255,255,255,0.8)' : '2px solid transparent', transition:'transform .12s', boxSizing:'border-box' }}
+                          onMouseEnter={e=>e.currentTarget.style.transform='scale(1.15)'}
+                          onMouseLeave={e=>e.currentTarget.style.transform=''}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {editingNote && <button className="btn-cancel py-1 px-3 text-xs" onClick={() => { setEditingNote(null); setNoteInput(''); setNoteColor('#3a7bd5'); }}>İptal</button>}
+                  <button className="btn-save py-1 px-3 text-xs" onClick={saveNote}>{editingNote ? 'Güncelle' : 'Kaydet'}</button>
+                </div>
               </div>
             </div>
           </div>
