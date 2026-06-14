@@ -40,6 +40,112 @@ function WidgetTitle({ children }) {
   return <div className="text-xs uppercase tracking-wider text-white/60 mb-3 font-medium">{children}</div>;
 }
 
+// ── AKILLI BİLGİ ŞERİDİ ─────────────────────────────────────────────────
+function fmtDurShort(ms) {
+  const totalMin = Math.round(ms / 60000);
+  const h = Math.floor(totalMin / 60), m = totalMin % 60;
+  if (h > 0) return m > 0 ? `${h}s ${m}dk` : `${h}s`;
+  return `${m}dk`;
+}
+
+function buildTickerMessages({ db, todos, chains, swLog, today, tomorrow }) {
+  const msgs = [];
+
+  // Görevler — bugün
+  const todayTodos = todos[today] || [];
+  if (todayTodos.length) {
+    const done = todayTodos.filter(t=>t.done).length;
+    const remaining = todayTodos.length - done;
+    msgs.push(remaining>0 ? `${todayTodos.length} görevden ${done} tamamlandı, ${remaining} kaldı` : 'Bugünün tüm görevleri tamamlandı');
+  } else {
+    msgs.push('Bugün için görev yok');
+  }
+  // Görevler — yarın
+  const tomorrowTodos = todos[tomorrow] || [];
+  if (tomorrowTodos.length) msgs.push(`Yarın için ${tomorrowTodos.length} görev planlandı`);
+
+  // Hedefler
+  const totalBooks = db.b?.length || 0;
+  const totalFilms = db.f?.length || 0;
+  (db.g || []).filter(isGoalActive).forEach(g => {
+    const isBook = g.track==='book', isFilm = g.track==='film';
+    const cur = isBook ? totalBooks : isFilm ? totalFilms : (parseFloat(g.current)||0);
+    const tgt = parseFloat(g.target)||0;
+    if (tgt > 0) {
+      if (cur >= tgt) msgs.push(`Hedef tamamlandı: ${g.name}`);
+      else {
+        const pct = Math.round(Math.min(1, cur/tgt)*100);
+        msgs.push(`${g.name}: %${pct}, ${tgt-cur} kaldı`);
+      }
+    }
+  });
+
+  // Zincir Kırma
+  (chains || []).forEach(ch => {
+    const { streak, todayIdx, doneSet } = calcChainStreak(ch);
+    msgs.push(doneSet.has(todayIdx) ? `${ch.name}: ${streak}. gün tamamlandı` : `${ch.name}: ${streak}. gün, bugün henüz işaretlenmedi`);
+  });
+
+  // Kronometre — bugün
+  const todaySessions = (swLog || []).filter(e => e.date===today);
+  if (todaySessions.length) {
+    const totalMs = todaySessions.reduce((a,s)=>a+(s.dur||0),0);
+    if (totalMs > 0) msgs.push(`Bugün ${fmtDurShort(totalMs)} çalışıldı`);
+  }
+
+  // Kitaplar — okunuyor
+  (db.b || []).filter(b => b.status==='reading').forEach(b => msgs.push(`"${b.name}" okunuyor`));
+
+  // Takvim — yaklaşan özel günler (7 gün)
+  for (let off=0; off<7; off++) {
+    const dt = new Date(); dt.setDate(dt.getDate()+off);
+    const ds = dt.toISOString().split('T')[0];
+    getSpecialDays(ds, db.s || []).forEach(sp => {
+      msgs.push(off===0 ? `Bugün özel gün: ${sp.n}` : `${off} gün sonra: ${sp.n}`);
+    });
+  }
+
+  // Hava durumu — Firestore'dan (db.wx), son 1 saat taze ise
+  if (db.wx && db.wx.ts && (Date.now()-db.wx.ts) < 60*60*1000) {
+    const { temp, uv, city } = db.wx;
+    if (temp !== undefined) msgs.push(`${city || 'Hava'}: ${Math.round(temp)}°C`);
+    if (uv !== undefined && uv >= 6) msgs.push(`UV yüksek (${uv}) — güneş kremi ve gözlük öner`);
+    if (temp !== undefined && temp <= 5) msgs.push(`Hava soğuk: ${Math.round(temp)}°C, mont gerekebilir`);
+  }
+
+  if (!msgs.length) msgs.push('Her şey sakin görünüyor');
+  return msgs;
+}
+
+function TickerBar({ messages, hh, mm, time, onOpenManager }) {
+  const text = messages.join('   ·   ');
+  return (
+    <div style={{background:'#000',borderRadius:8,height:34,display:'flex',alignItems:'center',overflow:'hidden'}}>
+      <div style={{flexShrink:0,padding:'0 14px',borderRight:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'baseline',gap:6}}>
+        <span style={{fontFamily:'Lora,serif',fontSize:14,color:'#fff'}}>{hh}:{mm}</span>
+        <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',letterSpacing:'0.04em',whiteSpace:'nowrap'}}>{TR_D[time.getDay()]}, {time.getDate()} {TR_M[time.getMonth()]}</span>
+      </div>
+      <div style={{flex:1,overflow:'hidden',height:'100%',display:'flex',alignItems:'center',minWidth:0}}>
+        <div style={{display:'flex',whiteSpace:'nowrap',animation:'tickerScroll 32s linear infinite'}}>
+          <span style={{padding:'0 24px',fontSize:12,color:'rgba(255,255,255,0.55)'}}>{text}</span>
+          <span style={{padding:'0 24px',fontSize:12,color:'rgba(255,255,255,0.55)'}}>{text}</span>
+        </div>
+      </div>
+      <button onClick={onOpenManager} title="Widget'ları Düzenle" style={{flexShrink:0,width:34,height:34,border:'none',borderLeft:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.45)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'background .2s,color .2s'}}
+        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.75)';}}
+        onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.45)';}}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </svg>
+      </button>
+      <style>{`@keyframes tickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
+    </div>
+  );
+}
+
 // ── TODO ──────────────────────────────────────────────────────────────────
 function TodoWidget({ onNavigate, getTodos, setTodos }) {
   const today = todayStr(), tomorrow = getDateKey(1);
@@ -559,7 +665,9 @@ export default function Home() {
 
   const hh=String(time.getHours()).padStart(2,'0'), mm=String(time.getMinutes()).padStart(2,'0');
   const today=todayStr();
+  const tomorrow=getDateKey(1);
   const chains=getChains();
+  const tickerMessages = buildTickerMessages({ db, todos:getTodos(), chains, swLog, today, tomorrow });
 
   const renderWidget = (id) => {
     if (!widgetVisible.includes(id)) return null;
@@ -579,26 +687,13 @@ export default function Home() {
       {bgPhoto&&<div style={{position:'absolute',inset:0,backgroundImage:`url(${bgPhoto})`,backgroundSize:'cover',backgroundPosition:'center',zIndex:0}}/>}
       <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(13,15,19,.7) 0%,rgba(13,15,19,.4) 100%)',zIndex:1}}/>
 
-      <div className="relative z-10 p-5 md:p-8 min-h-screen grid grid-rows-[auto_1fr_auto] gap-4">
+      <div className="relative z-10 p-3 md:p-5 min-h-screen grid grid-rows-[auto_1fr_auto] gap-3">
 
-        {/* Saat */}
-        <div className="flex flex-col items-center justify-center py-8">
-          <div className="font-serif font-normal leading-none tracking-tighter text-white" style={{fontSize:'clamp(52px,18vw,96px)',textShadow:'0 2px 24px rgba(0,0,0,.6)'}}>
-            {hh}:{mm}
-          </div>
-          <div className="text-sm font-light tracking-[4px] uppercase mt-3 text-white/70">
-            {TR_D[time.getDay()]}, {time.getDate()} {TR_M[time.getMonth()]} {time.getFullYear()}
-          </div>
-          {/* Düzenle butonu */}
-          <button onClick={()=>setShowManager(true)} style={{marginTop:16,padding:'5px 16px',borderRadius:20,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.06)',color:'rgba(232,237,245,0.45)',fontSize:11,cursor:'pointer',letterSpacing:'0.05em',transition:'all .2s'}}
-            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(232,237,245,0.7)';}}
-            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(232,237,245,0.45)';}}>
-            Widget'ları Düzenle
-          </button>
-        </div>
+        {/* Üst şerit: saat/tarih + akıllı bilgi şeridi + widget ayar ikonu */}
+        <TickerBar messages={tickerMessages} hh={hh} mm={mm} time={time} onOpenManager={()=>setShowManager(true)}/>
 
         {/* Widget grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 items-start">
           {widgetOrder.map(id => renderWidget(id))}
         </div>
 

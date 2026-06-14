@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useStore } from '../../store/useStore';
 
 // ── WMO KOD ──────────────────────────────────────────────────────────
 function wxc(code, isDay) {
@@ -883,6 +884,7 @@ function PrecipCard({ daily, hourlyData }) {
 }
 
 export default function Weather() {
+  const { db, setDb } = useStore();
   const [cities, setCities] = useState(() => {
     try { return JSON.parse(localStorage.getItem('gn_wx_cities') || '[]'); } catch { return []; }
   });
@@ -913,6 +915,10 @@ export default function Weather() {
       const res = await fetch(url);
       const json = await res.json();
       setData({ ...json, city, air: airJson, quake: quakeJson });
+
+      // Akıllı bilgi şeridi için hava durumu özetini Firestore'a yaz (db.wx)
+      const c = json.current || {};
+      setDb({ ...db, wx: { temp: c.temperature_2m, uv: c.uv_index, code: c.weather_code, city: city.name, ts: Date.now() } });
     } catch(e) { console.error(e); }
     setLoading(false);
   };
