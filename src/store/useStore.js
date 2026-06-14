@@ -35,6 +35,9 @@ function fsWrite(data) {
   }
 }
 
+const defaultWidgetSizes = { desktop: {}, mobile: {} };
+const defaultWidgetPositions = { desktop: {}, mobile: {} };
+
 export const useStore = create((set, get) => ({
   // ── STATE ──
   db: loadDb(),
@@ -52,6 +55,10 @@ export const useStore = create((set, get) => ({
   aiProfile: lsParse('gn_ai_profile', {}),
   aiMemory: lsParse('gn_ai_memory', []),
   aiSummary: localStorage.getItem('gn_ai_summary') || '',
+  // Widget boyutları — { desktop: { [widgetId]: {col, row} }, mobile: { [widgetId]: {col, row} } }
+  widgetSizes: lsParse('gn_widget_sizes', defaultWidgetSizes),
+  // Widget pozisyonları — { desktop: { [widgetId]: {col, row} }, mobile: { [widgetId]: {col, row} } } (grid başlangıç hücresi, 1-bazlı)
+  widgetPositions: lsParse('gn_widget_positions', defaultWidgetPositions),
 
   // ── NAV ──
   setCurrentPage: (page) => set({ currentPage: page }),
@@ -99,6 +106,16 @@ export const useStore = create((set, get) => ({
         localStorage.setItem('gn_ai_summary', incoming.gn_ai_summary);
         updates.aiSummary = incoming.gn_ai_summary;
       }
+      if (incoming.gn_widget_sizes !== undefined) {
+        const merged = { ...defaultWidgetSizes, ...incoming.gn_widget_sizes };
+        localStorage.setItem('gn_widget_sizes', JSON.stringify(merged));
+        updates.widgetSizes = merged;
+      }
+      if (incoming.gn_widget_positions !== undefined) {
+        const mergedPos = { ...defaultWidgetPositions, ...incoming.gn_widget_positions };
+        localStorage.setItem('gn_widget_positions', JSON.stringify(mergedPos));
+        updates.widgetPositions = mergedPos;
+      }
       if (incoming.gn_sw_running !== undefined) {
         updates.swState = {
           running: !!incoming.gn_sw_running,
@@ -125,6 +142,8 @@ export const useStore = create((set, get) => ({
         aiProfile: lsParse('gn_ai_profile', {}),
         aiMemory: lsParse('gn_ai_memory', []),
         aiSummary: localStorage.getItem('gn_ai_summary') || '',
+        widgetSizes: lsParse('gn_widget_sizes', defaultWidgetSizes),
+        widgetPositions: lsParse('gn_widget_positions', defaultWidgetPositions),
       });
     }
     // window._sw güvenli güncelle
@@ -197,6 +216,28 @@ export const useStore = create((set, get) => ({
   // ── STOPWATCH ──
   getSwLog: () => get().swLog,
   setSwLog: (swLog) => { localStorage.setItem('gn_sw_log', JSON.stringify(swLog)); fsWrite({ gn_sw_log: swLog }); set({ swLog }); },
+
+  // ── WIDGET SIZES ──
+  // mode: 'desktop' | 'mobile', sizes: { [widgetId]: { col, row } }
+  getWidgetSizes: (mode) => get().widgetSizes[mode] || {},
+  setWidgetSize: (mode, widgetId, size) => {
+    const widgetSizes = { ...get().widgetSizes };
+    widgetSizes[mode] = { ...(widgetSizes[mode] || {}), [widgetId]: size };
+    localStorage.setItem('gn_widget_sizes', JSON.stringify(widgetSizes));
+    fsWrite({ gn_widget_sizes: widgetSizes });
+    set({ widgetSizes });
+  },
+
+  // ── WIDGET POSITIONS ──
+  // mode: 'desktop' | 'mobile', positions: { [widgetId]: { col, row } } (1-bazlı grid başlangıç hücresi)
+  getWidgetPositions: (mode) => get().widgetPositions[mode] || {},
+  setWidgetPositions: (mode, positions) => {
+    const widgetPositions = { ...get().widgetPositions };
+    widgetPositions[mode] = positions;
+    localStorage.setItem('gn_widget_positions', JSON.stringify(widgetPositions));
+    fsWrite({ gn_widget_positions: widgetPositions });
+    set({ widgetPositions });
+  },
 
   // ── AI ──
   getAiProfile: () => get().aiProfile,

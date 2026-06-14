@@ -36,6 +36,108 @@ function loadWidgetVisible() {
 function saveWidgetOrder(order) { localStorage.setItem('gn_widget_order', JSON.stringify(order)); }
 function saveWidgetVisible(visible) { localStorage.setItem('gn_widget_visible', JSON.stringify(visible)); }
 
+// ── WIDGET BOYUTLANDIRMA ────────────────────────────────────────────────
+// Masaüstü: 4 kolon, mobil: 2 kolon. Her hücre kare-ish bir birim (ROW_UNIT px).
+const DESKTOP_COLS = 4;
+const MOBILE_COLS = 2;
+const ROW_UNIT_DESKTOP = 64;  // px — bir "row" biriminin yüksekliği
+const ROW_UNIT_MOBILE = 56;
+const GAP = 8; // px — grid gap (Tailwind gap-2)
+
+// Varsayılan boyutlar — { col, row } grid birimi cinsinden
+const DEFAULT_SIZES = {
+  desktop: {
+    todos:    { col: 1, row: 4 },
+    goals:    { col: 1, row: 4 },
+    stopwatch:{ col: 2, row: 3 },
+    chains:   { col: 1, row: 4 },
+    books:    { col: 1, row: 4 },
+    calendar: { col: 1, row: 4 },
+  },
+  mobile: {
+    todos:    { col: 2, row: 5 },
+    goals:    { col: 2, row: 5 },
+    stopwatch:{ col: 2, row: 4 },
+    chains:   { col: 2, row: 5 },
+    books:    { col: 2, row: 5 },
+    calendar: { col: 2, row: 5 },
+  },
+};
+
+const SIZE_LIMITS = {
+  desktop: { minCol: 1, maxCol: DESKTOP_COLS, minRow: 2, maxRow: 8 },
+  mobile:  { minCol: 1, maxCol: MOBILE_COLS,  minRow: 2, maxRow: 8 },
+};
+
+function getWidgetSize(mode, id, sizes) {
+  const stored = sizes?.[mode]?.[id];
+  const def = DEFAULT_SIZES[mode]?.[id] || { col: 1, row: 4 };
+  const lim = SIZE_LIMITS[mode];
+  const col = Math.min(lim.maxCol, Math.max(lim.minCol, stored?.col ?? def.col));
+  const row = Math.min(lim.maxRow, Math.max(lim.minRow, stored?.row ?? def.row));
+  return { col, row };
+}
+
+// ── OTOMATİK YERLEŞİM ────────────────────────────────────────────────────
+// Kaydedilmiş pozisyonu olmayan widget'lar için, sıraya göre soldan sağa /
+// yukarıdan aşağıya boş hücre bulan basit bir "akış" yerleştirici.
+// occupied: Set<"col,row"> — bir önceki widget'ların kapladığı hücreler.
+function findFreeSlot(occupied, cols, size) {
+  let row = 1;
+  while (true) {
+    for (let col = 1; col <= cols - size.col + 1; col++) {
+      let fits = true;
+      outer:
+      for (let r = 0; r < size.row; r++) {
+        for (let c = 0; c < size.col; c++) {
+          if (occupied.has(`${col+c},${row+r}`)) { fits = false; break outer; }
+        }
+      }
+      if (fits) return { col, row };
+    }
+    row++;
+    if (row > 200) return { col: 1, row: 1 }; // güvenlik
+  }
+}
+
+function markOccupied(occupied, position, size) {
+  for (let r = 0; r < size.row; r++) {
+    for (let c = 0; c < size.col; c++) {
+      occupied.add(`${position.col+c},${position.row+r}`);
+    }
+  }
+}
+
+// Tüm widget'lar için pozisyon hesapla: kayıtlı varsa onu kullan, yoksa
+// otomatik yerleştir (occupied set'i sırayla güncellenerek çakışma önlenir).
+function computeLayout(order, visible, mode, sizes, positions) {
+  const cols = mode==='mobile' ? MOBILE_COLS : DESKTOP_COLS;
+  const occupied = new Set();
+  const layout = {};
+  order.filter(id=>visible.includes(id)).forEach(id => {
+    const size = getWidgetSize(mode, id, sizes);
+    let pos = positions?.[mode]?.[id];
+    if (pos) {
+      // Kayıtlı pozisyon grid dışına taşıyorsa düzelt
+      pos = { col: Math.min(Math.max(1,pos.col), cols - size.col + 1), row: Math.max(1,pos.row) };
+      // Kayıtlı pozisyon başka bir widget ile çakışıyorsa (örn. ekran boyutu değişti), boş yer bul
+      let conflict = false;
+      outer:
+      for (let r = 0; r < size.row; r++) {
+        for (let c = 0; c < size.col; c++) {
+          if (occupied.has(`${pos.col+c},${pos.row+r}`)) { conflict = true; break outer; }
+        }
+      }
+      if (conflict) pos = findFreeSlot(occupied, cols, size);
+    } else {
+      pos = findFreeSlot(occupied, cols, size);
+    }
+    layout[id] = { position: pos, size };
+    markOccupied(occupied, pos, size);
+  });
+  return layout;
+}
+
 function getDateKey(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
   return d.toISOString().split('T')[0];
@@ -44,6 +146,75 @@ function getWeekKeys() { return Array.from({length:7},(_,i)=>getDateKey(i)); }
 
 function WidgetTitle({ children }) {
   return <div className="text-xs uppercase tracking-wider text-white/60 mb-3 font-medium">{children}</div>;
+}
+
+// ── WIDGET SARMALAYICI (taşıma + resize tutamaçlı) ──────────────────────
+function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, isDragging, isDropTarget, children }) {
+  return (
+    <div
+      style={{
+        position:'relative',
+        gridColumn: position ? `${position.col} / span ${size.col}` : `span ${size.col}`,
+        gridRow: position ? `${position.row} / span ${size.row}` : `span ${size.row}`,
+        minWidth:0, minHeight:0,
+        display:'flex',
+        opacity: isDragging ? 0.4 : 1,
+        outline: isDropTarget ? '2px solid rgba(58,123,213,0.6)' : 'none',
+        outlineOffset: -2,
+        borderRadius: 16,
+        transition: isDragging ? 'none' : 'opacity .15s, outline-color .15s',
+        zIndex: isDragging ? 30 : 1,
+      }}
+    >
+      <div style={{position:'relative',width:'100%',height:'100%',display:'flex'}}>
+        <div style={{flex:1,minWidth:0,minHeight:0,display:'flex',flexDirection:'column'}}>
+          {children}
+        </div>
+        {/* Taşıma tutamacı — sağ üst köşe */}
+        <div
+          onPointerDown={e=>onMoveStart(e,id)}
+          title="Sürükleyerek taşı"
+          style={{
+            position:'absolute', right:2, top:2,
+            width:16, height:16,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            cursor:'grab', zIndex:20,
+            color:'rgba(255,255,255,0.25)',
+            touchAction:'none',
+            background:'rgba(0,0,0,0.2)',
+            borderRadius:5,
+          }}
+          onMouseEnter={e=>{e.currentTarget.style.color='rgba(255,255,255,0.85)';}}
+          onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.25)';}}
+        >
+          <svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor">
+            <circle cx="3" cy="2.5" r="1.2"/><circle cx="9" cy="2.5" r="1.2"/>
+            <circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/>
+            <circle cx="3" cy="9.5" r="1.2"/><circle cx="9" cy="9.5" r="1.2"/>
+          </svg>
+        </div>
+        {/* Resize tutamacı — sağ alt köşe */}
+        <div
+          onPointerDown={e=>onResizeStart(e,id)}
+          title="Sürükleyerek boyutlandır"
+          style={{
+            position:'absolute', right:2, bottom:2,
+            width:18, height:18,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            cursor:'nwse-resize', zIndex:20,
+            color:'rgba(255,255,255,0.35)',
+            touchAction:'none',
+          }}
+          onMouseEnter={e=>{e.currentTarget.style.color='rgba(255,255,255,0.8)';}}
+          onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.35)';}}
+        >
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+            <path d="M9.5 1.5L1.5 9.5M9.5 5.5L5.5 9.5M9.5 9.5L9.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── AKILLI BİLGİ ŞERİDİ ─────────────────────────────────────────────────
@@ -211,7 +382,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
   const fmtDate = (dk) => { if(TR_SHORT[dk]) return TR_SHORT[dk]; const [,m,d]=dk.split('-'); return `${parseInt(d)} ${TR_M[parseInt(m)-1]}`; };
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors">
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-2" onClick={e=>e.stopPropagation()}>
         <div onClick={onNavigate} className="text-xs uppercase tracking-wider text-white/60 font-medium cursor-pointer hover:text-white/80">Görevler ›</div>
         <div className="flex gap-1">
@@ -239,7 +410,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
           {overdue.length>3 && <div style={{fontSize:9,color:'rgba(252,165,165,0.4)',marginTop:2}}>+{overdue.length-3} daha…</div>}
         </div>
       )}
-      <div onClick={e=>e.stopPropagation()} style={{maxHeight:200,overflowY:'auto',marginBottom:sorted.length?8:0}} className="custom-scroll">
+      <div onClick={e=>e.stopPropagation()} style={{flex:1,overflowY:'auto',marginBottom:sorted.length?8:0,minHeight:0}} className="custom-scroll">
         {sorted.length===0 ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'4px 0'}}>Görev yok</div>
           : sorted.map((t,i)=>{
             const pc=PRIORITY_COLORS[t.priority||'medium'];
@@ -298,7 +469,7 @@ function GoalsWidget({ db, onNavigate }) {
   const R = 28, CX = 32, CY = 32, STROKE = 5, CIRC = 2 * Math.PI * R;
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors">
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div onClick={onNavigate} className="text-xs uppercase tracking-wider text-white/60 font-medium cursor-pointer hover:text-white/80">Hedefler ›</div>
         <div className="flex gap-1.5" onClick={e=>e.stopPropagation()}>
@@ -344,7 +515,7 @@ function GoalsWidget({ db, onNavigate }) {
 }
 
 // ── KRONOMETRE ────────────────────────────────────────────────────────────
-function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNavigate }) {
+function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow }) {
   const fmt = (ms) => {
     const t = Math.max(0,ms);
     const h=Math.floor(t/3600000), m=Math.floor((t%3600000)/60000), s=Math.floor((t%60000)/1000);
@@ -352,51 +523,87 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
   };
   const today = todayStr();
   const todaySessions = (swLog||[]).filter(e=>e.date===today);
-  const SESS_COLORS = ['#3a7bd5','#7b5ea7','#34d399','#fb923c','#f87171'];
+  const SESS_COLORS = ['#3a7bd5','#7b5ea7','#34d399','#fb923c','#f87171','#60a5fa','#e879f9','#facc15'];
+  const ROW_H = 25; // her seans satırının yaklaşık yüksekliği (gap dahil)
+  const MAX_VISIBLE = 4;
+
+  const controls = (
+    <div style={{display:'flex',gap:6}}>
+      <button onClick={e=>{e.stopPropagation();onToggle(e);}} style={{width:28,height:28,borderRadius:8,border:swRunning?'1px solid rgba(239,68,68,0.4)':'1px solid rgba(255,255,255,0.15)',background:swRunning?'rgba(239,68,68,0.1)':'rgba(255,255,255,0.07)',color:swRunning?'#f87171':'rgba(232,237,245,0.7)',cursor:'pointer',fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s',lineHeight:1,flexShrink:0}}>
+        {swRunning?'⏸':'▶'}
+      </button>
+      <button onClick={e=>{e.stopPropagation();onReset(e);}} style={{width:28,height:28,borderRadius:8,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.07)',color:'rgba(232,237,245,0.7)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s',lineHeight:1,flexShrink:0}}>
+        ↺
+      </button>
+    </div>
+  );
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:bg-black/40 transition-colors">
-      <div style={{padding:'14px 16px 0'}}>
-        <div className="text-xs uppercase tracking-wider text-white/60 font-medium mb-4">Kronometre</div>
-        <div style={{fontSize:34,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-2,fontVariantNumeric:'tabular-nums',textAlign:'center',marginBottom:12}}>{fmt(swElapsed)}</div>
-      </div>
-      <div style={{height:56,position:'relative',overflow:'hidden'}}>
-        <svg width="200%" height="56" viewBox="0 0 800 56" preserveAspectRatio="none"
-          style={{position:'absolute',bottom:0,left:0,animation:'swWave1 6s linear infinite'}}>
-          <defs>
-            <linearGradient id="swGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#1a3a6a" stopOpacity="0.65"/>
-              <stop offset="100%" stopColor="#0d1a35" stopOpacity="0.9"/>
-            </linearGradient>
-          </defs>
-          <path d="M0 28 Q100 8 200 28 Q300 48 400 28 Q500 8 600 28 Q700 48 800 28 L800 56 L0 56 Z" fill="url(#swGrad)"/>
-          <path d="M0 28 Q100 8 200 28 Q300 48 400 28 Q500 8 600 28 Q700 48 800 28" fill="none" stroke="rgba(58,123,213,0.25)" strokeWidth="1.5"/>
-        </svg>
-        <svg width="200%" height="56" viewBox="0 0 800 56" preserveAspectRatio="none"
-          style={{position:'absolute',bottom:0,left:0,animation:'swWave2 9s linear infinite',opacity:0.4}}>
-          <path d="M0 32 Q100 12 200 32 Q300 52 400 32 Q500 12 600 32 Q700 52 800 32 L800 56 L0 56 Z" fill="rgba(58,123,213,0.12)"/>
-        </svg>
-        <style>{`@keyframes swWave1{from{transform:translateX(0)}to{transform:translateX(-50%)}}@keyframes swWave2{from{transform:translateX(-50%)}to{transform:translateX(0%)}}`}</style>
-      </div>
-      <div style={{padding:'12px 16px 14px'}}>
-        <div style={{display:'flex',justifyContent:'center',gap:10,marginBottom:todaySessions.length?12:0}}>
-          <button onClick={e=>{e.stopPropagation();onToggle(e);}} style={{width:40,height:40,borderRadius:11,border:swRunning?'1px solid rgba(239,68,68,0.4)':'1px solid rgba(255,255,255,0.15)',background:swRunning?'rgba(239,68,68,0.1)':'rgba(255,255,255,0.07)',color:swRunning?'#f87171':'rgba(232,237,245,0.7)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}>
-            {swRunning?'⏸':'▶'}
-          </button>
-          <button onClick={e=>{e.stopPropagation();onReset(e);}} style={{width:40,height:40,borderRadius:11,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.05)',color:'rgba(232,237,245,0.55)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>↺</button>
-        </div>
-        {todaySessions.length>0 && (
-          <div onClick={e=>e.stopPropagation()} style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:10,display:'flex',flexDirection:'column',gap:6,maxHeight:120,overflowY:'auto',scrollbarWidth:'none'}}>
-            {todaySessions.map((s,i)=>(
-              <div key={s.id||i} style={{display:'flex',alignItems:'center',gap:7}}>
-                <div style={{width:5,height:5,borderRadius:'50%',background:SESS_COLORS[i%SESS_COLORS.length],flexShrink:0}}/>
-                <span style={{fontSize:11,color:'rgba(232,237,245,0.45)',flex:1}}>{s.start} – {s.end}</span>
-                <span style={{fontSize:11,color:'rgba(232,237,245,0.6)',fontFamily:'Lora,serif',fontVariantNumeric:'tabular-nums'}}>{fmt(s.dur)}</span>
-              </div>
-            ))}
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
+      <div style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
+
+        {isNarrow ? (
+          // ── DAR DÜZEN: etiket üstte, sayaç+kontroller altında tam genişlik ──
+          <div style={{marginBottom: todaySessions.length?12:0}}>
+            <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500,marginBottom:8}}>Kronometre</div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+              <div style={{fontSize:26,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
+              {controls}
+            </div>
+          </div>
+        ) : (
+          // ── GENİŞ DÜZEN: Kronometre solda, zaman + kontroller ortada ──
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: todaySessions.length?12:0}}>
+            <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500}}>Kronometre</div>
+            <div style={{display:'flex',alignItems:'center',gap:14,justifySelf:'center'}}>
+              <div style={{fontSize:30,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
+              {controls}
+            </div>
+            <div/>
           </div>
         )}
+
+        {/* Bugünkü seans listesi — 4'ten fazlaysa kaydırılabilir */}
+        {todaySessions.length>0 && (
+          <>
+            <div style={{height:1,background:'rgba(255,255,255,0.06)',marginBottom:10}}/>
+            <div
+              onClick={e=>e.stopPropagation()}
+              onWheel={e=>e.stopPropagation()}
+              style={{
+                display:'flex',flexDirection:'column',gap:7,
+                flex:1,
+                maxHeight: todaySessions.length>MAX_VISIBLE ? ROW_H*MAX_VISIBLE : 'none',
+                overflowY: 'auto',
+                paddingRight:6,
+                cursor:'default',
+                minHeight:0,
+              }}
+              className="sw-session-scroll"
+            >
+              {todaySessions.map((s,i)=>{
+                const color = SESS_COLORS[i%SESS_COLORS.length];
+                const isOngoing = i===0 && swRunning;
+                const durMin = Math.round((s.dur||0)/60000);
+                return (
+                  <div key={s.id||i} style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color: isOngoing?'#34d399':'rgba(255,255,255,0.45)',flexShrink:0}}>
+                    <span style={{width:6,height:6,borderRadius:'50%',background: isOngoing?'#34d399':color,display:'inline-block',flexShrink:0,animation: isOngoing?'swPulse 1.5s ease-in-out infinite':'none'}}/>
+                    <span>{s.start} – {isOngoing?'devam ediyor':(s.end||'—')}</span>
+                    <span style={{marginLeft:'auto',color: isOngoing?'#34d399':'rgba(255,255,255,0.3)'}}>{durMin}dk</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
       </div>
+      <style>{`
+        @keyframes swPulse{0%,100%{opacity:1}50%{opacity:.3}}
+        .sw-session-scroll::-webkit-scrollbar{width:3px}
+        .sw-session-scroll::-webkit-scrollbar-track{background:transparent}
+        .sw-session-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:2px}
+      `}</style>
     </div>
   );
 }
@@ -405,7 +612,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 function ChainWidget({ chains, onNavigate }) {
   const SEGS = 20;
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors">
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
       <WidgetTitle>Zincir Kırma ›</WidgetTitle>
       {chains.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Alışkanlık yok</div>
@@ -455,14 +662,14 @@ function BookWidget({ books, onNavigate }) {
   });
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors overflow-hidden">
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors overflow-hidden h-full w-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Kitaplar ›</div>
         <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}><span style={{fontSize:14,color:'rgba(232,237,245,0.65)',fontFamily:'Lora,serif',marginRight:3}}>{readCount}</span>okundu</div>
       </div>
       {books.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Kitap yok</div>
-        : <div style={{display:'flex',alignItems:'flex-end',gap:4,height:130,overflowX:'auto',paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.05)',scrollbarWidth:'none'}}>
+        : <div style={{display:'flex',alignItems:'flex-end',gap:4,flex:1,minHeight:75,overflowX:'auto',paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.05)',scrollbarWidth:'none'}}>
             {spines.map((s,i)=>(
               <svg key={i} width={s.W} height={s.H} viewBox={`0 0 ${s.W} ${s.H}`}
                 style={{flexShrink:0,borderRadius:3,cursor:'pointer',transition:'transform .2s,filter .2s',display:'block',background:s.color,outline:s.isReading?'1.5px solid rgba(255,255,255,0.3)':'none'}}
@@ -528,7 +735,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
   const fmtShort = (ds) => { const [,mo,da]=ds.split('-'); return `${parseInt(da)} ${TR_M[parseInt(mo)-1]}`; };
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors">
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Takvim ›</div>
         <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}>{TR_M[m-1]}</div>
@@ -564,7 +771,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
         })}
       </div>
 
-      <div style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:8}}>
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:8,flex:1,overflowY:'auto',minHeight:0}} className="custom-scroll">
         {upcoming.length===0
           ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Yaklaşan etkinlik yok</div>
           : upcoming.map((u,i)=>(
@@ -631,7 +838,7 @@ function WidgetManager({ visible, order, onClose, onToggle, onReorder }) {
 if (!window._sw) window._sw = { running:false, startTime:null, elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), sessionStartLabel:null, sessionStartMs:null };
 
 export default function Home() {
-  const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog } = useStore();
+  const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog, widgetSizes, setWidgetSize, widgetPositions, setWidgetPositions } = useStore();
   const [time, setTime] = useState(new Date());
   const [bgPhoto, setBgPhoto] = useState('');
   const [swElapsed, setSwElapsed] = useState(()=>parseInt(localStorage.getItem('gn_sw_elapsed')||'0'));
@@ -639,8 +846,20 @@ export default function Home() {
   const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
   const [widgetVisible, setWidgetVisible] = useState(loadWidgetVisible);
   const [showManager, setShowManager] = useState(false);
+  const [isMobile, setIsMobile] = useState(()=>typeof window!=='undefined' && window.innerWidth < 640);
+  const gridRef = useRef(null);
+  const [resizing, setResizing] = useState(null); // { id, startX, startY, startCol, startRow }
+  const [liveSize, setLiveSize] = useState(null); // sürüklenirken anlık önizleme: { id, col, row }
+  const [moving, setMoving] = useState(null); // { id, startX, startY, colWidth }
+  const [dropTarget, setDropTarget] = useState(null); // { col, row } — sürüklenen widget'ın anlık hedef hücresi
 
   useEffect(()=>{ const idx=Math.floor(Math.random()*PHOTOS.length); setBgPhoto(PHOTOS[idx]); },[]);
+
+  useEffect(()=>{
+    const onResize=()=>setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', onResize);
+    return ()=>window.removeEventListener('resize', onResize);
+  },[]);
 
   useEffect(()=>{
     if(!swState) return;
@@ -698,6 +917,128 @@ export default function Home() {
   };
   const handleWidgetReorder = (newOrder) => { setWidgetOrder(newOrder); saveWidgetOrder(newOrder); };
 
+  // ── RESIZE ────────────────────────────────────────────────────────────
+  const mode = isMobile ? 'mobile' : 'desktop';
+  const cols = isMobile ? MOBILE_COLS : DESKTOP_COLS;
+  const rowUnit = isMobile ? ROW_UNIT_MOBILE : ROW_UNIT_DESKTOP;
+  const lim = SIZE_LIMITS[mode];
+
+  const handleResizeStart = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const grid = gridRef.current;
+    if (!grid) return;
+    const colWidth = (grid.clientWidth - GAP*(cols-1)) / cols;
+    const current = getWidgetSize(mode, id, widgetSizes);
+    const startX = e.clientX, startY = e.clientY;
+    setResizing({ id, startX, startY, startCol: current.col, startRow: current.row, colWidth });
+    setLiveSize({ id, col: current.col, row: current.row });
+  };
+
+  useEffect(()=>{
+    if(!resizing) return;
+    const onMove = (e) => {
+      const dx = e.clientX - resizing.startX;
+      const dy = e.clientY - resizing.startY;
+      const deltaCol = Math.round(dx / (resizing.colWidth + GAP));
+      const deltaRow = Math.round(dy / (rowUnit + GAP));
+      const newCol = Math.min(lim.maxCol, Math.max(lim.minCol, resizing.startCol + deltaCol));
+      const newRow = Math.min(lim.maxRow, Math.max(lim.minRow, resizing.startRow + deltaRow));
+      setLiveSize({ id: resizing.id, col: newCol, row: newRow });
+    };
+    const onUp = () => {
+      setLiveSize(curr => {
+        if (curr) setWidgetSize(mode, curr.id, { col: curr.col, row: curr.row });
+        return null;
+      });
+      setResizing(null);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  },[resizing, rowUnit, lim, mode, setWidgetSize]);
+
+  const sizeFor = (id) => {
+    if (liveSize && liveSize.id === id) return { col: liveSize.col, row: liveSize.row };
+    return getWidgetSize(mode, id, widgetSizes);
+  };
+
+  // ── LAYOUT (pozisyonlar) ─────────────────────────────────────────────
+  const layout = computeLayout(widgetOrder, widgetVisible, mode, widgetSizes, widgetPositions);
+  // Resize sırasında anlık boyutu layout'a yansıt (pozisyon sabit kalır)
+  if (liveSize) {
+    const lp = layout[liveSize.id];
+    if (lp) lp.size = { col: liveSize.col, row: liveSize.row };
+  }
+
+  const positionFor = (id) => layout[id]?.position || { col:1, row:1 };
+
+  // ── TAŞIMA (drag & swap) ─────────────────────────────────────────────
+  const handleMoveStart = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const grid = gridRef.current;
+    if (!grid) return;
+    const colWidth = (grid.clientWidth - GAP*(cols-1)) / cols;
+    setMoving({ id, startX: e.clientX, startY: e.clientY, colWidth, gridRect: grid.getBoundingClientRect() });
+  };
+
+  useEffect(()=>{
+    if(!moving) return;
+    const onMove = (e) => {
+      const rect = moving.gridRect;
+      const relX = e.clientX - rect.left;
+      const relY = e.clientY - rect.top;
+      const col = Math.min(cols, Math.max(1, Math.floor(relX / (moving.colWidth + GAP)) + 1));
+      const row = Math.min(200, Math.max(1, Math.floor(relY / (rowUnit + GAP)) + 1));
+      setDropTarget({ col, row });
+    };
+    const onUp = () => {
+      setDropTarget(curr => {
+        if (curr) {
+          const movingId = moving.id;
+          const movingSize = getWidgetSize(mode, movingId, widgetSizes);
+          // Hedef hücrede başka bir widget var mı? (movingId hariç)
+          let targetId = null;
+          for (const wid of Object.keys(layout)) {
+            if (wid === movingId) continue;
+            const p = layout[wid].position, s = layout[wid].size;
+            if (curr.col >= p.col && curr.col < p.col + s.col && curr.row >= p.row && curr.row < p.row + s.row) {
+              targetId = wid; break;
+            }
+          }
+          const newPositions = { ...(widgetPositions[mode] || {}) };
+          // Tüm widget'ların güncel (otomatik dahil) pozisyonlarını yazalım ki tutarlı kalsın
+          Object.keys(layout).forEach(wid => { if(!newPositions[wid]) newPositions[wid] = layout[wid].position; });
+
+          if (targetId) {
+            // Yer değiştir (swap)
+            const a = newPositions[movingId] || layout[movingId].position;
+            const b = newPositions[targetId] || layout[targetId].position;
+            newPositions[movingId] = b;
+            newPositions[targetId] = a;
+          } else {
+            // Boş hücreye taşı — grid sınırı kontrolü
+            const clampedCol = Math.min(curr.col, cols - movingSize.col + 1);
+            newPositions[movingId] = { col: Math.max(1,clampedCol), row: curr.row };
+          }
+          setWidgetPositions(mode, newPositions);
+        }
+        return null;
+      });
+      setMoving(null);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  },[moving, cols, rowUnit, mode, widgetPositions, widgetSizes, layout, setWidgetPositions]);
+
   const hh=String(time.getHours()).padStart(2,'0'), mm=String(time.getMinutes()).padStart(2,'0');
   const today=todayStr();
   const tomorrow=getDateKey(1);
@@ -706,15 +1047,30 @@ export default function Home() {
 
   const renderWidget = (id) => {
     if (!widgetVisible.includes(id)) return null;
+    const size = layout[id]?.size || sizeFor(id);
+    const position = positionFor(id);
+    const isNarrow = size.col <= 1;
+    let content;
     switch(id) {
-      case 'todos': return <TodoWidget key="todos" onNavigate={()=>setCurrentPage('calendar')} getTodos={getTodos} setTodos={setTodos}/>;
-      case 'goals': return <GoalsWidget key="goals" db={db} onNavigate={()=>setCurrentPage('goals')}/>;
-      case 'stopwatch': return <StopwatchWidget key="stopwatch" swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')}/>;
-      case 'chains': return <ChainWidget key="chains" chains={chains} onNavigate={()=>setCurrentPage('chain')}/>;
-      case 'books': return <BookWidget key="books" books={db.b||[]} onNavigate={()=>setCurrentPage('books')}/>;
-      case 'calendar': return <CalendarWidget key="calendar" db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')}/>;
+      case 'todos': content = <TodoWidget onNavigate={()=>setCurrentPage('calendar')} getTodos={getTodos} setTodos={setTodos}/>; break;
+      case 'goals': content = <GoalsWidget db={db} onNavigate={()=>setCurrentPage('goals')}/>; break;
+      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow}/>; break;
+      case 'chains': content = <ChainWidget chains={chains} onNavigate={()=>setCurrentPage('chain')}/>; break;
+      case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')}/>; break;
+      case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')}/>; break;
       default: return null;
     }
+    const isDragging = moving?.id === id;
+    let isDropTarget = false;
+    if (moving && moving.id !== id && dropTarget) {
+      const p = position, s = size;
+      isDropTarget = dropTarget.col >= p.col && dropTarget.col < p.col + s.col && dropTarget.row >= p.row && dropTarget.row < p.row + s.row;
+    }
+    return (
+      <WidgetWrapper key={id} id={id} size={size} position={position} mode={mode} onResizeStart={handleResizeStart} onMoveStart={handleMoveStart} isDragging={isDragging} isDropTarget={isDropTarget}>
+        {content}
+      </WidgetWrapper>
+    );
   };
 
   return (
@@ -727,8 +1083,19 @@ export default function Home() {
         {/* Üst şerit: saat/tarih + akıllı bilgi şeridi + widget ayar ikonu */}
         <TickerBar messages={tickerMessages} hh={hh} mm={mm} time={time} onOpenManager={()=>setShowManager(true)}/>
 
-        {/* Widget grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 items-start">
+        {/* Widget grid — sabit kolon sayısı, satır birimi rowUnit px */}
+        <div
+          ref={gridRef}
+          style={{
+            display:'grid',
+            gridTemplateColumns:`repeat(${cols}, 1fr)`,
+            gridAutoRows:`${rowUnit}px`,
+            gap:GAP,
+            alignItems:'stretch',
+            userSelect: (resizing || moving) ? 'none' : 'auto',
+            position:'relative',
+          }}
+        >
           {widgetOrder.map(id => renderWidget(id))}
         </div>
 
