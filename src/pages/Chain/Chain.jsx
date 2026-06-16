@@ -209,7 +209,10 @@ export default function Chain() {
   const handleSave = (form) => {
     const list = [...chains];
     if (editingChain !== null) {
-      list[editingChain] = { ...list[editingChain], ...form };
+      const prev = list[editingChain];
+      // Başlangıç tarihi değiştiyse bu bir "yeniden başlatma"dır -> eski işaretli günler taşınmaz
+      const restarted = form.start !== prev.start;
+      list[editingChain] = { ...prev, ...form, done: restarted ? [] : prev.done };
       setEditingChain(null);
     } else {
       list.push({ ...form, done: [] });
