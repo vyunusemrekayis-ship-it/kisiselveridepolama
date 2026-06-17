@@ -80,39 +80,34 @@ export default function App() {
   const [authState, setAuthState] = useState('loading');
 
   useEffect(() => {
-    let unsubscribeAuth;
     let unsubscribeSnapshot;
 
-    const waitForFirebase = () => {
-      if (window._fbOnAuthStateChanged && window._fbAuth) {
-        unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-          if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+    // auth, lib/firebase.js'den içe aktarılan (bundle'lı) tek Firebase örneğine
+    // ait — CDN script'inin yüklenmesini bekleyen eski polling artık gereksiz.
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
 
-          if (user) {
-            window._fbUser = user;
-            await loadFromFirestore(user.uid);
-            reloadDb();
-            const profile = { name: user.displayName || user.email };
-            setUserProfile(profile);
-            window._userProfile = profile;
-            setAuthState('logged-in');
+      if (user) {
+        window._fbUser = user;
+        await loadFromFirestore(user.uid);
+        reloadDb();
+        const profile = { name: user.displayName || user.email };
+        setUserProfile(profile);
+        window._userProfile = profile;
+        setAuthState('logged-in');
 
-            const ref = doc(fsdb, 'users', user.uid);
-            unsubscribeSnapshot = onSnapshot(ref, (snap) => {
-              if (snap.exists()) {
-                reloadDb(snap.data());
-              }
-            });
-          } else {
-            window._fbUser = null;
-            setAuthState('logged-out');
+        const ref = doc(fsdb, 'users', user.uid);
+        unsubscribeSnapshot = onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            reloadDb(snap.data());
           }
         });
       } else {
-        setTimeout(waitForFirebase, 100);
+        window._fbUser = null;
+        setAuthState('logged-out');
       }
-    };
-    waitForFirebase();
+    });
+
     return () => { unsubscribeAuth?.(); unsubscribeSnapshot?.(); };
   }, []);
 

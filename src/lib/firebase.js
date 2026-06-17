@@ -45,3 +45,50 @@ export async function saveToFirestore(uid, data) {
     await setDoc(ref, data, { merge: true });
   } catch(e) { console.error('Firestore kayıt hatası:', e); }
 }
+
+// ──────────────────────────────────────────────────────────────────
+// Geriye dönük uyumluluk: index.html'deki eski CDN script'i bu window.*
+// global'larını tanımlıyordu (Sidebar.jsx, App.jsx LoginScreen, FloatingAi.jsx,
+// Ai.jsx, FinanceInvestments.jsx, Radar.jsx, financeStore.js bunları kullanıyor).
+// CDN script'i kaldırıldığı için aynı global'ları burada — tek (bundle'lı)
+// Firebase örneğiyle — tanımlıyoruz. Bu sayede o dosyalarda hiçbir değişiklik
+// gerekmiyor.
+// ──────────────────────────────────────────────────────────────────
+window._fbAuth = auth;
+window._fbDb = fsdb;
+window._fbDoc = doc;
+window._fbSetDoc = setDoc;
+window._fbGetDoc = getDoc;
+window._fbOnSnapshot = onSnapshot;
+window._fbSignOut = signOut;
+window._fbSignInWithEmailAndPassword = signInWithEmailAndPassword;
+window._fbCreateUserWithEmailAndPassword = createUserWithEmailAndPassword;
+window._fbGoogleAuthProvider = GoogleAuthProvider;
+window._fbSignInWithPopup = signInWithPopup;
+window._fbOnAuthStateChanged = onAuthStateChanged;
+
+window.loadFromFirestore = loadFromFirestore;
+
+window.saveToFirestore = async function() {
+  if (!window._fbUser) return;
+  try {
+    const ref = doc(fsdb, 'users', window._fbUser.uid);
+    await setDoc(ref, {
+      main: JSON.parse(localStorage.getItem('gn_db') || '{}'),
+      gn_notes: JSON.parse(localStorage.getItem('gn_notes') || '{}'),
+      gn_todos: JSON.parse(localStorage.getItem('gn_todos') || '{}'),
+      gn_chains: JSON.parse(localStorage.getItem('gn_chains') || '[]'),
+      gn_wl: JSON.parse(localStorage.getItem('gn_wl') || '[]'),
+      gn_rl: JSON.parse(localStorage.getItem('gn_rl') || '[]'),
+      gn_sw_log: JSON.parse(localStorage.getItem('gn_sw_log') || '[]'),
+    }, { merge: true });
+  } catch(e) { console.error('Firestore kayıt:', e); }
+};
+
+window.loadApiKey = async function() {
+  if (window.ANTHROPIC_KEY) return;
+  try {
+    const snap = await getDoc(doc(fsdb, 'config', 'app'));
+    if (snap.exists()) window.ANTHROPIC_KEY = snap.data().anthropicKey || '';
+  } catch(e) {}
+};
