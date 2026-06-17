@@ -1,28 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtDate, OMDB_KEY } from '../../lib/utils';
-
-// url string ya da null saklar; Promise yoktur — aynı isim için tek fetch garantili
-const posterCache = {};
-const posterInFlight = {};
-
-function fetchPoster(name) {
-  if (name in posterCache) return Promise.resolve(posterCache[name]);
-  if (posterInFlight[name]) return posterInFlight[name];
-  const p = fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`)
-    .then(r => r.json())
-    .then(data => {
-      const url = (data.Poster && data.Poster !== 'N/A')
-        ? data.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://')
-        : null;
-      posterCache[name] = url;
-      delete posterInFlight[name];
-      return url;
-    })
-    .catch(() => { posterCache[name] = null; delete posterInFlight[name]; return null; });
-  posterInFlight[name] = p;
-  return p;
-}
+import { fmtDate, OMDB_KEY, fetchPoster, posterCache } from '../../lib/utils';
 
 function FilmCard({ film, onEdit, onDelete, onMoveTo }) {
   const [poster, setPoster] = useState(posterCache[film.name] ?? null);

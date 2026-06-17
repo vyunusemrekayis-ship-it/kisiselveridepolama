@@ -100,3 +100,26 @@ export function calcChainStreak(ch) {
   if (startIdx >= 0) { let i = startIdx; while (i >= 0 && doneSet.has(i)) { streak++; i--; } }
   return { streak, todayIdx, doneSet };
 }
+
+// ── FİLM POSTERİ (Films.jsx ve Home.jsx ortak kullanır) ──────────────────
+// url string ya da null saklar; Promise yoktur — aynı isim için tek fetch garantili
+export const posterCache = {};
+const posterInFlight = {};
+
+export function fetchPoster(name) {
+  if (name in posterCache) return Promise.resolve(posterCache[name]);
+  if (posterInFlight[name]) return posterInFlight[name];
+  const p = fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`)
+    .then(r => r.json())
+    .then(data => {
+      const url = (data.Poster && data.Poster !== 'N/A')
+        ? data.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://')
+        : null;
+      posterCache[name] = url;
+      delete posterInFlight[name];
+      return url;
+    })
+    .catch(() => { posterCache[name] = null; delete posterInFlight[name]; return null; });
+  posterInFlight[name] = p;
+  return p;
+}

@@ -1,6 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache } from '../../lib/utils';
+
+// ── Widget'ın gerçek piksel boyutunu (genişlik/yükseklik) ölçen ortak hook ──
+// Resize tutamacıyla widget büyütülüp küçültüldüğünde, içerik buna göre
+// dinamik ölçeklenebilsin diye kullanılır (sabit boşluk kalmaması için).
+function useElementSize() {
+  const ref = useRef(null);
+  const [el, setEl] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const ro = new ResizeObserver(entries => {
+      const { width, height } = entries[0]?.contentRect || {};
+      if (width && height) setEl({ width, height });
+    });
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, el];
+}
 
 const PHOTOS = [
   'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
@@ -18,20 +37,31 @@ const PRIORITY_COLORS = {
   low:    { dot: '#a78bfa' },
 };
 
+
 // Özel gün renkleri — Calendar.jsx ile senkron (localStorage: gn_spec_colors)
 const DEFAULT_SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
 function loadSpecColors() {
   try { return { ...DEFAULT_SPEC_COLORS, ...JSON.parse(localStorage.getItem('gn_spec_colors') || '{}') }; } catch { return { ...DEFAULT_SPEC_COLORS }; }
 }
 
-const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar'];
-const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim' };
+const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar','films'];
+const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim', films:'Filmler' };
 
 function loadWidgetOrder() {
-  try { return JSON.parse(localStorage.getItem('gn_widget_order') || JSON.stringify(ALL_WIDGET_IDS)); } catch { return [...ALL_WIDGET_IDS]; }
+  try {
+    const saved = JSON.parse(localStorage.getItem('gn_widget_order') || JSON.stringify(ALL_WIDGET_IDS));
+    // Eski kayıtlarda henüz olmayan yeni widget'ları (örn. films) sona ekle
+    const missing = ALL_WIDGET_IDS.filter(id => !saved.includes(id));
+    return missing.length ? [...saved, ...missing] : saved;
+  } catch { return [...ALL_WIDGET_IDS]; }
 }
 function loadWidgetVisible() {
-  try { return JSON.parse(localStorage.getItem('gn_widget_visible') || JSON.stringify(ALL_WIDGET_IDS)); } catch { return [...ALL_WIDGET_IDS]; }
+  try {
+    const saved = JSON.parse(localStorage.getItem('gn_widget_visible') || JSON.stringify(ALL_WIDGET_IDS));
+    // Eski kayıtlarda henüz olmayan yeni widget'lar varsayılan olarak görünür sayılsın
+    const missing = ALL_WIDGET_IDS.filter(id => !saved.includes(id));
+    return missing.length ? [...saved, ...missing] : saved;
+  } catch { return [...ALL_WIDGET_IDS]; }
 }
 function saveWidgetOrder(order) { localStorage.setItem('gn_widget_order', JSON.stringify(order)); }
 function saveWidgetVisible(visible) { localStorage.setItem('gn_widget_visible', JSON.stringify(visible)); }
@@ -53,6 +83,7 @@ const DEFAULT_SIZES = {
     chains:   { col: 1, row: 4 },
     books:    { col: 1, row: 4 },
     calendar: { col: 1, row: 4 },
+    films:    { col: 1, row: 4 },
   },
   mobile: {
     todos:    { col: 2, row: 5 },
@@ -61,12 +92,13 @@ const DEFAULT_SIZES = {
     chains:   { col: 2, row: 5 },
     books:    { col: 2, row: 5 },
     calendar: { col: 2, row: 5 },
+    films:    { col: 2, row: 5 },
   },
 };
 
 const SIZE_LIMITS = {
-  desktop: { minCol: 1, maxCol: DESKTOP_COLS, minRow: 2, maxRow: 8 },
-  mobile:  { minCol: 1, maxCol: MOBILE_COLS,  minRow: 2, maxRow: 8 },
+  desktop: { minCol: 1, maxCol: DESKTOP_COLS, minRow: 1, maxRow: 60 },
+  mobile:  { minCol: 1, maxCol: MOBILE_COLS,  minRow: 1, maxRow: 60 },
 };
 
 function getWidgetSize(mode, id, sizes) {
@@ -461,12 +493,23 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
 }
 
 // ── HEDEFLER ──────────────────────────────────────────────────────────────
-function GoalsWidget({ db, onNavigate }) {
+function GoalsWidget({ db, onNavigate, size }) {
   const [period, setPeriod] = useState('weekly');
   const totalBooks = db.b?.length || 0;
   const totalFilms = db.f?.length || 0;
   const goals = (db.g || []).filter(g => g.period === period && isGoalActive(g)).slice(0, 4);
-  const R = 28, CX = 32, CY = 32, STROKE = 5, CIRC = 2 * Math.PI * R;
+  // Ring boyutu, içerik alanının GERÇEK piksel boyutuna göre hesaplanır (ResizeObserver) —
+  // widget büyütülünce ringler boşluk kalmadan alanı doldurur.
+  const [areaRef, area] = useElementSize();
+  const cols = Math.max(1, Math.min(goals.length, 4));
+  // Her ring hücresi yaklaşık kare; genişlik ve yükseklikten küçük olanı baz al
+  const cellW = area.width ? area.width / cols - 8 : 64;
+  const cellH = area.height || 64;
+  const SVG_SIZE = Math.max(36, Math.round(Math.min(cellW, cellH)));
+  const R = Math.round(SVG_SIZE * 0.4375), CX = SVG_SIZE/2, CY = SVG_SIZE/2, STROKE = Math.max(3, Math.round(SVG_SIZE * 0.078)), CIRC = 2 * Math.PI * R;
+  const fontSize = Math.max(9, Math.round(SVG_SIZE * 0.17));
+  const labelFontSize = Math.max(9, Math.round(SVG_SIZE * 0.155));
+  const valueFontSize = Math.max(9, Math.round(SVG_SIZE * 0.17));
 
   return (
     <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
@@ -481,7 +524,7 @@ function GoalsWidget({ db, onNavigate }) {
       {goals.length === 0
         ? <div className="text-xs text-white/30">Hedef yok</div>
         : (
-          <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(goals.length,4)},1fr)`,gap:8}}>
+          <div ref={areaRef} style={{display:'grid',gridTemplateColumns:`repeat(${cols},1fr)`,gap:8,flex:1,alignItems:'center',justifyItems:'center',minHeight:0}}>
             {goals.map((g,i)=>{
               const isBook=g.track==='book', isFilm=g.track==='film';
               const cur = isBook?totalBooks:isFilm?totalFilms:(parseFloat(g.current)||0);
@@ -492,18 +535,18 @@ function GoalsWidget({ db, onNavigate }) {
               const color = done?'#34d399':(g.color||'#3a7bd5');
               return (
                 <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-                  <svg width="64" height="64" viewBox="0 0 64 64">
+                  <svg width={SVG_SIZE} height={SVG_SIZE} viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}>
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={STROKE}/>
                     <circle cx={CX} cy={CY} r={R} fill="none" stroke={color} strokeWidth={STROKE}
                       strokeDasharray={CIRC} strokeDashoffset={done?0:offset}
                       strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`}/>
                     {done
-                      ? <path d="M22 32 L29 39 L42 25" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      : <text x={CX} y={CY+4} textAnchor="middle" fill={color} fontSize="11" fontFamily="Lora,serif">{Math.round(pct*100)}%</text>
+                      ? <path d="M22 32 L29 39 L42 25" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" transform={`translate(${CX-32} ${CY-32})`}/>
+                      : <text x={CX} y={CY+fontSize*0.36} textAnchor="middle" fill={color} fontSize={fontSize} fontFamily="Lora,serif">{Math.round(pct*100)}%</text>
                     }
                   </svg>
-                  <div style={{fontSize:11,color:done?'#34d399':'rgba(232,237,245,0.55)',fontFamily:'Lora,serif'}}>{cur}/{tgt}</div>
-                  <div style={{fontSize:10,color:'rgba(232,237,245,0.3)',textAlign:'center',maxWidth:64,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.name}</div>
+                  <div style={{fontSize:valueFontSize,color:done?'#34d399':'rgba(232,237,245,0.55)',fontFamily:'Lora,serif'}}>{cur}/{tgt}</div>
+                  <div style={{fontSize:labelFontSize,color:'rgba(232,237,245,0.3)',textAlign:'center',maxWidth:SVG_SIZE,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{g.name}</div>
                 </div>
               );
             })}
@@ -515,7 +558,7 @@ function GoalsWidget({ db, onNavigate }) {
 }
 
 // ── KRONOMETRE ────────────────────────────────────────────────────────────
-function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow }) {
+function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow, size }) {
   const fmt = (ms) => {
     const t = Math.max(0,ms);
     const h=Math.floor(t/3600000), m=Math.floor((t%3600000)/60000), s=Math.floor((t%60000)/1000);
@@ -525,7 +568,13 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
   const todaySessions = (swLog||[]).filter(e=>e.date===today);
   const SESS_COLORS = ['#3a7bd5','#7b5ea7','#34d399','#fb923c','#f87171','#60a5fa','#e879f9','#facc15'];
   const ROW_H = 25; // her seans satırının yaklaşık yüksekliği (gap dahil)
-  const MAX_VISIBLE = 4;
+  // Boyut büyüdükçe sayaç yazısı ve görünür seans sayısı, konteynerin GERÇEK piksel
+  // yüksekliğine göre büyür (ResizeObserver) — sabit boşluk kalmaz.
+  const [bodyRef, body] = useElementSize();
+  const baseH = isNarrow ? 110 : 90; // yaklaşık varsayılan içerik yüksekliği
+  const heightScale = Math.max(0.7, Math.min(2.8, (body.height || baseH) / baseH));
+  const clockFontSize = Math.round((isNarrow ? 26 : 30) * heightScale);
+  const MAX_VISIBLE = Math.max(2, Math.round(4 * heightScale));
 
   const controls = (
     <div style={{display:'flex',gap:6}}>
@@ -540,14 +589,14 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 
   return (
     <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
-      <div style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
+      <div ref={bodyRef} style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
 
         {isNarrow ? (
           // ── DAR DÜZEN: etiket üstte, sayaç+kontroller altında tam genişlik ──
           <div style={{marginBottom: todaySessions.length?12:0}}>
             <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500,marginBottom:8}}>Kronometre</div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-              <div style={{fontSize:26,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
+              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
               {controls}
             </div>
           </div>
@@ -556,7 +605,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
           <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: todaySessions.length?12:0}}>
             <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500}}>Kronometre</div>
             <div style={{display:'flex',alignItems:'center',gap:14,justifySelf:'center'}}>
-              <div style={{fontSize:30,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
+              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
               {controls}
             </div>
             <div/>
@@ -609,46 +658,77 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 }
 
 // ── ZİNCİR ────────────────────────────────────────────────────────────────
-function ChainWidget({ chains, onNavigate }) {
+function ChainWidget({ chains, onNavigate, size }) {
   const SEGS = 20;
+  // Widget büyüdükçe, konteynerin GERÇEK piksel yüksekliğine göre (ResizeObserver)
+  // daha fazla alışkanlık satırı ve daha büyük yazı gösterilir, boşluk dağıtılır.
+  const [bodyRef, body] = useElementSize();
+  const baseH = 130; // 4 alışkanlık satırı için yaklaşık varsayılan yükseklik
+  const heightScale = Math.max(0.7, Math.min(3, (body.height || baseH) / baseH));
+  const maxVisible = Math.max(2, Math.round(4 * heightScale));
+  const nameFontSize = Math.max(10, Math.round(12 * heightScale));
+  const streakFontSize = Math.max(10, Math.round(12 * heightScale));
+  const segHeight = Math.max(3, Math.round(3 * heightScale));
   return (
     <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
       <WidgetTitle>Zincir Kırma ›</WidgetTitle>
       {chains.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Alışkanlık yok</div>
-        : chains.slice(0,4).map((ch,i)=>{
+        : <div ref={bodyRef} style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:0}}>
+        {chains.slice(0,maxVisible).map((ch,i)=>{
           const { streak } = calcChainStreak(ch);
           const target = ch.target||30;
           const filled = Math.round((streak/target)*SEGS);
           return (
-            <div key={i} style={{marginBottom:i<Math.min(chains.length,4)-1?12:0}}>
+            <div key={i}>
               <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:6}}>
                 <div style={{width:6,height:6,borderRadius:'50%',background:ch.color||'#3a7bd5',flexShrink:0}}/>
-                <span style={{fontSize:12,color:'rgba(232,237,245,0.75)',flex:1}}>{ch.name}</span>
-                <span style={{fontSize:12,color:'rgba(232,237,245,0.4)',fontFamily:'Lora,serif'}}>{streak} gün</span>
+                <span style={{fontSize:nameFontSize,color:'rgba(232,237,245,0.75)',flex:1}}>{ch.name}</span>
+                <span style={{fontSize:streakFontSize,color:'rgba(232,237,245,0.4)',fontFamily:'Lora,serif'}}>{streak} gün</span>
               </div>
               <div style={{display:'flex',gap:3}}>
                 {Array.from({length:SEGS},(_,j)=>(
-                  <div key={j} style={{flex:1,height:3,borderRadius:2,background:j<filled?(ch.color||'#3a7bd5'):'rgba(255,255,255,0.08)'}}/>
+                  <div key={j} style={{flex:1,height:segHeight,borderRadius:2,background:j<filled?(ch.color||'#3a7bd5'):'rgba(255,255,255,0.08)'}}/>
                 ))}
               </div>
             </div>
           );
-        })
+        })}
+        </div>
+
       }
     </div>
   );
 }
 
 // ── KİTAPLAR ─────────────────────────────────────────────────────────────
-function BookWidget({ books, onNavigate }) {
-  const minP=80,maxP=1400,minW=24,maxW=46,minH=75,maxH=125;
+function BookWidget({ books, onNavigate, size }) {
+  // Kitap sırtı boyutu, şerit konteynerinin GERÇEK piksel yüksekliğine göre hesaplanır (ResizeObserver) —
+  // widget büyütülünce dikey boşluk kalmadan sırtlar tam doldurur. Sayfa sayısına göre de orantılı genişler.
+  const stripRef = useRef(null);
+  const [stripH, setStripH] = useState(75);
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect?.height;
+      if (h && h > 0) setStripH(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const minP=80,maxP=1400;
+  // Konteyner yüksekliğine göre min/maks kitap sırtı yüksekliği — oran sabit (75:125 ~ 0.6)
+  const maxH = Math.round(stripH);
+  const minH = Math.round(maxH * 0.6);
+  const minW = Math.round(minH * (24/75));
+  const maxW = Math.round(maxH * (46/125));
   const readCount = books.length;
   const spines = books.map(b=>{
     const p=parseInt(b.pages)||200;
     const r=Math.min(1,Math.max(0,(p-minP)/(maxP-minP)));
     const W=Math.round(minW+r*(maxW-minW)), H=Math.round(minH+r*(maxH-minH));
-    const fs=Math.max(7,Math.min(10,W*0.32));
+    const fs=Math.max(7,Math.min(W*0.32, 16));
     const lineH=fs*1.4, maxTW=H-14;
     const words=b.name.split(' ');
     const lines=[];let cur='';
@@ -669,7 +749,7 @@ function BookWidget({ books, onNavigate }) {
       </div>
       {books.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Kitap yok</div>
-        : <div style={{display:'flex',alignItems:'flex-end',gap:4,flex:1,minHeight:75,overflowX:'auto',paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.05)',scrollbarWidth:'none'}}>
+        : <div ref={stripRef} style={{display:'flex',alignItems:'flex-end',gap:4,flex:1,minHeight:0,overflowX:'auto',paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.05)',scrollbarWidth:'none'}}>
             {spines.map((s,i)=>(
               <svg key={i} width={s.W} height={s.H} viewBox={`0 0 ${s.W} ${s.H}`}
                 style={{flexShrink:0,borderRadius:3,cursor:'pointer',transition:'transform .2s,filter .2s',display:'block',background:s.color,outline:s.isReading?'1.5px solid rgba(255,255,255,0.3)':'none'}}
@@ -685,13 +765,91 @@ function BookWidget({ books, onNavigate }) {
   );
 }
 
+// ── FİLMLER ────────────────────────────────────────────────────────────
+function FilmWidget({ films, onNavigate, size }) {
+  // En yeni izlenen solda: tarihli olanlar tarihe göre yeniden eskiye, tarihsiz ("eskiden izledim") en sona
+  const sorted = [...films].sort((a, b) => {
+    const da = a.date || '', db2 = b.date || '';
+    if (da && db2) return db2.localeCompare(da);
+    if (da) return -1; if (db2) return 1; return 0;
+  });
+  // Poster boyutu, şerit konteynerinin GERÇEK piksel yüksekliğine göre hesaplanır (ResizeObserver) —
+  // böylece widget büyütülünce dikey boşluk kalmadan posterler tam doldurur.
+  const stripRef = useRef(null);
+  const [stripH, setStripH] = useState(84);
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect?.height;
+      if (h && h > 0) setStripH(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const ASPECT = 58/84; // poster en/boy oranı
+  const posterH = Math.round(stripH);
+  const posterW = Math.round(posterH * ASPECT);
+
+  return (
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors overflow-hidden h-full w-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Filmler ›</div>
+        <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}><span style={{fontSize:14,color:'rgba(232,237,245,0.65)',fontFamily:'Lora,serif',marginRight:3}}>{films.length}</span>izlendi</div>
+      </div>
+      {films.length===0
+        ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Film yok</div>
+        : <div ref={stripRef} style={{display:'flex',alignItems:'stretch',gap:7,flex:1,minHeight:0,overflowX:'auto',overflowY:'hidden',paddingBottom:2,scrollbarWidth:'none'}}>
+            {sorted.map((f,i)=>(<FilmPoster key={i} film={f} width={posterW} height={posterH}/>))}
+          </div>
+      }
+    </div>
+  );
+}
+
+function FilmPoster({ film, width, height }) {
+  const [poster, setPoster] = useState(posterCache[film.name] ?? null);
+  const iconSize = Math.max(16, Math.round((width||58) * 0.38));
+
+  useEffect(() => {
+    if (poster) return;
+    fetchPoster(film.name).then(url => { if (url) setPoster(url); });
+  }, [film.name]);
+
+  return poster
+    ? <img
+        src={poster}
+        title={film.name}
+        style={{width,height,objectFit:'cover',borderRadius:5,flexShrink:0,display:'block',transition:'transform .2s,filter .2s',cursor:'pointer'}}
+        onClick={e=>e.stopPropagation()}
+        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-5px)';e.currentTarget.style.filter='brightness(1.15)';}}
+        onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.filter='';}}
+      />
+    : <div
+        title={film.name}
+        style={{width,height,borderRadius:5,flexShrink:0,background:'#2a2d35',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'transform .2s,filter .2s'}}
+        onClick={e=>e.stopPropagation()}
+        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-5px)';e.currentTarget.style.filter='brightness(1.15)';}}
+        onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.filter='';}}
+      >
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><path d="M10 9l6 3-6 3V9z" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.25)"/></svg>
+      </div>;
+}
+
 // ── TAKVİM ────────────────────────────────────────────────────────────────
-function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
+function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
   const today = todayStr();
   const [y, m] = today.split('-').map(Number);
   const firstDay = new Date(y, m-1, 1).getDay();
   const daysInMonth = new Date(y, m, 0).getDate();
   const startOffset = (firstDay + 6) % 7;
+  // Gün hücresi boyutu, takvim grid'inin GERÇEK piksel genişliğine göre hesaplanır (ResizeObserver) —
+  // widget genişletilince hücreler orantılı büyür.
+  const [gridRef2, grid] = useElementSize();
+  const cellWidthCalc = grid.width ? grid.width / 7 : 28;
+  const cellHeight = Math.max(18, Math.round(cellWidthCalc * 0.78));
+  const cellFontSize = Math.max(9, Math.round(cellWidthCalc * 0.36));
+  const maxUpcoming = Math.max(2, Math.round((size?.row || 4) / 4 * 3));
 
   const todos = getTodos();
   const notes = getNotes();
@@ -721,7 +879,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
   };
 
   const upcoming = [];
-  for (let off = 0; off < 14 && upcoming.length < 3; off++) {
+  for (let off = 0; off < 14 && upcoming.length < maxUpcoming; off++) {
     const dt = new Date(); dt.setDate(dt.getDate()+off);
     const ds = dt.toISOString().split('T')[0];
     const dayTodos = (todos[ds]||[]).filter(t=>!t.done);
@@ -741,7 +899,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
         <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}>{TR_M[m-1]}</div>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',rowGap:3,marginBottom:10}}>
+      <div ref={gridRef2} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',rowGap:3,marginBottom:10}}>
         {WD.map(w=>(
           <div key={w} style={{textAlign:'center',fontSize:8,color:'rgba(232,237,245,0.25)',letterSpacing:'.05em',paddingBottom:4}}>{w}</div>
         ))}
@@ -753,7 +911,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate }) {
           return (
             <div key={ds} style={{
               display:'flex',alignItems:'center',justifyContent:'center',
-              height:22,borderRadius:6,fontSize:10,position:'relative',
+              height:cellHeight,borderRadius:6,fontSize:cellFontSize,position:'relative',
               background: isToday?'rgba(58,123,213,0.3)':'transparent',
               color: isToday?'#93b8f0':'rgba(232,237,245,0.55)',
               fontWeight: isToday?600:400,
@@ -1052,12 +1210,13 @@ export default function Home() {
     const isNarrow = size.col <= 1;
     let content;
     switch(id) {
-      case 'todos': content = <TodoWidget onNavigate={()=>setCurrentPage('calendar')} getTodos={getTodos} setTodos={setTodos}/>; break;
-      case 'goals': content = <GoalsWidget db={db} onNavigate={()=>setCurrentPage('goals')}/>; break;
-      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow}/>; break;
-      case 'chains': content = <ChainWidget chains={chains} onNavigate={()=>setCurrentPage('chain')}/>; break;
-      case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')}/>; break;
-      case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')}/>; break;
+      case 'todos': content = <TodoWidget onNavigate={()=>setCurrentPage('calendar')} getTodos={getTodos} setTodos={setTodos} size={size}/>; break;
+      case 'goals': content = <GoalsWidget db={db} onNavigate={()=>setCurrentPage('goals')} size={size}/>; break;
+      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow} size={size}/>; break;
+      case 'chains': content = <ChainWidget chains={chains} onNavigate={()=>setCurrentPage('chain')} size={size}/>; break;
+      case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')} size={size}/>; break;
+      case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')} size={size}/>; break;
+      case 'films': content = <FilmWidget films={db.f||[]} onNavigate={()=>setCurrentPage('films')} size={size}/>; break;
       default: return null;
     }
     const isDragging = moving?.id === id;
