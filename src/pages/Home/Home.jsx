@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, wxc, buildWeatherAlerts } from '../../lib/utils';
 
 // ── Widget'ın gerçek piksel boyutunu (genişlik/yükseklik) ölçen ortak hook ──
 // Resize tutamacıyla widget büyütülüp küçültüldüğünde, içerik buna göre
@@ -21,15 +21,6 @@ function useElementSize() {
   return [ref, el];
 }
 
-const PHOTOS = [
-  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
-  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80',
-  'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80',
-  'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1920&q=80',
-  'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=1920&q=80',
-  'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80',
-  'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&q=80',
-];
 
 const PRIORITY_COLORS = {
   high:   { dot: '#ef4444' },
@@ -44,8 +35,8 @@ function loadSpecColors() {
   try { return { ...DEFAULT_SPEC_COLORS, ...JSON.parse(localStorage.getItem('gn_spec_colors') || '{}') }; } catch { return { ...DEFAULT_SPEC_COLORS }; }
 }
 
-const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar','films'];
-const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim', films:'Filmler' };
+const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar','films','weather'];
+const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim', films:'Filmler', weather:'Hava Durumu' };
 
 function loadWidgetOrder() {
   try {
@@ -84,6 +75,7 @@ const DEFAULT_SIZES = {
     books:    { col: 1, row: 4 },
     calendar: { col: 1, row: 4 },
     films:    { col: 1, row: 4 },
+    weather:  { col: 2, row: 3 },
   },
   mobile: {
     todos:    { col: 2, row: 5 },
@@ -93,6 +85,7 @@ const DEFAULT_SIZES = {
     books:    { col: 2, row: 5 },
     calendar: { col: 2, row: 5 },
     films:    { col: 2, row: 5 },
+    weather:  { col: 2, row: 4 },
   },
 };
 
@@ -836,6 +829,429 @@ function FilmPoster({ film, width, height }) {
       </div>;
 }
 
+// ── HAVA DURUMU ──────────────────────────────────────────────────────────
+// Gün döngüsüne göre arka plan paleti: gece / şafak / gündüz / akşam üstü.
+// sunrise/sunset "HH:MM" string olarak gelir, şu anki dakika cinsinden konum
+// gün doğumu/batımına ne kadar yakınsa o paletin ağırlığı artar (kademeli geçiş).
+function wxPalette(nowMin, sunriseMin, sunsetMin) {
+  const TWILIGHT = 45; // dakika — şafak/akşam üstü paleti bu pencere içinde aktif
+  const night   = ['#0a1128', '#1b2a4a', '#2d3561'];
+  const dawn    = ['#f4a896', '#e0758a', '#7a5d99'];
+  const day     = ['#5fa8e0', '#3a7bc8', '#2c5a9e'];
+  const dusk    = ['#e8985c', '#c4577a', '#4a3a6e'];
+  const dSunrise = Math.abs(nowMin - sunriseMin);
+  const dSunset  = Math.abs(nowMin - sunsetMin);
+  if (dSunrise <= TWILIGHT) return dawn;
+  if (dSunset  <= TWILIGHT) return dusk;
+  if (nowMin > sunriseMin && nowMin < sunsetMin) return day;
+  return night;
+}
+
+// Hava durumu ikonu — Weather.jsx'teki WxIcon ile birebir aynı (görsel tutarlılık için
+// buraya kopyalandı; animasyonlu, detaylı SVG kompozisyonu).
+function WxIcon({ bg, size = 28 }) {
+  const s = size;
+
+  const css = `
+    @keyframes wxSpin{to{transform:rotate(360deg)}}
+    @keyframes wxBob{0%,100%{transform:translateY(0)}50%{transform:translateY(${-s*.05}px)}}
+    @keyframes wxDrift{0%,100%{transform:translateX(0)}50%{transform:translateX(${s*.05}px)}}
+    @keyframes wxDrizzle{0%{transform:translateY(0);opacity:0}15%{opacity:.55}85%{opacity:.55}100%{transform:translateY(${s*.22}px);opacity:0}}
+    @keyframes wxRain{0%{transform:translateY(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(${s*.3}px);opacity:0}}
+    @keyframes wxShower{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateY(${s*.34}px);opacity:0}}
+    @keyframes wxSplash{0%{transform:scale(.2);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+    @keyframes wxSnow{0%{transform:translateY(-${s*.04}px);opacity:0}15%{opacity:.85}85%{opacity:.85}100%{transform:translateY(${s*.32}px);opacity:0}}
+    @keyframes wxHSnow{0%{transform:translateY(-${s*.04}px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translateY(${s*.36}px);opacity:0}}
+    @keyframes wxFog1{0%,100%{transform:translateX(0);opacity:.55}50%{transform:translateX(${s*.1}px);opacity:.8}}
+    @keyframes wxFog2{0%,100%{transform:translateX(0);opacity:.4}50%{transform:translateX(${-s*.08}px);opacity:.7}}
+    @keyframes wxFog3{0%,100%{transform:translateX(0);opacity:.45}50%{transform:translateX(${s*.12}px);opacity:.75}}
+    @keyframes wxBolt{0%,60%,100%{opacity:0}62%,64%{opacity:1}63%,65%{opacity:.3}67%{opacity:1}68%{opacity:0}}
+    @keyframes wxHail{0%{transform:translateY(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(${s*.28}px);opacity:0}}
+    @keyframes wxTwinkle{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:.2;transform:scale(.7)}}
+  `;
+
+  const Sun = ({ cx=s*.5, cy=s*.45, rs=s*.18 }) => (
+    <g style={{ animation:`wxSpin 12s linear infinite`, transformOrigin:`${cx}px ${cy}px` }}>
+      <circle cx={cx} cy={cy} r={rs} fill="#fde68a"/>
+      {[0,45,90,135,180,225,270,315].map((deg,i) => {
+        const rad = deg*Math.PI/180;
+        return <line key={i}
+          x1={cx+(rs+s*.04)*Math.cos(rad)} y1={cy+(rs+s*.04)*Math.sin(rad)}
+          x2={cx+(rs+s*.11)*Math.cos(rad)} y2={cy+(rs+s*.11)*Math.sin(rad)}
+          stroke="#fbbf24" strokeWidth={s*.028} strokeLinecap="round" opacity=".85"/>;
+      })}
+    </g>
+  );
+
+  const Moon = ({ cx=s*.52, cy=s*.44 }) => (
+    <g>
+      <circle cx={cx} cy={cy} r={s*.2} fill="#fef3c7"/>
+      <circle cx={cx+s*.11} cy={cy-s*.07} r={s*.16} fill="#0d1117"/>
+    </g>
+  );
+
+  const Stars = () => (
+    <g>
+      {[[s*.12,s*.12],[s*.82,s*.15],[s*.9,s*.55],[s*.08,s*.62],[s*.45,s*.08]].map(([x,y],i) => (
+        <circle key={i} cx={x} cy={y} r={s*.025} fill="#fde68a"
+          style={{ animation:`wxTwinkle 2s ease-in-out infinite ${i*.4}s` }}/>
+      ))}
+    </g>
+  );
+
+  const Cloud = ({ x=0, y=s*.38, w=s*.9, fill='rgba(185,210,232,.88)', op=1 }) => {
+    const ch = w*.38;
+    return (
+      <g opacity={op} style={{ animation:`wxDrift 5s ease-in-out infinite` }}>
+        <ellipse cx={x+w*.25} cy={y} rx={w*.17} ry={ch*.55} fill={fill}/>
+        <ellipse cx={x+w*.48} cy={y-ch*.18} rx={w*.24} ry={ch*.68} fill={fill}/>
+        <ellipse cx={x+w*.72} cy={y} rx={w*.17} ry={ch*.5} fill={fill}/>
+        <rect x={x+w*.08} y={y} width={w*.84} height={ch*.52} fill={fill}/>
+      </g>
+    );
+  };
+
+  const RainLines = ({ xs, color='#3b82f6', sw=1.8, len=s*.28, anim='wxRain', dur='1.2s', delays=[0,.3,.6,.15] }) => (
+    <g>
+      {xs.map((x,i) => (
+        <line key={i} x1={x} y1={s*.58} x2={x-len*.15} y2={s*.58+len}
+          stroke={color} strokeWidth={sw} strokeLinecap="round" opacity="0"
+          style={{ animation:`${anim} ${dur} ease-in infinite ${delays[i]||0}s` }}/>
+      ))}
+    </g>
+  );
+
+  const SnowFlakes = ({ xs, yBase=s*.62, fontSize=s*.28, anim='wxSnow', dur='2.4s', delays=[0,.8,1.6,.3] }) => (
+    <g>
+      {xs.map((x,i) => (
+        <text key={i} x={x} y={yBase+(i%2)*s*.08} fontSize={fontSize}
+          fill="#bae6fd" textAnchor="middle" opacity="0"
+          style={{ animation:`${anim} ${dur} ease-in-out infinite ${delays[i]||0}s` }}>*</text>
+      ))}
+    </g>
+  );
+
+  const SnowAccum = ({ cx=s*.5, y=s*.92 }) => (
+    <g>
+      <ellipse cx={cx} cy={y} rx={s*.38} ry={s*.06} fill="#c8e6f8" opacity=".28"/>
+      <ellipse cx={cx} cy={y-.01*s} rx={s*.28} ry={s*.04} fill="#daeefa" opacity=".32"/>
+    </g>
+  );
+
+  const Lightning = ({ x=s*.46, y=s*.6, delay='0s' }) => (
+    <g style={{ animation:`wxBolt 2.5s ease-in-out infinite ${delay}` }}>
+      <polygon points={`${x},${y} ${x-s*.1},${y+s*.16} ${x+s*.02},${y+s*.16} ${x-s*.08},${y+s*.32}`}
+        fill="#fbbf24" stroke="#fde68a" strokeWidth={s*.018} strokeLinejoin="round"/>
+    </g>
+  );
+
+  const HailBalls = ({ xs }) => (
+    <g>
+      {xs.map((x,i) => (
+        <circle key={i} cx={x} cy={s*.5} r={s*.04} fill="#bae6fd" stroke="rgba(147,197,253,.8)" strokeWidth={s*.016} opacity="0"
+          style={{ animation:`wxHail 1.1s ease-in infinite ${[0,.2,.42,.1,.32][i]||0}s` }}/>
+      ))}
+    </g>
+  );
+
+  const FogLayers = ({ dark=false }) => {
+    const base = dark ? 'rgba(50,70,90,' : 'rgba(130,155,178,';
+    const layers = [
+      { y:s*.3,  w:s*.7,  x:s*.05, op:.55, anim:'wxFog1', dur:'3.5s' },
+      { y:s*.42, w:s*.55, x:s*.2,  op:.65, anim:'wxFog2', dur:'4.2s' },
+      { y:s*.54, w:s*.8,  x:s*.02, op:.6,  anim:'wxFog1', dur:'5s'   },
+      { y:s*.65, w:s*.6,  x:s*.15, op:.5,  anim:'wxFog3', dur:'3.8s' },
+      { y:s*.76, w:s*.75, x:s*.05, op:.45, anim:'wxFog2', dur:'4.5s' },
+    ];
+    return (
+      <g>
+        {layers.map((l,i) => (
+          <rect key={i} x={l.x} y={l.y} width={l.w} height={s*.055} rx={s*.028}
+            fill={`${base}${l.op})`}
+            style={{ animation:`${l.anim} ${l.dur} ease-in-out infinite ${i*.2}s` }}/>
+        ))}
+      </g>
+    );
+  };
+
+  const SplashRings = ({ xs }) => (
+    <g>
+      {xs.map((x,i) => (
+        <ellipse key={i} cx={x} cy={s*.9} rx={s*.08} ry={s*.03}
+          fill="none" stroke="#60a5fa" strokeWidth={s*.02} opacity="0"
+          style={{ animation:`wxSplash ${.65}s ease-out infinite ${[.1,.34,.21][i]||0}s` }}/>
+      ))}
+    </g>
+  );
+
+  const CL  = 'rgba(185,210,232,.88)';
+  const CM  = 'rgba(100,135,160,.92)';
+  const CDK = 'rgba(42,58,76,.95)';
+  const CNK = 'rgba(28,40,55,.95)';
+
+  const icons = {
+    'sunny': (<Sun/>),
+    'partly': (
+      <>
+        <g style={{ animation:`wxBob 3s ease-in-out infinite` }}>
+          <Sun cx={s*.65} cy={s*.3} rs={s*.15}/>
+        </g>
+        <Cloud x={s*.03} y={s*.5} w={s*.85} fill={CL}/>
+      </>
+    ),
+    'cloudy': (
+      <>
+        <Cloud x={s*.05} y={s*.28} w={s*.82} fill={CM} op={.55}/>
+        <Cloud x={0}     y={s*.48} w={s*.98} fill={CL}/>
+      </>
+    ),
+    'fog': (
+      <>
+        <circle cx={s*.5} cy={s*.12} r={s*.1} fill="#fde68a" opacity=".1"/>
+        <FogLayers/>
+      </>
+    ),
+    'drizzle': (
+      <>
+        <Cloud x={0} y={s*.3} w={s*.98} fill={CL} op={.8}/>
+        <RainLines xs={[s*.25,s*.5,s*.74]} color="#93c5fd" sw={s*.03} len={s*.16} anim="wxDrizzle" dur="2.8s" delays={[0,.9,1.7]}/>
+      </>
+    ),
+    'rain': (
+      <>
+        <Cloud x={0} y={s*.28} w={s*.98} fill={CM}/>
+        <RainLines xs={[s*.18,s*.34,s*.54,s*.72]} color="#3b82f6" sw={s*.045} len={s*.28} anim="wxRain" dur="1.2s" delays={[0,.3,.6,.15]}/>
+      </>
+    ),
+    'shower': (
+      <>
+        <Cloud x={0} y={s*.22} w={s*.98} fill={CDK}/>
+        <Cloud x={s*.05} y={s*.36} w={s*.85} fill={CDK} op={.6}/>
+        <RainLines xs={[s*.12,s*.26,s*.42,s*.58,s*.74]} color="#1d4ed8" sw={s*.06} len={s*.34} anim="wxShower" dur=".65s" delays={[0,.13,.26,.07,.2]}/>
+        <SplashRings xs={[s*.14,s*.44,s*.74]}/>
+      </>
+    ),
+    'snow': (
+      <>
+        <Cloud x={0} y={s*.3} w={s*.98} fill={CL} op={.85}/>
+        <SnowFlakes xs={[s*.22,s*.5,s*.76]} fontSize={s*.28} anim="wxSnow" dur="2.4s" delays={[0,.8,1.6]}/>
+      </>
+    ),
+    'heavysnow': (
+      <>
+        <Cloud x={0}     y={s*.2} w={s*.98} fill={CDK}/>
+        <Cloud x={s*.05} y={s*.34} w={s*.85} fill={CDK} op={.65}/>
+        <SnowFlakes xs={[s*.14,s*.32,s*.52,s*.72]} fontSize={s*.3} anim="wxHSnow" dur="1.3s" delays={[0,.22,.45,.11]}/>
+        <SnowFlakes xs={[s*.22,s*.62]} yBase={s*.75} fontSize={s*.26} anim="wxHSnow" dur="1.3s" delays={[.33,.55]}/>
+        <SnowAccum/>
+      </>
+    ),
+    'storm': (
+      <>
+        <Cloud x={0} y={s*.2} w={s*.98} fill={CDK}/>
+        <RainLines xs={[s*.15,s*.72]} color="#3b82f6" sw={s*.04} len={s*.24} anim="wxRain" dur="1.1s" delays={[0,.3]}/>
+        <Lightning x={s*.38} delay="0s"/>
+        <Lightning x={s*.6}  delay="1.4s"/>
+      </>
+    ),
+    'hail': (
+      <>
+        <Cloud x={0} y={s*.2} w={s*.98} fill={CDK}/>
+        <HailBalls xs={[s*.12,s*.28,s*.48,s*.66,s*.86]}/>
+      </>
+    ),
+    'night-hail': (
+      <>
+        <Cloud x={0} y={s*.2} w={s*.98} fill={CNK}/>
+        <HailBalls xs={[s*.12,s*.28,s*.48,s*.66,s*.86]}/>
+      </>
+    ),
+    'night': (
+      <>
+        <Stars/>
+        <Moon/>
+      </>
+    ),
+    'night-partly': (
+      <>
+        <Stars/>
+        <g style={{ animation:`wxBob 4s ease-in-out infinite` }}>
+          <Moon cx={s*.64} cy={s*.28}/>
+        </g>
+        <Cloud x={s*.03} y={s*.5} w={s*.85} fill={CNK}/>
+      </>
+    ),
+    'night-cloudy': (
+      <>
+        <Stars/>
+        <Cloud x={s*.05} y={s*.28} w={s*.82} fill={CNK} op={.5}/>
+        <Cloud x={0}     y={s*.48} w={s*.98} fill={CNK}/>
+      </>
+    ),
+    'night-drizzle': (
+      <>
+        <Stars/>
+        <Cloud x={0} y={s*.3} w={s*.98} fill={CNK} op={.9}/>
+        <RainLines xs={[s*.25,s*.5,s*.74]} color="#93c5fd" sw={s*.03} len={s*.16} anim="wxDrizzle" dur="2.8s" delays={[0,.9,1.7]}/>
+      </>
+    ),
+    'night-rain': (
+      <>
+        <Cloud x={0} y={s*.28} w={s*.98} fill={CNK}/>
+        <RainLines xs={[s*.18,s*.34,s*.54,s*.72]} color="#3b82f6" sw={s*.045} len={s*.28} anim="wxRain" dur="1.2s" delays={[0,.3,.6,.15]}/>
+      </>
+    ),
+    'night-shower': (
+      <>
+        <Cloud x={0}     y={s*.22} w={s*.98} fill={CNK}/>
+        <Cloud x={s*.05} y={s*.36} w={s*.85} fill={CNK} op={.6}/>
+        <RainLines xs={[s*.12,s*.26,s*.42,s*.58,s*.74]} color="#1d4ed8" sw={s*.06} len={s*.34} anim="wxShower" dur=".65s" delays={[0,.13,.26,.07,.2]}/>
+        <SplashRings xs={[s*.14,s*.44,s*.74]}/>
+      </>
+    ),
+    'night-snow': (
+      <>
+        <Stars/>
+        <Cloud x={0} y={s*.3} w={s*.98} fill={CNK} op={.9}/>
+        <SnowFlakes xs={[s*.22,s*.5,s*.76]} fontSize={s*.28} anim="wxSnow" dur="2.4s" delays={[0,.8,1.6]}/>
+      </>
+    ),
+    'night-storm': (
+      <>
+        <Cloud x={0} y={s*.2} w={s*.98} fill={CNK}/>
+        <RainLines xs={[s*.15,s*.72]} color="#3b82f6" sw={s*.04} len={s*.24} anim="wxRain" dur="1.1s" delays={[0,.3]}/>
+        <Lightning x={s*.38} delay="0s"/>
+        <Lightning x={s*.6}  delay="1.4s"/>
+      </>
+    ),
+  };
+
+  return (
+    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow:'visible', flexShrink:0 }}>
+      <defs><style>{css}</style></defs>
+      {icons[bg] || icons['cloudy']}
+    </svg>
+  );
+}
+
+// Acil uyarı metnini widget şeridi için kısaltır: UV/sıcaklık gibi sayısal uyarılarda
+// rakamı koruyup gerekçeyi kısa tutar, tekrarlı "Yüksek UV" gibi boş başlıkları önler.
+function wxShortAlertText(a) {
+  const m = a.detail?.match(/(UV indeksi|AQI)\s*([\d.]+)/i);
+  if (a.title.includes('UV') && m) return `UV ${parseFloat(m[2]).toFixed(0)} — güneş kremi şart`;
+  if (a.title.includes('hava kalitesi') && m) return `AQI ${m[2]} — ${a.title.toLowerCase()}`;
+  const tempM = a.detail?.match(/(-?\d+)\s*°C/);
+  if ((a.title.includes('Don') || a.title.includes('sıcak')) && tempM) return `${a.title} (${tempM[1]}°C)`;
+  return a.title;
+}
+
+function WeatherWidget({ onNavigate, size }) {
+  const [data, setData] = useState(null);
+  const [status, setStatus] = useState('loading'); // loading | ok | no-city | error
+  const [stripRef, strip] = useElementSize();
+
+  useEffect(() => {
+    let cities = [];
+    try { cities = JSON.parse(localStorage.getItem('gn_wx_cities') || '[]'); } catch {}
+    const city = cities[0];
+    if (!city) { setStatus('no-city'); return; }
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,uv_index,visibility,is_day,precipitation&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,wind_speed_10m,wind_gusts_10m,visibility,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=2`;
+    const airUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=pm2_5,pm10,us_aqi&timezone=auto`;
+    const quakeUrl = `https://earthquake.usgs.gov/fdsnws/event/1.1/query?format=geojson&latitude=${city.lat}&longitude=${city.lon}&maxradiuskm=300&minmagnitude=3.5&limit=5&orderby=time`;
+
+    Promise.allSettled([fetch(url), fetch(airUrl), fetch(quakeUrl)]).then(async ([wRes, aRes, qRes]) => {
+      try {
+        if (wRes.status !== 'fulfilled') { setStatus('error'); return; }
+        const w = await wRes.value.json();
+        const air = aRes.status === 'fulfilled' ? await aRes.value.json() : null;
+        const quake = qRes.status === 'fulfilled' ? await qRes.value.json() : null;
+        setData({ ...w, city, air, quake });
+        setStatus('ok');
+      } catch { setStatus('error'); }
+    });
+  }, []);
+
+  if (status === 'no-city') {
+    return (
+      <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
+        <div className="text-xs uppercase tracking-wider text-white/60 font-medium mb-3">Hava Durumu ›</div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Şehir eklenmedi</div>
+      </div>
+    );
+  }
+  if (status === 'loading' || status === 'error' || !data) {
+    return (
+      <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
+        <div className="text-xs uppercase tracking-wider text-white/60 font-medium mb-3">Hava Durumu ›</div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>{status==='error'?'Yüklenemedi':'Yükleniyor...'}</div>
+      </div>
+    );
+  }
+
+  const cur = data.current || {};
+  const hourly = data.hourly || {};
+  const daily = data.daily || {};
+  const now = new Date();
+
+  const maxTemp = daily.temperature_2m_max?.[0];
+  const minTemp = daily.temperature_2m_min?.[0];
+
+  // Bugün, şu andan gece yarısına kadar olan saatler — hem tarih hem saat eşleşmeli,
+  // yoksa forecast_days=2 nedeniyle yarının aynı saatleri de listeye girip tekrar gösterilir.
+  const nowHour = now.getHours();
+  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const hourlyList = (hourly.time||[])
+    .map((t,i)=>({ date:t.split('T')[0], hour:new Date(t).getHours(), temp:hourly.temperature_2m?.[i], code:hourly.weather_code?.[i], isDay:hourly.is_day?.[i] }))
+    .filter(h => h.date === todayDateStr && h.hour >= nowHour);
+
+  const alerts = buildWeatherAlerts(data).slice(0, 5);
+  const hasAlert = alerts.length > 0;
+  const alertColors = { danger:'#f87171', warning:'#fb923c', info:'#9ca3af' };
+
+  // Saatlik şerit boyutu, konteynerin gerçek genişliğine göre (ResizeObserver) ölçeklenir
+  const colW = Math.max(34, Math.min(54, strip.width ? strip.width / 6.2 : 42));
+  const iconSize = Math.round(colW * 0.42);
+
+  return (
+    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
+      {hasAlert && (
+        <div style={{background:'rgba(0,0,0,0.25)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'5px 14px',display:'flex',alignItems:'center',gap:7,overflow:'hidden',flexShrink:0}}>
+          <div style={{display:'flex',gap:16,whiteSpace:'nowrap',animation:'wxWidgetScroll 16s linear infinite',fontSize:10,fontWeight:500}}>
+            {[...alerts,...alerts].map((a,i)=>(<span key={i} style={{color:alertColors[a.level]}}>{a.icon} {wxShortAlertText(a)}</span>))}
+          </div>
+        </div>
+      )}
+      <div style={{padding:'12px 14px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs uppercase tracking-wider text-white/60 font-medium">{data.city?.name?.split(',')[0]} ›</div>
+          {(maxTemp!=null && minTemp!=null) && (
+            <div style={{fontSize:11,color:'rgba(232,237,245,0.4)'}}>Y:{Math.round(maxTemp)}° D:{Math.round(minTemp)}°</div>
+          )}
+        </div>
+        <div ref={stripRef} style={{display:'flex',gap:0,overflowX:'auto',flex:1,minHeight:0,scrollbarWidth:'none'}}>
+          {hourlyList.map((h,i)=>{
+            const isNow = i===0;
+            const info = wxc(h.code, h.isDay);
+            return (
+              <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,flexShrink:0,width:colW,position:'relative'}}>
+                {isNow && <div style={{position:'absolute',top:'8%',left:'50%',transform:'translateX(-50%)',background:'rgba(58,123,213,0.18)',border:'1px solid rgba(58,123,213,0.35)',borderRadius:10,width:colW*0.82,height:'84%'}}/>}
+                <div style={{fontSize:10,color: isNow?'#93c5fd':'rgba(232,237,245,0.4)',fontWeight: isNow?700:400,position:'relative'}}>{isNow?'Şimdi':`${String(h.hour).padStart(2,'0')}:00`}</div>
+                <div style={{position:'relative'}}><WxIcon bg={info.bg} size={isNow?iconSize+4:iconSize}/></div>
+                <div style={{fontSize: isNow?13:12,color:'#e8edf5',fontWeight: isNow?700:400,position:'relative'}}>{Math.round(h.temp)}°</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <style>{`
+        @keyframes wxWidgetPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+        @keyframes wxWidgetScroll { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+      `}</style>
+    </div>
+  );
+}
+
 // ── TAKVİM ────────────────────────────────────────────────────────────────
 function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
   const today = todayStr();
@@ -851,7 +1267,6 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
   const cellFontSize = Math.max(9, Math.round(cellWidthCalc * 0.36));
   const maxUpcoming = Math.max(2, Math.round((size?.row || 4) / 4 * 3));
 
-  const todos = getTodos();
   const notes = getNotes();
 
   const cells = [];
@@ -882,10 +1297,9 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
   for (let off = 0; off < 14 && upcoming.length < maxUpcoming; off++) {
     const dt = new Date(); dt.setDate(dt.getDate()+off);
     const ds = dt.toISOString().split('T')[0];
-    const dayTodos = (todos[ds]||[]).filter(t=>!t.done);
     const specials = getSpecialDays(ds, db.s || []);
-    if (dayTodos.length || specials.length) {
-      upcoming.push({ ds, dayTodos, specials, isToday: ds===today });
+    if (specials.length) {
+      upcoming.push({ ds, specials, isToday: ds===today });
     }
   }
 
@@ -938,10 +1352,10 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
                 {u.isToday?'Bugün':fmtShort(u.ds)}
               </span>
               <span style={{fontSize:11,color:'rgba(232,237,245,0.7)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
-                {u.specials[0]?.n || u.dayTodos[0]?.text}
+                {u.specials[0]?.n}
               </span>
-              {(u.dayTodos.length + u.specials.length) > 1 && (
-                <span style={{fontSize:9,color:'rgba(232,237,245,0.25)',flexShrink:0}}>+{u.dayTodos.length + u.specials.length - 1}</span>
+              {u.specials.length > 1 && (
+                <span style={{fontSize:9,color:'rgba(232,237,245,0.25)',flexShrink:0}}>+{u.specials.length - 1}</span>
               )}
             </div>
           ))
@@ -998,7 +1412,6 @@ if (!window._sw) window._sw = { running:false, startTime:null, elapsed:parseInt(
 export default function Home() {
   const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog, widgetSizes, setWidgetSize, widgetPositions, setWidgetPositions } = useStore();
   const [time, setTime] = useState(new Date());
-  const [bgPhoto, setBgPhoto] = useState('');
   const [swElapsed, setSwElapsed] = useState(()=>parseInt(localStorage.getItem('gn_sw_elapsed')||'0'));
   const [swRunning, setSwRunning] = useState(()=>localStorage.getItem('gn_sw_running')==='1');
   const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
@@ -1010,8 +1423,6 @@ export default function Home() {
   const [liveSize, setLiveSize] = useState(null); // sürüklenirken anlık önizleme: { id, col, row }
   const [moving, setMoving] = useState(null); // { id, startX, startY, colWidth }
   const [dropTarget, setDropTarget] = useState(null); // { col, row } — sürüklenen widget'ın anlık hedef hücresi
-
-  useEffect(()=>{ const idx=Math.floor(Math.random()*PHOTOS.length); setBgPhoto(PHOTOS[idx]); },[]);
 
   useEffect(()=>{
     const onResize=()=>setIsMobile(window.innerWidth < 640);
@@ -1217,6 +1628,7 @@ export default function Home() {
       case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')} size={size}/>; break;
       case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')} size={size}/>; break;
       case 'films': content = <FilmWidget films={db.f||[]} onNavigate={()=>setCurrentPage('films')} size={size}/>; break;
+      case 'weather': content = <WeatherWidget onNavigate={()=>setCurrentPage('weather')} size={size}/>; break;
       default: return null;
     }
     const isDragging = moving?.id === id;
@@ -1233,10 +1645,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative min-h-screen -m-5 md:-m-[26px_30px] overflow-hidden">
-      {bgPhoto&&<div style={{position:'absolute',inset:0,backgroundImage:`url(${bgPhoto})`,backgroundSize:'cover',backgroundPosition:'center',zIndex:0}}/>}
-      <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,rgba(13,15,19,.7) 0%,rgba(13,15,19,.4) 100%)',zIndex:1}}/>
-
+    <div className="relative min-h-screen -m-5 md:-m-[26px_30px] overflow-hidden bg-bg">
       <div className="relative z-10 p-3 md:p-5 min-h-screen grid grid-rows-[auto_1fr_auto] gap-3">
 
         {/* Üst şerit: saat/tarih + akıllı bilgi şeridi + widget ayar ikonu */}
