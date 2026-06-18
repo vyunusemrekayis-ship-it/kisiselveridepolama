@@ -551,7 +551,7 @@ function GoalsWidget({ db, onNavigate, size }) {
 }
 
 // ── KRONOMETRE ────────────────────────────────────────────────────────────
-function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow, size }) {
+function StopwatchWidget({ swElapsed, swSessionElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow, size }) {
   const fmt = (ms) => {
     const t = Math.max(0,ms);
     const h=Math.floor(t/3600000), m=Math.floor((t%3600000)/60000), s=Math.floor((t%60000)/1000);
@@ -589,7 +589,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
           <div style={{marginBottom: todaySessions.length?12:0}}>
             <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500,marginBottom:8}}>Kronometre</div>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
+              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swRunning ? swSessionElapsed : swElapsed)}</div>
               {controls}
             </div>
           </div>
@@ -598,7 +598,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
           <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: todaySessions.length?12:0}}>
             <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500}}>Kronometre</div>
             <div style={{display:'flex',alignItems:'center',gap:14,justifySelf:'center'}}>
-              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swElapsed)}</div>
+              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swRunning ? swSessionElapsed : swElapsed)}</div>
               {controls}
             </div>
             <div/>
@@ -1414,6 +1414,7 @@ export default function Home() {
   const [time, setTime] = useState(new Date());
   const [swElapsed, setSwElapsed] = useState(()=>parseInt(localStorage.getItem('gn_sw_elapsed')||'0'));
   const [swRunning, setSwRunning] = useState(()=>localStorage.getItem('gn_sw_running')==='1');
+  const [swSessionElapsed, setSwSessionElapsed] = useState(0); // sadece aktif seans süresi
   const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
   const [widgetVisible, setWidgetVisible] = useState(loadWidgetVisible);
   const [showManager, setShowManager] = useState(false);
@@ -1439,7 +1440,7 @@ export default function Home() {
   useEffect(()=>{ const t=setInterval(()=>setTime(new Date()),1000); return()=>clearInterval(t); },[]);
 
   useEffect(()=>{
-    if(swRunning){ const t=setInterval(()=>{ const e=window._sw.startTime?Date.now()-window._sw.startTime:window._sw.elapsed; setSwElapsed(e); },100); return()=>clearInterval(t); }
+    if(swRunning){ const t=setInterval(()=>{ const e=window._sw.startTime?Date.now()-window._sw.startTime:window._sw.elapsed; setSwElapsed(e); const sess=window._sw.sessionStartMs?Date.now()-window._sw.sessionStartMs:0; setSwSessionElapsed(sess); },100); return()=>clearInterval(t); }
   },[swRunning]);
 
   const toggleSw = (e) => {
@@ -1462,6 +1463,7 @@ export default function Home() {
       localStorage.setItem('gn_sw_log',JSON.stringify(newLog));
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_log:newLog});});}
       useStore.getState().setSwLog(newLog);
+      setSwSessionElapsed(0);
       setSwRunning(false);
     } else {
       const startTime=Date.now()-window._sw.elapsed;
@@ -1470,14 +1472,15 @@ export default function Home() {
       window._sw.sessionStartMs=Date.now(); window._sw.sessionStartLabel=getNow();
       localStorage.setItem('gn_sw_running','1'); localStorage.setItem('gn_sw_startTime',startTime);
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_startTime:startTime,gn_sw_running:true});});}
+      setSwSessionElapsed(0);
       setSwRunning(true);
     }
   };
 
   const resetSw = (e) => {
     e.stopPropagation();
-    window._sw.running=false; window._sw.elapsed=0; window._sw.startTime=null;
-    localStorage.setItem('gn_sw_elapsed','0'); setSwElapsed(0); setSwRunning(false);
+    window._sw.running=false; window._sw.elapsed=0; window._sw.startTime=null; window._sw.sessionStartMs=null;
+    localStorage.setItem('gn_sw_elapsed','0'); setSwElapsed(0); setSwSessionElapsed(0); setSwRunning(false);
   };
 
   const handleWidgetToggle = (id) => {
@@ -1623,7 +1626,7 @@ export default function Home() {
     switch(id) {
       case 'todos': content = <TodoWidget onNavigate={()=>setCurrentPage('calendar')} getTodos={getTodos} setTodos={setTodos} size={size}/>; break;
       case 'goals': content = <GoalsWidget db={db} onNavigate={()=>setCurrentPage('goals')} size={size}/>; break;
-      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow} size={size}/>; break;
+      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swSessionElapsed={swSessionElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow} size={size}/>; break;
       case 'chains': content = <ChainWidget chains={chains} onNavigate={()=>setCurrentPage('chain')} size={size}/>; break;
       case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')} size={size}/>; break;
       case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')} size={size}/>; break;
