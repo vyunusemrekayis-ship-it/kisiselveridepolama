@@ -169,8 +169,24 @@ function getDateKey(offset = 0) {
 }
 function getWeekKeys() { return Array.from({length:7},(_,i)=>getDateKey(i)); }
 
-function WidgetTitle({ children }) {
-  return <div className="text-xs uppercase tracking-wider text-white/60 mb-3 font-medium">{children}</div>;
+const WIDGET_ACCENT = {
+  todos:     '#3a7bd5',
+  goals:     '#f59e0b',
+  stopwatch: '#34d399',
+  chains:    '#f97316',
+  books:     '#4a7a5a',
+  calendar:  '#7b5ea7',
+  films:     '#a06040',
+  weather:   '#38bdf8',
+};
+
+function WidgetTitle({ children, accent = '#3a7bd5', icon }) {
+  return (
+    <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
+      {icon && <div style={{width:20,height:20,borderRadius:6,background:`${accent}22`,border:`1px solid ${accent}44`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{icon}</div>}
+      <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.07em',color:accent,fontWeight:600,flex:1}}>{children}</div>
+    </div>
+  );
 }
 
 // ── WIDGET SARMALAYICI (taşıma + resize tutamaçlı) ──────────────────────
@@ -407,12 +423,12 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
   const fmtDate = (dk) => { if(TR_SHORT[dk]) return TR_SHORT[dk]; const [,m,d]=dk.split('-'); return `${parseInt(d)} ${TR_M[parseInt(m)-1]}`; };
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-2" onClick={e=>e.stopPropagation()}>
-        <div onClick={onNavigate} className="text-xs uppercase tracking-wider text-white/60 font-medium cursor-pointer hover:text-white/80">Görevler ›</div>
-        <div className="flex gap-1">
+        <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>}>Görevler ›</WidgetTitle>
+        <div className="flex gap-1" style={{marginBottom:8}}>
           {[['today','Bugün'],['tomorrow','Yarın'],['week','Hafta']].map(([key,label])=>(
-            <button key={key} onClick={e=>{e.stopPropagation();setTab(key);}} style={{background:tab===key?'rgba(58,123,213,0.3)':'rgba(255,255,255,0.06)',border:`1px solid ${tab===key?'rgba(58,123,213,0.5)':'rgba(255,255,255,0.1)'}`,color:tab===key?'#93b8f0':'rgba(255,255,255,0.4)',borderRadius:6,padding:'2px 7px',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+            <button key={key} onClick={e=>{e.stopPropagation();setTab(key);}} style={{background:tab===key?'rgba(58,123,213,0.3)':'rgba(255,255,255,0.04)',border:`1px solid ${tab===key?'rgba(58,123,213,0.5)':'rgba(255,255,255,0.08)'}`,color:tab===key?'#93b8f0':'rgba(255,255,255,0.35)',borderRadius:6,padding:'2px 7px',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
           ))}
         </div>
       </div>
@@ -505,9 +521,9 @@ function GoalsWidget({ db, onNavigate, size }) {
   const valueFontSize = Math.max(9, Math.round(SVG_SIZE * 0.17));
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <div onClick={onNavigate} className="text-xs uppercase tracking-wider text-white/60 font-medium cursor-pointer hover:text-white/80">Hedefler ›</div>
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between mb-1">
+        <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}>Hedefler ›</WidgetTitle>
         <div className="flex gap-1.5" onClick={e=>e.stopPropagation()}>
           {[['weekly','H'],['monthly','A'],['yearly','Y']].map(([p,l])=>(
             <button key={p} onClick={()=>setPeriod(p)} style={{width:30,height:30,borderRadius:8,border:`1px solid ${period===p?'rgba(58,123,213,0.5)':'rgba(255,255,255,0.1)'}`,background:period===p?'rgba(58,123,213,0.15)':'rgba(255,255,255,0.05)',color:period===p?'#7ab8f5':'rgba(232,237,245,0.5)',fontSize:12,fontWeight:600,cursor:'pointer'}}>{l}</button>
@@ -534,7 +550,7 @@ function GoalsWidget({ db, onNavigate, size }) {
                       strokeDasharray={CIRC} strokeDashoffset={done?0:offset}
                       strokeLinecap="round" transform={`rotate(-90 ${CX} ${CY})`}/>
                     {done
-                      ? <path d="M22 32 L29 39 L42 25" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" transform={`translate(${CX-32} ${CY-32})`}/>
+                      ? <path d="M22 32 L29 39 L42 25" fill="none" stroke="#3a7bd5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" transform={`translate(${CX-32} ${CY-32})`}/>
                       : <text x={CX} y={CY+fontSize*0.36} textAnchor="middle" fill={color} fontSize={fontSize} fontFamily="Lora,serif">{Math.round(pct*100)}%</text>
                     }
                   </svg>
@@ -551,7 +567,7 @@ function GoalsWidget({ db, onNavigate, size }) {
 }
 
 // ── KRONOMETRE ────────────────────────────────────────────────────────────
-function StopwatchWidget({ swElapsed, swSessionElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow, size }) {
+function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNavigate, isNarrow, size }) {
   const fmt = (ms) => {
     const t = Math.max(0,ms);
     const h=Math.floor(t/3600000), m=Math.floor((t%3600000)/60000), s=Math.floor((t%60000)/1000);
@@ -581,24 +597,24 @@ function StopwatchWidget({ swElapsed, swSessionElapsed, swRunning, swLog, onTogg
   );
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl overflow-hidden cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col">
       <div ref={bodyRef} style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
 
         {isNarrow ? (
           // ── DAR DÜZEN: etiket üstte, sayaç+kontroller altında tam genişlik ──
           <div style={{marginBottom: todaySessions.length?12:0}}>
-            <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500,marginBottom:8}}>Kronometre</div>
+            <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.5"/><path d="M10 3h4"/></svg>}>Kronometre</WidgetTitle>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swRunning ? swSessionElapsed : swElapsed)}</div>
+              <div style={{fontSize:clockFontSize,color:swRunning?'#34d399':'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums',transition:'color .3s'}}>{fmt(swElapsed)}</div>
               {controls}
             </div>
           </div>
         ) : (
           // ── GENİŞ DÜZEN: Kronometre solda, zaman + kontroller ortada ──
           <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: todaySessions.length?12:0}}>
-            <div style={{fontSize:11,textTransform:'uppercase',letterSpacing:'0.05em',color:'rgba(255,255,255,0.6)',fontWeight:500}}>Kronometre</div>
+            <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.5"/><path d="M10 3h4"/></svg>}>Kronometre</WidgetTitle>
             <div style={{display:'flex',alignItems:'center',gap:14,justifySelf:'center'}}>
-              <div style={{fontSize:clockFontSize,color:'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums'}}>{fmt(swRunning ? swSessionElapsed : swElapsed)}</div>
+              <div style={{fontSize:clockFontSize,color:swRunning?'#34d399':'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums',transition:'color .3s'}}>{fmt(swElapsed)}</div>
               {controls}
             </div>
             <div/>
@@ -626,7 +642,8 @@ function StopwatchWidget({ swElapsed, swSessionElapsed, swRunning, swLog, onTogg
               {todaySessions.map((s,i)=>{
                 const color = SESS_COLORS[i%SESS_COLORS.length];
                 const isOngoing = i===0 && swRunning;
-                const durMin = Math.round((s.dur||0)/60000);
+                const liveDur = isOngoing && window._sw.sessionStartMs ? (Date.now()-window._sw.sessionStartMs) : (s.dur||0);
+                const durMin = Math.round(liveDur/60000);
                 return (
                   <div key={s.id||i} style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color: isOngoing?'#34d399':'rgba(255,255,255,0.45)',flexShrink:0}}>
                     <span style={{width:6,height:6,borderRadius:'50%',background: isOngoing?'#34d399':color,display:'inline-block',flexShrink:0,animation: isOngoing?'swPulse 1.5s ease-in-out infinite':'none'}}/>
@@ -663,8 +680,8 @@ function ChainWidget({ chains, onNavigate, size }) {
   const streakFontSize = Math.max(10, Math.round(12 * heightScale));
   const segHeight = Math.max(3, Math.round(3 * heightScale));
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
-      <WidgetTitle>Zincir Kırma ›</WidgetTitle>
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
+      <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>}>Zincir Kırma ›</WidgetTitle>
       {chains.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Alışkanlık yok</div>
         : <div ref={bodyRef} style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:0}}>
@@ -676,8 +693,8 @@ function ChainWidget({ chains, onNavigate, size }) {
             <div key={i}>
               <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:6}}>
                 <div style={{width:6,height:6,borderRadius:'50%',background:ch.color||'#3a7bd5',flexShrink:0}}/>
-                <span style={{fontSize:nameFontSize,color:'rgba(232,237,245,0.75)',flex:1}}>{ch.name}</span>
-                <span style={{fontSize:streakFontSize,color:'rgba(232,237,245,0.4)',fontFamily:'Lora,serif'}}>{streak} gün</span>
+                <span style={{fontSize:nameFontSize,color:'rgba(232,237,245,0.85)',flex:1,fontWeight:500}}>{ch.name}</span>
+                <span style={{fontSize:streakFontSize,color:streak>0?(ch.color||'#f97316'):'rgba(232,237,245,0.3)',fontFamily:'Lora,serif',fontWeight:streak>0?700:400}}>{streak} gün</span>
               </div>
               <div style={{display:'flex',gap:3}}>
                 {Array.from({length:SEGS},(_,j)=>(
@@ -735,10 +752,10 @@ function BookWidget({ books, onNavigate, size }) {
   });
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors overflow-hidden h-full w-full flex flex-col">
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors overflow-hidden h-full w-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Kitaplar ›</div>
-        <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}><span style={{fontSize:14,color:'rgba(232,237,245,0.65)',fontFamily:'Lora,serif',marginRight:3}}>{readCount}</span>okundu</div>
+        <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>}>Kitaplar ›</WidgetTitle>
+        <div style={{fontSize:11,color:'rgba(232,237,245,0.35)',marginTop:-8}}><span style={{fontSize:15,color:'#4a7a5a',fontFamily:'Lora,serif',marginRight:3,fontWeight:700}}>{readCount}</span>okundu</div>
       </div>
       {books.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Kitap yok</div>
@@ -785,10 +802,10 @@ function FilmWidget({ films, onNavigate, size }) {
   const posterW = Math.round(posterH * ASPECT);
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors overflow-hidden h-full w-full flex flex-col">
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors overflow-hidden h-full w-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Filmler ›</div>
-        <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}><span style={{fontSize:14,color:'rgba(232,237,245,0.65)',fontFamily:'Lora,serif',marginRight:3}}>{films.length}</span>izlendi</div>
+        <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9l6 3-6 3V9z" fill="#3a7bd5" fillOpacity=".3"/></svg>}>Filmler ›</WidgetTitle>
+        <div style={{fontSize:11,color:'rgba(232,237,245,0.35)',marginTop:-8}}><span style={{fontSize:15,color:'#a06040',fontFamily:'Lora,serif',marginRight:3,fontWeight:700}}>{films.length}</span>izlendi</div>
       </div>
       {films.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Film yok</div>
@@ -1174,16 +1191,16 @@ function WeatherWidget({ onNavigate, size }) {
 
   if (status === 'no-city') {
     return (
-      <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
-        <div className="text-xs uppercase tracking-wider text-white/60 font-medium mb-3">Hava Durumu ›</div>
+      <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col">
+        <WidgetTitle accent="#3a7bd5">Hava Durumu ›</WidgetTitle>
         <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Şehir eklenmedi</div>
       </div>
     );
   }
   if (status === 'loading' || status === 'error' || !data) {
     return (
-      <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col">
-        <div className="text-xs uppercase tracking-wider text-white/60 font-medium mb-3">Hava Durumu ›</div>
+      <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col">
+        <WidgetTitle accent="#3a7bd5">Hava Durumu ›</WidgetTitle>
         <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>{status==='error'?'Yüklenemedi':'Yükleniyor...'}</div>
       </div>
     );
@@ -1214,7 +1231,7 @@ function WeatherWidget({ onNavigate, size }) {
   const iconSize = Math.round(colW * 0.42);
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
       {hasAlert && (
         <div style={{background:'rgba(0,0,0,0.25)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'5px 14px',display:'flex',alignItems:'center',gap:7,overflow:'hidden',flexShrink:0}}>
           <div style={{display:'flex',gap:16,whiteSpace:'nowrap',animation:'wxWidgetScroll 16s linear infinite',fontSize:10,fontWeight:500}}>
@@ -1224,9 +1241,9 @@ function WeatherWidget({ onNavigate, size }) {
       )}
       <div style={{padding:'12px 14px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs uppercase tracking-wider text-white/60 font-medium">{data.city?.name?.split(',')[0]} ›</div>
+          <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/><path d="M8 20l-1 3M13 20v3M18 20l1 3"/></svg>}>{data.city?.name?.split(',')[0]} ›</WidgetTitle>
           {(maxTemp!=null && minTemp!=null) && (
-            <div style={{fontSize:11,color:'rgba(232,237,245,0.4)'}}>Y:{Math.round(maxTemp)}° D:{Math.round(minTemp)}°</div>
+            <div style={{fontSize:11,color:'rgba(232,237,245,0.4)',marginTop:-8}}>Y:<span style={{color:'#f87171'}}>{Math.round(maxTemp)}°</span> D:<span style={{color:'#93c5fd'}}>{Math.round(minTemp)}°</span></div>
           )}
         </div>
         <div ref={stripRef} style={{display:'flex',gap:0,overflowX:'auto',flex:1,minHeight:0,scrollbarWidth:'none'}}>
@@ -1307,10 +1324,10 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
   const fmtShort = (ds) => { const [,mo,da]=ds.split('-'); return `${parseInt(da)} ${TR_M[parseInt(mo)-1]}`; };
 
   return (
-    <div onClick={onNavigate} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-black/40 transition-colors h-full w-full flex flex-col overflow-hidden">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-xs uppercase tracking-wider text-white/60 font-medium">Takvim ›</div>
-        <div style={{fontSize:11,color:'rgba(232,237,245,0.3)'}}>{TR_M[m-1]}</div>
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between mb-1">
+        <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}>Takvim ›</WidgetTitle>
+        <div style={{fontSize:11,color:'#7b5ea7',fontWeight:600,marginTop:-8}}>{TR_M[m-1]}</div>
       </div>
 
       <div ref={gridRef2} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',rowGap:3,marginBottom:10}}>
@@ -1326,9 +1343,10 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
             <div key={ds} style={{
               display:'flex',alignItems:'center',justifyContent:'center',
               height:cellHeight,borderRadius:6,fontSize:cellFontSize,position:'relative',
-              background: isToday?'rgba(58,123,213,0.3)':'transparent',
-              color: isToday?'#93b8f0':'rgba(232,237,245,0.55)',
-              fontWeight: isToday?600:400,
+              background: isToday?'rgba(123,94,167,0.35)':'transparent',
+              color: isToday?'#c4b5fd':'rgba(232,237,245,0.6)',
+              fontWeight: isToday?700:400,
+              boxShadow: isToday?'0 0 0 1.5px rgba(123,94,167,0.6)':'none',
             }}>
               {day}
               {dayDots.length>0 && (
@@ -1414,7 +1432,6 @@ export default function Home() {
   const [time, setTime] = useState(new Date());
   const [swElapsed, setSwElapsed] = useState(()=>parseInt(localStorage.getItem('gn_sw_elapsed')||'0'));
   const [swRunning, setSwRunning] = useState(()=>localStorage.getItem('gn_sw_running')==='1');
-  const [swSessionElapsed, setSwSessionElapsed] = useState(0); // sadece aktif seans süresi
   const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
   const [widgetVisible, setWidgetVisible] = useState(loadWidgetVisible);
   const [showManager, setShowManager] = useState(false);
@@ -1440,7 +1457,7 @@ export default function Home() {
   useEffect(()=>{ const t=setInterval(()=>setTime(new Date()),1000); return()=>clearInterval(t); },[]);
 
   useEffect(()=>{
-    if(swRunning){ const t=setInterval(()=>{ const e=window._sw.startTime?Date.now()-window._sw.startTime:window._sw.elapsed; setSwElapsed(e); const sess=window._sw.sessionStartMs?Date.now()-window._sw.sessionStartMs:0; setSwSessionElapsed(sess); },100); return()=>clearInterval(t); }
+    if(swRunning){ const t=setInterval(()=>{ const e=window._sw.startTime?Date.now()-window._sw.startTime:window._sw.elapsed; setSwElapsed(e); },100); return()=>clearInterval(t); }
   },[swRunning]);
 
   const toggleSw = (e) => {
@@ -1463,7 +1480,6 @@ export default function Home() {
       localStorage.setItem('gn_sw_log',JSON.stringify(newLog));
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_log:newLog});});}
       useStore.getState().setSwLog(newLog);
-      setSwSessionElapsed(0);
       setSwRunning(false);
     } else {
       const startTime=Date.now()-window._sw.elapsed;
@@ -1472,7 +1488,6 @@ export default function Home() {
       window._sw.sessionStartMs=Date.now(); window._sw.sessionStartLabel=getNow();
       localStorage.setItem('gn_sw_running','1'); localStorage.setItem('gn_sw_startTime',startTime);
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_startTime:startTime,gn_sw_running:true});});}
-      setSwSessionElapsed(0);
       setSwRunning(true);
     }
   };
@@ -1480,7 +1495,7 @@ export default function Home() {
   const resetSw = (e) => {
     e.stopPropagation();
     window._sw.running=false; window._sw.elapsed=0; window._sw.startTime=null; window._sw.sessionStartMs=null;
-    localStorage.setItem('gn_sw_elapsed','0'); setSwElapsed(0); setSwSessionElapsed(0); setSwRunning(false);
+    localStorage.setItem('gn_sw_elapsed','0'); setSwElapsed(0); setSwRunning(false);
   };
 
   const handleWidgetToggle = (id) => {
@@ -1626,7 +1641,7 @@ export default function Home() {
     switch(id) {
       case 'todos': content = <TodoWidget onNavigate={()=>setCurrentPage('calendar')} getTodos={getTodos} setTodos={setTodos} size={size}/>; break;
       case 'goals': content = <GoalsWidget db={db} onNavigate={()=>setCurrentPage('goals')} size={size}/>; break;
-      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swSessionElapsed={swSessionElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow} size={size}/>; break;
+      case 'stopwatch': content = <StopwatchWidget swElapsed={swElapsed} swRunning={swRunning} swLog={swLog} onToggle={toggleSw} onReset={resetSw} onNavigate={()=>setCurrentPage('clock')} isNarrow={isNarrow} size={size}/>; break;
       case 'chains': content = <ChainWidget chains={chains} onNavigate={()=>setCurrentPage('chain')} size={size}/>; break;
       case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')} size={size}/>; break;
       case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')} size={size}/>; break;
