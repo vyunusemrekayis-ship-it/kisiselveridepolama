@@ -575,6 +575,12 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
   const today = todayStr();
   const todaySessions = (swLog||[]).filter(e=>e.date===today);
   const SESS_COLORS = ['#3a7bd5','#7b5ea7','#34d399','#fb923c','#f87171','#60a5fa','#e879f9','#facc15'];
+  const liveSession = swRunning ? {
+    id: '__live__',
+    start: window._sw.sessionStartLabel || '—',
+    live: true,
+  } : null;
+  const displaySessions = liveSession ? [liveSession, ...todaySessions] : todaySessions;
   const ROW_H = 25; // her seans satırının yaklaşık yüksekliği (gap dahil)
   // Boyut büyüdükçe sayaç yazısı ve görünür seans sayısı, konteynerin GERÇEK piksel
   // yüksekliğine göre büyür (ResizeObserver) — sabit boşluk kalmaz.
@@ -601,7 +607,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 
         {isNarrow ? (
           // ── DAR DÜZEN: etiket üstte, sayaç+kontroller altında tam genişlik ──
-          <div style={{marginBottom: todaySessions.length?12:0}}>
+          <div style={{marginBottom: displaySessions.length?12:0}}>
             <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.5"/><path d="M10 3h4"/></svg>}>Kronometre</WidgetTitle>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
               <div style={{fontSize:clockFontSize,color:swRunning?'#34d399':'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums',transition:'color .3s'}}>{fmt(swElapsed)}</div>
@@ -610,7 +616,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
           </div>
         ) : (
           // ── GENİŞ DÜZEN: Kronometre solda, zaman + kontroller ortada ──
-          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: todaySessions.length?12:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: displaySessions.length?12:0}}>
             <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.5"/><path d="M10 3h4"/></svg>}>Kronometre</WidgetTitle>
             <div style={{display:'flex',alignItems:'center',gap:14,justifySelf:'center'}}>
               <div style={{fontSize:clockFontSize,color:swRunning?'#34d399':'#e8edf5',fontFamily:'Lora,serif',letterSpacing:-1,fontVariantNumeric:'tabular-nums',transition:'color .3s'}}>{fmt(swElapsed)}</div>
@@ -621,7 +627,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
         )}
 
         {/* Bugünkü seans listesi — 4'ten fazlaysa kaydırılabilir */}
-        {todaySessions.length>0 && (
+        {displaySessions.length>0 && (
           <>
             <div style={{height:1,background:'rgba(255,255,255,0.06)',marginBottom:10}}/>
             <div
@@ -630,7 +636,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
               style={{
                 display:'flex',flexDirection:'column',gap:7,
                 flex:1,
-                maxHeight: todaySessions.length>MAX_VISIBLE ? ROW_H*MAX_VISIBLE : 'none',
+                maxHeight: displaySessions.length>MAX_VISIBLE ? ROW_H*MAX_VISIBLE : 'none',
                 overflowY: 'auto',
                 paddingRight:6,
                 cursor:'default',
@@ -638,9 +644,9 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
               }}
               className="sw-session-scroll"
             >
-              {todaySessions.map((s,i)=>{
+              {displaySessions.map((s,i)=>{
                 const color = SESS_COLORS[i%SESS_COLORS.length];
-                const isOngoing = i===0 && swRunning;
+                const isOngoing = !!s.live;
                 const liveDur = isOngoing && window._sw.sessionStartMs ? (Date.now()-window._sw.sessionStartMs) : (s.dur||0);
                 const durMin = Math.round(liveDur/60000);
                 return (
@@ -1449,8 +1455,24 @@ export default function Home() {
 
   useEffect(()=>{
     if(!swState) return;
-    if(swState.running&&swState.startTime){ if(!window._sw)window._sw={}; window._sw.running=true; window._sw.startTime=swState.startTime; setSwRunning(true); }
-    else if(swState.running===false){ if(!window._sw)window._sw={}; window._sw.running=false; window._sw.startTime=null; if(swState.elapsed!==undefined){window._sw.elapsed=swState.elapsed;setSwElapsed(swState.elapsed);} setSwRunning(false); }
+    if(swState.running&&swState.startTime){
+      if(!window._sw)window._sw={};
+      window._sw.running=true;
+      window._sw.startTime=swState.startTime;
+      // FIX: bu cihaz durdurunca seans süresini (toplam değil) doğru hesaplayabilsin diye
+      window._sw.sessionStartMs=Date.now();
+      const n=new Date();
+      window._sw.sessionStartLabel=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+      setSwRunning(true);
+    }
+    else if(swState.running===false){
+      if(!window._sw)window._sw={};
+      window._sw.running=false;
+      window._sw.startTime=null;
+      window._sw.sessionStartMs=null;
+      if(swState.elapsed!==undefined){window._sw.elapsed=swState.elapsed;setSwElapsed(swState.elapsed);}
+      setSwRunning(false);
+    }
   },[swState]);
 
   useEffect(()=>{ const t=setInterval(()=>setTime(new Date()),1000); return()=>clearInterval(t); },[]);
