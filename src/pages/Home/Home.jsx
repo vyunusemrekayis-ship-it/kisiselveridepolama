@@ -23,7 +23,7 @@ function useElementSize() {
 
 
 const PRIORITY_COLORS = {
-  high:   { dot: '#ef4444' },
+  high:   { dot: '#d97a72' },
   medium: { dot: '#f59e0b' },
   low:    { dot: '#a78bfa' },
 };
@@ -366,7 +366,7 @@ function TickerBar({ messages, hh, mm, time, onOpenManager }) {
 
 // ── TODO ──────────────────────────────────────────────────────────────────
 function TodoWidget({ onNavigate, getTodos, setTodos }) {
-  const today = todayStr(), tomorrow = getDateKey(1);
+  const today = todayStr(), tomorrow = getDateKey(1), yesterday = getDateKey(-1);
   const [tab, setTab] = useState('today');
   const [addInput, setAddInput] = useState('');
   const [addPriority, setAddPriority] = useState('medium');
@@ -388,9 +388,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
     const all = getTodos();
     if (tab==='today') return { items: (all[today]||[]).map((t,i)=>({...t,dateKey:today,idx:i})) };
     if (tab==='tomorrow') return { items: (all[tomorrow]||[]).map((t,i)=>({...t,dateKey:tomorrow,idx:i})) };
-    const items = [];
-    getWeekKeys().forEach(dk => { (all[dk]||[]).forEach((t,i) => items.push({...t,dateKey:dk,idx:i})); });
-    return { items };
+    return { items: (all[yesterday]||[]).map((t,i)=>({...t,dateKey:yesterday,idx:i})) };
   };
   const getOverdue = () => {
     const all = getTodos(), items = [];
@@ -402,7 +400,8 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
   };
   const getProgress = () => {
     const all = getTodos();
-    const list = tab==='week' ? getWeekKeys().flatMap(dk=>all[dk]||[]) : (all[tab==='today'?today:tomorrow]||[]);
+    const dk = tab==='today'?today:(tab==='tomorrow'?tomorrow:yesterday);
+    const list = all[dk]||[];
     if (!list.length) return null;
     const done = list.filter(t=>t.done).length;
     return { done, total:list.length, pct:Math.round(done/list.length*100) };
@@ -427,7 +426,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
       <div className="flex items-center justify-between mb-2" onClick={e=>e.stopPropagation()}>
         <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>}>Görevler ›</WidgetTitle>
         <div className="flex gap-1" style={{marginBottom:8}}>
-          {[['today','Bugün'],['tomorrow','Yarın'],['week','Hafta']].map(([key,label])=>(
+          {[['yesterday','Dün'],['today','Bugün'],['tomorrow','Yarın']].map(([key,label])=>(
             <button key={key} onClick={e=>{e.stopPropagation();setTab(key);}} style={{background:tab===key?'rgba(58,123,213,0.3)':'rgba(255,255,255,0.04)',border:`1px solid ${tab===key?'rgba(58,123,213,0.5)':'rgba(255,255,255,0.08)'}`,color:tab===key?'#93b8f0':'rgba(255,255,255,0.35)',borderRadius:6,padding:'2px 7px',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
           ))}
         </div>
@@ -439,16 +438,16 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
         </div>
       )}
       {showOverdue && tab==='today' && overdue.length>0 && (
-        <div onClick={e=>e.stopPropagation()} style={{background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'5px 8px',marginBottom:8}}>
-          <div style={{fontSize:10,color:'#fca5a5',fontWeight:500,letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:4}}>{overdue.length} gecikmiş görev</div>
+        <div onClick={e=>e.stopPropagation()} style={{background:'rgba(217,122,114,0.08)',border:'1px solid rgba(217,122,114,0.2)',borderRadius:8,padding:'5px 8px',marginBottom:8}}>
+          <div style={{fontSize:10,color:'#e3a39d',fontWeight:500,letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:4}}>{overdue.length} gecikmiş görev</div>
           {overdue.slice(0,3).map((t,i)=>(
             <div key={i} className="flex items-center gap-1.5" style={{marginBottom:2}}>
-              <div onClick={e=>toggle(e,t.dateKey,t.idx)} style={{width:10,height:10,borderRadius:3,border:'1px solid rgba(252,165,165,0.4)',flexShrink:0,cursor:'pointer',background:t.done?'#ef4444':'transparent'}}/>
-              <span style={{fontSize:10,color:'rgba(252,165,165,0.7)',flex:1,textDecoration:t.done?'line-through':'none',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
-              <span style={{fontSize:9,color:'rgba(252,165,165,0.4)',flexShrink:0}}>{fmtDate(t.dateKey)}</span>
+              <div onClick={e=>toggle(e,t.dateKey,t.idx)} style={{width:10,height:10,borderRadius:3,border:'1px solid rgba(217,122,114,0.4)',flexShrink:0,cursor:'pointer',background:t.done?'#d97a72':'transparent'}}/>
+              <span style={{fontSize:10,color:'rgba(217,122,114,0.8)',flex:1,textDecoration:t.done?'line-through':'none',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.text}</span>
+              <span style={{fontSize:9,color:'rgba(217,122,114,0.45)',flexShrink:0}}>{fmtDate(t.dateKey)}</span>
             </div>
           ))}
-          {overdue.length>3 && <div style={{fontSize:9,color:'rgba(252,165,165,0.4)',marginTop:2}}>+{overdue.length-3} daha…</div>}
+          {overdue.length>3 && <div style={{fontSize:9,color:'rgba(217,122,114,0.45)',marginTop:2}}>+{overdue.length-3} daha…</div>}
         </div>
       )}
       <div onClick={e=>e.stopPropagation()} style={{flex:1,overflowY:'auto',marginBottom:sorted.length?8:0,minHeight:0}} className="custom-scroll">
@@ -471,11 +470,11 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
                   onClick={e=>e.stopPropagation()}
                   style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:pc.dot,fontSize:9,fontWeight:500,borderRadius:5,padding:'1px 3px',cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}
                 >
-                  <option value="high" style={{color:'#ef4444'}}>Yüksek</option>
+                  <option value="high" style={{color:'#d97a72'}}>Yüksek</option>
                   <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
                   <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
                 </select>
-                {tab==='week'&&<span style={{fontSize:9,color:'rgba(255,255,255,0.25)',flexShrink:0}}>{fmtDate(t.dateKey)}</span>}
+                {tab==='yesterday'&&<span style={{fontSize:9,color:'rgba(255,255,255,0.25)',flexShrink:0}}>{fmtDate(t.dateKey)}</span>}
                 {!isEditing&&<button onClick={e=>startEdit(e,t.dateKey,t.idx,t.text)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.3)',cursor:'pointer',padding:'0 1px',lineHeight:1,flexShrink:0,fontSize:10}}>✎</button>}
                 <button onClick={e=>delTodo(e,t.dateKey,t.idx)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.25)',cursor:'pointer',padding:'0 1px',lineHeight:1,flexShrink:0,fontSize:13}}>×</button>
               </div>
@@ -490,7 +489,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
           onClick={e=>e.stopPropagation()}
           style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:PRIORITY_COLORS[addPriority].dot,fontSize:10,fontWeight:500,borderRadius:7,padding:'4px 4px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',width:62}}
         >
-          <option value="high" style={{color:'#ef4444'}}>Yüksek</option>
+          <option value="high" style={{color:'#d97a72'}}>Yüksek</option>
           <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
           <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
         </select>

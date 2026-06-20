@@ -45,7 +45,7 @@ const WEEK_DAY_NAMES = ['PT','SA','ÇA','PE','CU','CT','PZ'];
 
 // Öncelik renk haritası — Home.jsx ile senkron
 const PRIORITY_COLORS = {
-  high:   '#ef4444',
+  high:   '#d97a72',
   medium: '#f59e0b',
   low:    '#a78bfa',
 };
@@ -446,8 +446,8 @@ export default function Calendar() {
                   })}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6,
-                    background: showOverdue ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${showOverdue ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    background: showOverdue ? 'rgba(217,122,114,0.15)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${showOverdue ? 'rgba(217,122,114,0.4)' : 'rgba(255,255,255,0.12)'}`,
                     borderRadius: 8, padding: '5px 10px',
                     cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'all .2s',
@@ -455,9 +455,9 @@ export default function Calendar() {
                 >
                   <div style={{
                     width: 7, height: 7, borderRadius: '50%',
-                    background: showOverdue ? '#ef4444' : 'rgba(255,255,255,0.25)',
+                    background: showOverdue ? '#d97a72' : 'rgba(255,255,255,0.25)',
                     flexShrink: 0,
-                    boxShadow: showOverdue ? '0 0 5px #ef4444' : 'none',
+                    boxShadow: showOverdue ? '0 0 5px #d97a72' : 'none',
                     transition: 'all .2s',
                   }} />
                   <span style={{ fontSize: 11, color: showOverdue ? '#fca5a5' : 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
@@ -554,7 +554,7 @@ export default function Calendar() {
                     ].filter(Boolean);
                     const isPast = ds < today;
                     const hasOverdue = showOverdue && isPast && (todos[ds] || []).some(t => !t.done);
-                    const allDots = hasOverdue ? [{ color: '#ef4444', overdue: true }, ...dots] : dots;
+                    const allDots = hasOverdue ? [{ color: '#d97a72', overdue: true }, ...dots] : dots;
                     const isInMonth = ds.startsWith(`${year}-${String(month+1).padStart(2,'0')}`);
                     return (
                       <div key={ds} onClick={() => setSelected(ds)}
@@ -570,7 +570,7 @@ export default function Calendar() {
                         {allDots.length > 0 && (
                           <div style={{ position:'absolute', bottom:3, left:'50%', transform:'translateX(-50%)', display:'flex', gap:3 }}>
                             {allDots.slice(0,4).map((dot, di) => (
-                              <div key={di} style={{ width:5, height:5, borderRadius:'50%', background:dot.color, boxShadow: dot.overdue ? '0 0 5px #ef4444' : `0 0 3px ${dot.color}` }} />
+                              <div key={di} style={{ width:5, height:5, borderRadius:'50%', background:dot.color, boxShadow: dot.overdue ? '0 0 5px #d97a72' : `0 0 3px ${dot.color}` }} />
                             ))}
                           </div>
                         )}
@@ -671,12 +671,12 @@ export default function Calendar() {
               .filter(t => !t.done);
             if (!dayOverdue.length) return null;
             return (
-              <div style={{ marginBottom: 12, borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)', overflow: 'hidden', background: 'rgba(239,68,68,0.04)' }}>
-                <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(239,68,68,0.12)', fontSize: 10, color: 'rgba(252,165,165,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
+              <div style={{ marginBottom: 12, borderRadius: 8, border: '1px solid rgba(217,122,114,0.2)', overflow: 'hidden', background: 'rgba(217,122,114,0.04)' }}>
+                <div style={{ padding: '5px 10px', borderBottom: '1px solid rgba(217,122,114,0.12)', fontSize: 10, color: 'rgba(217,122,114,0.7)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 500 }}>
                   Tamamlanmamış — {dayOverdue.length} görev
                 </div>
                 {dayOverdue.map((t, i) => {
-                  const prioColor = { high:'#ef4444', medium:'#f59e0b', low:'#6b7280' }[t.priority||'medium'];
+                  const prioColor = { high:'#d97a72', medium:'#f59e0b', low:'#6b7280' }[t.priority||'medium'];
                   return (
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
@@ -766,7 +766,7 @@ export default function Calendar() {
                   className="bg-transparent border border-border2 rounded-md text-xs px-1 py-0.5 cursor-pointer flex-shrink-0"
                   style={{ color: pColor }}
                 >
-                  <option value="high" style={{ color: '#ef4444' }}>Yüksek</option>
+                  <option value="high" style={{ color: '#d97a72' }}>Yüksek</option>
                   <option value="medium" style={{ color: '#f59e0b' }}>Orta</option>
                   <option value="low" style={{ color: '#a78bfa' }}>Düşük</option>
                 </select>
@@ -793,7 +793,7 @@ export default function Calendar() {
                 className="form-input py-2 text-sm flex-shrink-0"
                 style={{ width: 92, color: PRIORITY_COLORS[todoPriority] }}
               >
-                <option value="high" style={{ color: '#ef4444' }}>Yüksek</option>
+                <option value="high" style={{ color: '#d97a72' }}>Yüksek</option>
                 <option value="medium" style={{ color: '#f59e0b' }}>Orta</option>
                 <option value="low" style={{ color: '#a78bfa' }}>Düşük</option>
               </select>
