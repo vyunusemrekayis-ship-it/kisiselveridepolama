@@ -34,11 +34,14 @@ export default function Clock() {
 
   const initStartTime = parseInt(localStorage.getItem('gn_sw_startTime') || '0');
   const initRunning = localStorage.getItem('gn_sw_running') === '1' && initStartTime > 0;
+  // segStart: bu çalışma segmentinin gerçek "başlat" anı (senkron) — yoksa eski kayıtlarla uyum için startTime'a düş
+  const initSegStart = parseInt(localStorage.getItem('gn_sw_segStart') || '0') || initStartTime;
 
   const startTimeRef = useRef(initRunning ? initStartTime : null);
-  // Sayfa yenilenince gerçek başlatma zamanını initStartTime'dan al
-  const sessionStartMsRef = useRef(initRunning ? initStartTime : null);
-  const sessionStartLabelRef = useRef(initRunning ? tsToLabel(initStartTime) : null);
+  // Sayfa yenilenince gerçek başlatma zamanını segStart'tan al (Date.now() DEĞİL — aksi halde
+  // reload sırasında segment süresi "şimdi"den başlar ve log kaydı yanlış/0 görünür)
+  const sessionStartMsRef = useRef(initRunning ? initSegStart : null);
+  const sessionStartLabelRef = useRef(initRunning ? tsToLabel(initSegStart) : null);
   const isLocalSessionRef = useRef(initRunning);
 
   const [running, setRunning] = useState(initRunning);
@@ -83,13 +86,15 @@ export default function Clock() {
     prevSwStateRef.current = swState;
 
     if (swState.running && swState.startTime && !isLocalSessionRef.current) {
-      // Başka cihaz başlattı
+      // Başka cihaz başlattı (veya bu cihaz reload oldu) — segment başlangıcı olarak
+      // senkron gelen gerçek "başlat" anını kullan, "şimdi"yi DEĞİL.
+      const segStart = swState.segStart || swState.startTime;
       startTimeRef.current = swState.startTime;
-      // FIX: session start zamanını da kaydet ki bu cihazda durdurulunca süre hesaplanabilsin
-      sessionStartMsRef.current = Date.now();
-      sessionStartLabelRef.current = tsToLabel(swState.startTime);
+      sessionStartMsRef.current = segStart;
+      sessionStartLabelRef.current = tsToLabel(segStart);
       localStorage.setItem('gn_sw_startTime', swState.startTime);
       localStorage.setItem('gn_sw_running', '1');
+      if (segStart) localStorage.setItem('gn_sw_segStart', segStart);
       setRunning(true);
       setDisplayMs(Math.max(0, Date.now() - swState.startTime));
     } else if (!swState.running && !isLocalSessionRef.current && running) {
@@ -99,6 +104,7 @@ export default function Clock() {
       sessionStartLabelRef.current = null;
       localStorage.removeItem('gn_sw_startTime');
       localStorage.removeItem('gn_sw_running');
+      localStorage.removeItem('gn_sw_segStart');
       if (swState.elapsed !== undefined) {
         localStorage.setItem('gn_sw_elapsed', swState.elapsed);
         setDisplayMs(swState.elapsed);
@@ -128,8 +134,9 @@ export default function Clock() {
       localStorage.setItem('gn_sw_elapsed', elapsed);
       localStorage.removeItem('gn_sw_startTime');
       localStorage.removeItem('gn_sw_running');
+      localStorage.removeItem('gn_sw_segStart');
 
-      fsSync({ gn_sw_elapsed: elapsed, gn_sw_startTime: null, gn_sw_running: false });
+      fsSync({ gn_sw_elapsed: elapsed, gn_sw_startTime: null, gn_sw_running: false, gn_sw_segStart: null });
 
       isLocalSessionRef.current = false;
       startTimeRef.current = null;
@@ -154,16 +161,18 @@ export default function Clock() {
     } else {
       const currentElapsed = parseInt(localStorage.getItem('gn_sw_elapsed') || '0');
       const startTime = Date.now() - currentElapsed;
+      const segStart = Date.now(); // Bu session'ın gerçek başlangıcı (birikimli değil)
 
       sessionStartLabelRef.current = getNowLabel();
-      sessionStartMsRef.current = Date.now(); // Bu session'ın başlangıcı (birikimli değil)
+      sessionStartMsRef.current = segStart;
       startTimeRef.current = startTime; // Birikimli sayaç için (elapsed hesabı)
       isLocalSessionRef.current = true;
 
       localStorage.setItem('gn_sw_startTime', startTime);
       localStorage.setItem('gn_sw_running', '1');
+      localStorage.setItem('gn_sw_segStart', segStart);
 
-      fsSync({ gn_sw_startTime: startTime, gn_sw_running: true });
+      fsSync({ gn_sw_startTime: startTime, gn_sw_running: true, gn_sw_segStart: segStart });
       setRunning(true);
     }
   };
@@ -177,7 +186,8 @@ export default function Clock() {
       sessionStartLabelRef.current = null;
       localStorage.removeItem('gn_sw_startTime');
       localStorage.removeItem('gn_sw_running');
-      fsSync({ gn_sw_startTime: null, gn_sw_running: false, gn_sw_elapsed: 0 });
+      localStorage.removeItem('gn_sw_segStart');
+      fsSync({ gn_sw_startTime: null, gn_sw_running: false, gn_sw_elapsed: 0, gn_sw_segStart: null });
       setRunning(false);
     }
     localStorage.setItem('gn_sw_elapsed', '0');
@@ -194,7 +204,8 @@ export default function Clock() {
     localStorage.setItem('gn_sw_elapsed', '0');
     localStorage.removeItem('gn_sw_startTime');
     localStorage.removeItem('gn_sw_running');
-    fsSync({ gn_sw_elapsed: 0, gn_sw_startTime: null, gn_sw_running: false, gn_sw_log: [] });
+    localStorage.removeItem('gn_sw_segStart');
+    fsSync({ gn_sw_elapsed: 0, gn_sw_startTime: null, gn_sw_running: false, gn_sw_segStart: null, gn_sw_log: [] });
     setRunning(false);
     setDisplayMs(0);
     setSwLog([]);

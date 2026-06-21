@@ -1430,7 +1430,7 @@ function WidgetManager({ visible, order, onClose, onToggle, onReorder }) {
 }
 
 // ── window._sw ────────────────────────────────────────────────────────────
-if (!window._sw) window._sw = { running:false, startTime:null, elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), sessionStartLabel:null, sessionStartMs:null };
+if (!window._sw) window._sw = { running:false, startTime:null, elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), sessionStartLabel:null, sessionStartMs:parseInt(localStorage.getItem('gn_sw_segStart')||'0')||null };
 
 export default function Home() {
   const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog, widgetSizes, setWidgetSize, widgetPositions, setWidgetPositions } = useStore();
@@ -1457,12 +1457,14 @@ export default function Home() {
     if(!swState) return;
     if(swState.running&&swState.startTime){
       if(!window._sw)window._sw={};
+      // segStart: senkron gelen gerçek "başlat" anı — "şimdi" DEĞİL, aksi halde bu cihazda
+      // durdurulunca log süresi (partDur) sıfıra yakın çıkar.
+      const segStart = swState.segStart || swState.startTime;
       window._sw.running=true;
       window._sw.startTime=swState.startTime;
-      // FIX: bu cihaz durdurunca seans süresini (toplam değil) doğru hesaplayabilsin diye
-      window._sw.sessionStartMs=Date.now();
-      const n=new Date();
-      window._sw.sessionStartLabel=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+      window._sw.sessionStartMs=segStart;
+      if (segStart) localStorage.setItem('gn_sw_segStart', segStart);
+      window._sw.sessionStartLabel=segStart ? new Date(segStart).toTimeString().slice(0,8) : null;
       setSwRunning(true);
     }
     else if(swState.running===false){
@@ -1470,6 +1472,7 @@ export default function Home() {
       window._sw.running=false;
       window._sw.startTime=null;
       window._sw.sessionStartMs=null;
+      localStorage.removeItem('gn_sw_segStart');
       if(swState.elapsed!==undefined){window._sw.elapsed=swState.elapsed;setSwElapsed(swState.elapsed);}
       setSwRunning(false);
     }
@@ -1491,8 +1494,8 @@ export default function Home() {
       const getNow=()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;};
       const today=new Date().toISOString().split('T')[0];
       window._sw.elapsed=elapsed; window._sw.running=false; window._sw.startTime=null; window._sw.sessionStartMs=null;
-      localStorage.setItem('gn_sw_elapsed',elapsed); localStorage.removeItem('gn_sw_running'); localStorage.removeItem('gn_sw_startTime');
-      if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_elapsed:elapsed,gn_sw_running:false,gn_sw_startTime:null});});}
+      localStorage.setItem('gn_sw_elapsed',elapsed); localStorage.removeItem('gn_sw_running'); localStorage.removeItem('gn_sw_startTime'); localStorage.removeItem('gn_sw_segStart');
+      if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_elapsed:elapsed,gn_sw_running:false,gn_sw_startTime:null,gn_sw_segStart:null});});}
       // Log kaydı ekle
       const newEntry={id:Date.now(),date:today,start:window._sw.sessionStartLabel||'—',end:getNow(),dur:partDur,note:''};
       window._sw.sessionStartLabel=null;
@@ -1504,11 +1507,12 @@ export default function Home() {
       setSwRunning(false);
     } else {
       const startTime=Date.now()-window._sw.elapsed;
+      const segStart=Date.now(); // Bu session'ın gerçek başlangıcı (birikimli değil)
       const getNow=()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;};
       window._sw.startTime=startTime; window._sw.running=true;
-      window._sw.sessionStartMs=Date.now(); window._sw.sessionStartLabel=getNow();
-      localStorage.setItem('gn_sw_running','1'); localStorage.setItem('gn_sw_startTime',startTime);
-      if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_startTime:startTime,gn_sw_running:true});});}
+      window._sw.sessionStartMs=segStart; window._sw.sessionStartLabel=getNow();
+      localStorage.setItem('gn_sw_running','1'); localStorage.setItem('gn_sw_startTime',startTime); localStorage.setItem('gn_sw_segStart',segStart);
+      if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_startTime:startTime,gn_sw_running:true,gn_sw_segStart:segStart});});}
       setSwRunning(true);
     }
   };
@@ -1516,7 +1520,7 @@ export default function Home() {
   const resetSw = (e) => {
     e.stopPropagation();
     window._sw.running=false; window._sw.elapsed=0; window._sw.startTime=null; window._sw.sessionStartMs=null;
-    localStorage.setItem('gn_sw_elapsed','0'); setSwElapsed(0); setSwRunning(false);
+    localStorage.setItem('gn_sw_elapsed','0'); localStorage.removeItem('gn_sw_segStart'); setSwElapsed(0); setSwRunning(false);
   };
 
   const handleWidgetToggle = (id) => {

@@ -117,14 +117,28 @@ export const useStore = create((set, get) => ({
         updates.widgetPositions = mergedPos;
       }
       if (incoming.gn_sw_running !== undefined) {
-        updates.swState = {
+        const nextSwState = {
           running: !!incoming.gn_sw_running,
           startTime: incoming.gn_sw_startTime || null,
+          // segStart: bu çalışma segmentinin gerçek "başlat" anı — hangi cihaz durdurursa dursun
+          // log süresi (partDur) doğru hesaplanabilsin diye senkron tutulur (Date.now() ile DOLDURULMAZ)
+          segStart: incoming.gn_sw_segStart || null,
           elapsed: incoming.gn_sw_elapsed ?? parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
         };
+        // Gereksiz yeniden render / efekt tetiklemesini önle: değerler aynıysa swState referansını değiştirme.
+        // (Aksi halde her Firestore senkronunda — sw ile ilgisiz bir değişiklikte bile — swState yeni
+        // bir nesne olarak gelir ve Clock.jsx/Home.jsx'teki "swState değişti" efekti gereksiz yere
+        // yeniden çalışıp segment başlangıcını "şimdi"ye sıfırlardı.)
+        const prev = get().swState;
+        const changed = !prev || prev.running !== nextSwState.running || prev.startTime !== nextSwState.startTime
+          || prev.segStart !== nextSwState.segStart || prev.elapsed !== nextSwState.elapsed;
+        if (changed) updates.swState = nextSwState;
+
         if (incoming.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(incoming.gn_sw_elapsed));
         if (incoming.gn_sw_startTime) localStorage.setItem('gn_sw_startTime', String(incoming.gn_sw_startTime));
         else localStorage.removeItem('gn_sw_startTime');
+        if (incoming.gn_sw_segStart) localStorage.setItem('gn_sw_segStart', String(incoming.gn_sw_segStart));
+        else localStorage.removeItem('gn_sw_segStart');
         if (incoming.gn_sw_running) localStorage.setItem('gn_sw_running', '1');
         else localStorage.removeItem('gn_sw_running');
       }
