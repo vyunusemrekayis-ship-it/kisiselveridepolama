@@ -1,36 +1,116 @@
 {
-  "generatedAt": "2026-06-22T19:55:06.172Z",
-  "date": "2026-06-22",
+  "generatedAt": "2026-06-22T20:04:12.635Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
       "name": "Trabzon Paribu Cineverse (Forum Trabzon) Sinema Salonu",
       "address": null,
       "phone": "0 (850) 220 09 67",
-      "films": [],
-      "thisWeekFilms": [],
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
-      "sourceUrl": "https://www.sinemalar.com/sinemasalonu/1311/trabzon-paribu-cineverse-forum-trabzon"
+      "days": [
+        {
+          "date": "2026-06-22",
+          "films": []
+        },
+        {
+          "date": "2026-06-23",
+          "films": []
+        },
+        {
+          "date": "2026-06-24",
+          "films": []
+        },
+        {
+          "date": "2026-06-25",
+          "films": []
+        },
+        {
+          "date": "2026-06-26",
+          "films": []
+        },
+        {
+          "date": "2026-06-27",
+          "films": []
+        },
+        {
+          "date": "2026-06-28",
+          "films": []
+        }
+      ]
     },
     {
       "id": "lara",
       "name": "Trabzon Lara Sinema Salonu",
       "address": null,
       "phone": "0 (462) 321 00 06",
-      "films": [],
-      "thisWeekFilms": [],
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
-      "sourceUrl": "https://www.sinemalar.com/sinemasalonu/515/trabzon-lara"
+      "days": [
+        {
+          "date": "2026-06-22",
+          "films": []
+        },
+        {
+          "date": "2026-06-23",
+          "films": []
+        },
+        {
+          "date": "2026-06-24",
+          "films": []
+        },
+        {
+          "date": "2026-06-25",
+          "films": []
+        },
+        {
+          "date": "2026-06-26",
+          "films": []
+        },
+        {
+          "date": "2026-06-27",
+          "films": []
+        },
+        {
+          "date": "2026-06-28",
+          "films": []
+        }
+      ]
     },
     {
       "id": "cinegalaxy",
       "name": "Cinegalaxy Trabzon Sinema Salonu",
       "address": null,
       "phone": "0 (462) 223 18 81",
-      "films": [],
-      "thisWeekFilms": [],
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
-      "sourceUrl": "https://www.sinemalar.com/sinemasalonu/1685/cinegalaxy-trabzon"
+      "days": [
+        {
+          "date": "2026-06-22",
+          "films": []
+        },
+        {
+          "date": "2026-06-23",
+          "films": []
+        },
+        {
+          "date": "2026-06-24",
+          "films": []
+        },
+        {
+          "date": "2026-06-25",
+          "films": []
+        },
+        {
+          "date": "2026-06-26",
+          "films": []
+        },
+        {
+          "date": "2026-06-27",
+          "films": []
+        },
+        {
+          "date": "2026-06-28",
+          "films": []
+        }
+      ]
     }
   ]
 }
