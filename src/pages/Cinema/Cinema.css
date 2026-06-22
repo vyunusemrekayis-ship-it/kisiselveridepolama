@@ -6,7 +6,7 @@
 }
 
 .cinema-header {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .cinema-header h1 {
@@ -25,6 +25,55 @@
   color: #ff8a8a;
 }
 
+/* --- Gün sekmeleri --- */
+.day-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #222229;
+}
+
+.day-tab {
+  background: transparent;
+  border: 1px solid #26262f;
+  color: #8b8b9a;
+  border-radius: 10px;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  font-size: 0.83rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  transition: all 0.15s ease;
+  min-width: 60px;
+}
+
+.day-tab:hover {
+  border-color: #3a3a48;
+  color: #c9c9d8;
+}
+
+.day-tab--active {
+  background: rgba(108, 99, 255, 0.12);
+  border-color: #6c63ff;
+  color: #fff;
+}
+
+.day-tab__short {
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.day-tab__long {
+  font-size: 0.7rem;
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* --- Sinema grid --- */
 .cinema-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -39,7 +88,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  animation: cardIn 0.4s ease both;
+  animation: cardIn 0.35s ease both;
 }
 
 .cinema-card--error {
@@ -48,7 +97,7 @@
 
 .cinema-card__head h2 {
   margin: 0 0 0.3rem;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
 }
 
 .cinema-address {
@@ -56,6 +105,7 @@
   color: #9aa3ff;
   font-size: 0.82rem;
   text-decoration: none;
+  margin-bottom: 0.1rem;
 }
 
 .cinema-address:hover {
@@ -66,14 +116,15 @@
   display: block;
   color: #6f6f80;
   font-size: 0.78rem;
-  margin-top: 0.15rem;
 }
 
 .cinema-empty {
   color: #6f6f80;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  font-style: italic;
 }
 
+/* --- Film listesi --- */
 .film-list {
   list-style: none;
   margin: 0;
@@ -87,7 +138,7 @@
   display: flex;
   gap: 0.75rem;
   padding-bottom: 0.9rem;
-  border-bottom: 1px solid #222229;
+  border-bottom: 1px solid #1e1e26;
 }
 
 .film-row:last-child {
@@ -115,24 +166,19 @@
 
 .film-info h3 {
   margin: 0 0 0.2rem;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
   line-height: 1.3;
 }
 
 .film-year {
   color: #6f6f80;
   font-weight: 400;
-  font-size: 0.85rem;
 }
 
 .film-genre {
-  margin: 0 0 0.4rem;
+  margin: 0 0 0.35rem;
   color: #8b8b9a;
   font-size: 0.78rem;
-}
-
-.format-row {
-  margin-bottom: 0.3rem;
 }
 
 .format-badge {
@@ -142,14 +188,16 @@
   font-size: 0.68rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
+  margin-right: 0.3rem;
+  margin-bottom: 0.3rem;
   letter-spacing: 0.02em;
 }
 
 .time-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
 }
 
 .time-chip {
@@ -157,7 +205,7 @@
   border: 1px solid #2e2e3a;
   color: #d6d6e8;
   font-size: 0.78rem;
-  padding: 0.25rem 0.55rem;
+  padding: 0.22rem 0.55rem;
   border-radius: 7px;
   text-decoration: none;
   transition: background 0.15s ease, transform 0.15s ease;
@@ -170,49 +218,16 @@
   transform: translateY(-1px);
 }
 
-.week-films summary {
-  cursor: pointer;
-  color: #8b8b9a;
-  font-size: 0.82rem;
-  user-select: none;
-}
-
-.week-films summary:hover {
-  color: #b9bce0;
-}
-
-.week-films__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 0.6rem;
-  margin-top: 0.7rem;
-}
-
-.week-film {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  text-align: center;
-}
-
-.week-film img {
-  width: 100%;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-  border-radius: 6px;
-  background: #1f1f28;
-}
-
-.week-film span {
-  font-size: 0.65rem;
-  color: #8b8b9a;
-  line-height: 1.2;
+.no-times {
+  margin: 0.3rem 0 0;
+  font-size: 0.75rem;
+  color: #555565;
+  font-style: italic;
 }
 
 .booking-link {
   align-self: flex-start;
-  margin-top: 0.2rem;
+  margin-top: 0.1rem;
   color: #6c63ff;
   font-size: 0.85rem;
   text-decoration: none;
@@ -223,8 +238,7 @@
   text-decoration: underline;
 }
 
-/* --- Skeleton loading animasyonu --- */
-
+/* --- Skeleton --- */
 .cinema-card--skeleton {
   gap: 1rem;
 }
@@ -232,47 +246,21 @@
 .skeleton-line,
 .skeleton-film {
   border-radius: 8px;
-  background: linear-gradient(
-    90deg,
-    #1c1c24 0%,
-    #25252f 50%,
-    #1c1c24 100%
-  );
+  background: linear-gradient(90deg, #1c1c24 0%, #25252f 50%, #1c1c24 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
-.skeleton-line--title {
-  width: 60%;
-  height: 1.1rem;
-}
-
-.skeleton-line--sub {
-  width: 40%;
-  height: 0.8rem;
-}
-
-.skeleton-film {
-  width: 100%;
-  height: 84px;
-}
+.skeleton-line--title { width: 60%; height: 1.1rem; }
+.skeleton-line--sub   { width: 40%; height: 0.8rem; }
+.skeleton-film        { width: 100%; height: 84px; }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @keyframes cardIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

@@ -3,9 +3,23 @@ import "./Cinema.css";
 
 const DATA_URL = "/data/cinema.json";
 
+const TR_DAYS = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+const TR_MONTHS = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+
+function formatDayLabel(iso, idx) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const dayName = TR_DAYS[date.getDay()];
+  const monthName = TR_MONTHS[date.getMonth()];
+  if (idx === 0) return { short: "Bugün", long: `Bugün, ${d} ${monthName}` };
+  if (idx === 1) return { short: "Yarın", long: `Yarın, ${d} ${monthName}` };
+  return { short: dayName, long: `${dayName}, ${d} ${monthName}` };
+}
+
 export default function Cinema() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(0);
 
   useEffect(() => {
     fetch(DATA_URL)
@@ -33,6 +47,9 @@ export default function Cinema() {
     );
   }
 
+  // Gün listesini ilk sinemanın days dizisinden al
+  const days = data.cinemas[0]?.days || [];
+
   return (
     <div className="cinema-page">
       <header className="cinema-header">
@@ -42,16 +59,38 @@ export default function Cinema() {
         </p>
       </header>
 
+      {/* Gün sekmeleri */}
+      <div className="day-tabs">
+        {days.map((day, idx) => {
+          const label = formatDayLabel(day.date, idx);
+          return (
+            <button
+              key={day.date}
+              className={`day-tab ${selectedDay === idx ? "day-tab--active" : ""}`}
+              onClick={() => setSelectedDay(idx)}
+            >
+              <span className="day-tab__short">{label.short}</span>
+              <span className="day-tab__long">{label.long}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sinema kartları */}
       <div className="cinema-grid">
         {data.cinemas.map((cinema) => (
-          <CinemaCard key={cinema.id} cinema={cinema} />
+          <CinemaCard
+            key={cinema.id}
+            cinema={cinema}
+            dayIndex={selectedDay}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-function CinemaCard({ cinema }) {
+function CinemaCard({ cinema, dayIndex }) {
   if (cinema.error) {
     return (
       <section className="cinema-card cinema-card--error">
@@ -64,46 +103,35 @@ function CinemaCard({ cinema }) {
     );
   }
 
+  const dayData = cinema.days?.[dayIndex];
+  const films = dayData?.films || [];
+
   const mapsHref = cinema.address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        cinema.name + " " + cinema.address
+        (cinema.name || "") + " " + (cinema.address || "")
       )}`
     : null;
 
   return (
     <section className="cinema-card">
       <div className="cinema-card__head">
-        <h2>{cinema.name}</h2>
+        <h2>{cinema.name || cinema.id}</h2>
         {cinema.address && (
           <a className="cinema-address" href={mapsHref} target="_blank" rel="noreferrer">
-            {cinema.address}
+            📍 {cinema.address}
           </a>
         )}
         {cinema.phone && <span className="cinema-phone">{cinema.phone}</span>}
       </div>
 
-      {cinema.films?.length ? (
+      {films.length > 0 ? (
         <ul className="film-list">
-          {cinema.films.map((film, i) => (
+          {films.map((film, i) => (
             <FilmRow key={i} film={film} bookingUrl={cinema.bookingUrl} />
           ))}
         </ul>
       ) : (
-        <p className="cinema-empty">Bugün için seans bilgisi bulunamadı.</p>
-      )}
-
-      {cinema.thisWeekFilms?.length > 0 && (
-        <details className="week-films">
-          <summary>Bu hafta vizyonda ({cinema.thisWeekFilms.length} film)</summary>
-          <div className="week-films__grid">
-            {cinema.thisWeekFilms.map((f, i) => (
-              <div className="week-film" key={i}>
-                {f.poster && <img src={f.poster} alt={f.title} loading="lazy" />}
-                <span>{f.title}</span>
-              </div>
-            ))}
-          </div>
-        </details>
+        <p className="cinema-empty">Bu gün için seans bilgisi bulunamadı.</p>
       )}
 
       <a className="booking-link" href={cinema.bookingUrl} target="_blank" rel="noreferrer">
@@ -124,33 +152,25 @@ function FilmRow({ film, bookingUrl }) {
 
       <div className="film-info">
         <h3>
-          {film.title} {film.year && <span className="film-year">({film.year})</span>}
+          {film.title}
+          {film.year && <span className="film-year"> ({film.year})</span>}
         </h3>
         {film.genre && <p className="film-genre">{film.genre}</p>}
 
-        {film.formats?.map((fmt, i) => {
-          const formatTimes = film.times; // tek format varsayımı; çoklu format ayrımı kaynak verisine bağlı
-          return (
-            <div className="format-row" key={i}>
-              <span className="format-badge">{fmt}</span>
-            </div>
-          );
-        })}
+        {film.formats?.map((fmt, i) => (
+          <span className="format-badge" key={i}>{fmt}</span>
+        ))}
 
-        {film.times?.length > 0 && (
+        {film.times?.length > 0 ? (
           <div className="time-chips">
             {film.times.map((t, i) => (
-              <a
-                key={i}
-                className="time-chip"
-                href={bookingUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a key={i} className="time-chip" href={bookingUrl} target="_blank" rel="noreferrer">
                 {t}
               </a>
             ))}
           </div>
+        ) : (
+          <p className="no-times">Seans saati henüz eklenmedi</p>
         )}
       </div>
     </li>
