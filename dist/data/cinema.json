@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-06-22T20:04:12.635Z",
+  "cinemas": [
+    {
+      "id": "paribu-cineverse-forum-trabzon",
+      "name": "Trabzon Paribu Cineverse (Forum Trabzon) Sinema Salonu",
+      "address": null,
+      "phone": "0 (850) 220 09 67",
+      "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
+      "days": [
+        {
+          "date": "2026-06-22",
+          "films": []
+        },
+        {
+          "date": "2026-06-23",
+          "films": []
+        },
+        {
+          "date": "2026-06-24",
+          "films": []
+        },
+        {
+          "date": "2026-06-25",
+          "films": []
+        },
+        {
+          "date": "2026-06-26",
+          "films": []
+        },
+        {
+          "date": "2026-06-27",
+          "films": []
+        },
+        {
+          "date": "2026-06-28",
+          "films": []
+        }
+      ]
+    },
+    {
+      "id": "lara",
+      "name": "Trabzon Lara Sinema Salonu",
+      "address": null,
+      "phone": "0 (462) 321 00 06",
+      "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
+      "days": [
+        {
+          "date": "2026-06-22",
+          "films": []
+        },
+        {
+          "date": "2026-06-23",
+          "films": []
+        },
+        {
+          "date": "2026-06-24",
+          "films": []
+        },
+        {
+          "date": "2026-06-25",
+          "films": []
+        },
+        {
+          "date": "2026-06-26",
+          "films": []
+        },
+        {
+          "date": "2026-06-27",
+          "films": []
+        },
+        {
+          "date": "2026-06-28",
+          "films": []
+        }
+      ]
+    },
+    {
+      "id": "cinegalaxy",
+      "name": "Cinegalaxy Trabzon Sinema Salonu",
+      "address": null,
+      "phone": "0 (462) 223 18 81",
+      "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
+      "days": [
+        {
+          "date": "2026-06-22",
+          "films": []
+        },
+        {
+          "date": "2026-06-23",
+          "films": []
+        },
+        {
+          "date": "2026-06-24",
+          "films": []
+        },
+        {
+          "date": "2026-06-25",
+          "films": []
+        },
+        {
+          "date": "2026-06-26",
+          "films": []
+        },
+        {
+          "date": "2026-06-27",
+          "films": []
+        },
+        {
+          "date": "2026-06-28",
+          "films": []
+        }
+      ]
+    }
+  ]
+}
