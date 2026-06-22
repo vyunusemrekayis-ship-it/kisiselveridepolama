@@ -13,6 +13,7 @@ const DEFAULT_NAV = [
   { id: 'ai',       label: 'Asistan' },
   { id: 'radar',    label: 'Yerel Gelişmeler' },
   { id: 'finance',  label: 'Finans' },
+  { id: 'cinema',   label: 'Sinema' },
 ];
 
 const COLOR = '#00C2FF';
@@ -157,6 +158,19 @@ const ICONS = {
       <path d="M5 22c2 1 4.5 1.5 7 1.5s5-.5 7-1.5"
         strokeWidth="1.1"
         stroke={active ? `${COLOR}80` : 'rgba(232,237,245,.15)'}/>
+    </svg>
+  ),
+
+  // Sinema — film perdesi + koltuklar
+  cinema: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="12" rx="2"
+        fill={active ? `${COLOR}15` : 'rgba(232,237,245,.05)'}/>
+      <path d="M2 7h20M2 11h20" strokeWidth="1" stroke={active ? `${COLOR}50` : 'rgba(232,237,245,.15)'}/>
+      <path d="M8 19v-4M16 19v-4"/>
+      <path d="M5 19h14" strokeWidth="1.8"/>
     </svg>
   ),
 

@@ -16,6 +16,7 @@ const PAGES = {
   ai: lazy(() => import('../../pages/Ai/Ai')),
   radar: lazy(() => import('../../pages/Radar/Radar')),
   finance: lazy(() => import('../../pages/Finance/Finance')),
+  cinema: lazy(() => import('../../pages/Cinema/Cinema')),
 };
 
 function Spinner() {

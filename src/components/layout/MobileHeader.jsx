@@ -12,6 +12,7 @@ const PAGE_TITLES = {
   weather:  'Hava Durumu',
   radar:    'Yerel Gelişmeler',
   finance:  'Finans',
+  cinema:   'Sinema',
 };
 
 export function MobileHeader({ onMenuClick }) {

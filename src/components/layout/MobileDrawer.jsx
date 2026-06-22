@@ -13,6 +13,7 @@ const NAV = [
   { id: 'ai',       label: 'Asistan' },
   { id: 'radar',    label: 'Yerel Gelişmeler' },
   { id: 'finance',  label: 'Finans' },
+  { id: 'cinema',   label: 'Sinema' },
 ];
 
 export default function MobileDrawer({ open, onClose }) {

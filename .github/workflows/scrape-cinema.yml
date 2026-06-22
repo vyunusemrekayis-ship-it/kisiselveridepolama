@@ -1,0 +1,36 @@
+name: Sinema Verisini Güncelle
+
+on:
+  schedule:
+    # Her gün 06:00 TRT (03:00 UTC) - seans saatleri o gün için güncel olsun
+    - cron: "0 3 * * *"
+  workflow_dispatch: {} # Manuel tetikleme için (Actions sekmesinden "Run workflow")
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repo'yu çek
+        uses: actions/checkout@v4
+
+      - name: Node kurulumu
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Bağımlılıkları yükle
+        run: npm install cheerio --no-save
+
+      - name: Sinema verisini çek
+        run: node scripts/scrape-cinema.mjs
+
+      - name: Değişiklik varsa commit'le
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/cinema.json
+          git diff --staged --quiet || git commit -m "chore: sinema verisini güncelle ($(date -u +%Y-%m-%d))"
+          git push
