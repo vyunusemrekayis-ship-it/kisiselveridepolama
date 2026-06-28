@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-06-28T06:58:30.111Z",
+  "generatedAt": "2026-06-28T11:43:47.312Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
-      "name": "Trabzon Paribu Cineverse (Forum Trabzon) Sinema Salonu",
-      "address": null,
+      "name": "Paribu Cineverse Forum Trabzon",
+      "address": "Çömlekçi Mah. Devlet Sahil Yolu Cad. Forum AVM 100.Yıl Parkı Yanı Ortahisar/Trabzon",
       "phone": "0 (850) 220 09 67",
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
       "days": [
@@ -41,7 +41,7 @@
     {
       "id": "lara",
       "name": "Trabzon Lara Sinema Salonu",
-      "address": null,
+      "address": "Gazipaşa Mahallesi, Kasımoğlu Çk., Trabzon",
       "phone": "0 (462) 321 00 06",
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
       "days": [
@@ -78,7 +78,7 @@
     {
       "id": "cinegalaxy",
       "name": "Cinegalaxy Trabzon Sinema Salonu",
-      "address": null,
+      "address": "Gülbahar Hatun Mah. İnönü Cad. No:8 Bodrum ve alt zemin kat Varlıbaş Atapark A.V.M – TRABZON",
       "phone": "0 (462) 223 18 81",
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
       "days": [
