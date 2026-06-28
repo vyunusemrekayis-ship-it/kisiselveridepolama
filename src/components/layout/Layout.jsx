@@ -51,7 +51,7 @@ export default function Layout() {
       {/* Main content */}
       <main
         className={`flex-1 transition-all duration-250 ${
-          sidebarCollapsed ? 'md:ml-[58px]' : 'md:ml-[220px]'
+          sidebarCollapsed ? 'md:ml-[52px]' : 'md:ml-[195px]'
         } pt-[52px] md:pt-0`}
       >
         <div className={`max-w-full min-h-screen ${currentPage === 'weather' || currentPage === 'home' || currentPage === 'radar' ? '' : 'p-5 md:p-[26px_30px]'}`}>

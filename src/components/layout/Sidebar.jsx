@@ -79,14 +79,13 @@ const ICONS = {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="13" r="8"/>
-      <path d="M12 9v4.5l3 1.5"/>
-      <path d="M10 3h4M12 3v2"/>
-      <path d="M19.5 7l-1.5 1.5"/>
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l3 3"/>
+      <path d="M9 2h6" strokeWidth="1.8"/>
     </svg>
   ),
 
-  // Zincir Kırma — kırık link
+  // Zincir Kırma — halka zincir
   chain: (active) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
@@ -96,72 +95,38 @@ const ICONS = {
     </svg>
   ),
 
-  // Hava Durumu — bulut + yağmur
+  // Hava Durumu — güneş+bulut
   weather: (active) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/>
-      <path d="M8 20l-1 3M13 20v3M18 20l1 3"/>
+      <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
     </svg>
   ),
 
-  // Asistan — tam bağlı nöral ağ
-  ai: (active) => {
-    const c = active ? COLOR : 'rgba(232,237,245,.3)';
-    const dim = active ? `${COLOR}60` : 'rgba(232,237,245,.12)';
-    const faint = active ? `${COLOR}30` : 'rgba(232,237,245,.07)';
-    return (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        {/* merkez */}
-        <circle cx="12" cy="12" r="2.2" fill={active ? `${COLOR}25` : 'rgba(232,237,245,.08)'} stroke={c} strokeWidth="1.2"/>
-        <circle cx="12" cy="12" r="0.9" fill={c}/>
-        {/* köşe düğümleri */}
-        <circle cx="5" cy="5" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
-        <circle cx="19" cy="5" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
-        <circle cx="5" cy="19" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
-        <circle cx="19" cy="19" r="1.9" fill={active ? `${COLOR}20` : 'rgba(232,237,245,.07)'} stroke={c} strokeWidth="1.1"/>
-        {/* kenar orta düğümleri */}
-        <circle cx="12" cy="2.8" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
-        <circle cx="21.2" cy="12" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
-        <circle cx="12" cy="21.2" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
-        <circle cx="2.8" cy="12" r="1.4" fill={dim} stroke={c} strokeWidth="1"/>
-        {/* merkez → köşe bağlantıları */}
-        <line x1="12" y1="9.8" x2="6.8" y2="6.8" stroke={dim} strokeWidth="1"/>
-        <line x1="12" y1="9.8" x2="17.2" y2="6.8" stroke={dim} strokeWidth="1"/>
-        <line x1="12" y1="14.2" x2="6.8" y2="17.2" stroke={dim} strokeWidth="1"/>
-        <line x1="12" y1="14.2" x2="17.2" y2="17.2" stroke={dim} strokeWidth="1"/>
-        {/* merkez → kenar orta */}
-        <line x1="12" y1="9.8" x2="12" y2="4.2" stroke={faint} strokeWidth="1"/>
-        <line x1="14.2" y1="12" x2="19.8" y2="12" stroke={faint} strokeWidth="1"/>
-        <line x1="12" y1="14.2" x2="12" y2="19.8" stroke={faint} strokeWidth="1"/>
-        <line x1="9.8" y1="12" x2="4.2" y2="12" stroke={faint} strokeWidth="1"/>
-        {/* köşe → kenar orta çapraz bağlar */}
-        <line x1="6.8" y1="6.8" x2="4.2" y2="12" stroke={faint} strokeWidth="1"/>
-        <line x1="17.2" y1="6.8" x2="19.8" y2="12" stroke={faint} strokeWidth="1"/>
-        <line x1="6.8" y1="17.2" x2="4.2" y2="12" stroke={faint} strokeWidth="1"/>
-        <line x1="17.2" y1="17.2" x2="19.8" y2="12" stroke={faint} strokeWidth="1"/>
-      </svg>
-    );
-  },
+  // Asistan — mesaj balonu
+  ai: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+    </svg>
+  ),
 
-  // Yerel Gelişmeler — iğne + zemin dalgası
+  // Yerel Gelişmeler — radar dalgaları
   radar: (active) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
       strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a6 6 0 00-6 6c0 5 6 10 6 10s6-5 6-10a6 6 0 00-6-6z"/>
-      <circle cx="12" cy="8" r="2"
-        fill={active ? `${COLOR}25` : 'rgba(232,237,245,.08)'}
-        stroke={active ? COLOR : 'rgba(232,237,245,.3)'}/>
-      <path d="M7 19c1.5.8 3 1.2 5 1.2s3.5-.4 5-1.2" strokeWidth="1.3"/>
-      <path d="M5 22c2 1 4.5 1.5 7 1.5s5-.5 7-1.5"
-        strokeWidth="1.1"
-        stroke={active ? `${COLOR}80` : 'rgba(232,237,245,.15)'}/>
+      <circle cx="12" cy="12" r="2"/>
+      <path d="M16.24 7.76a6 6 0 010 8.49"/>
+      <path d="M7.76 7.76a6 6 0 000 8.49"/>
+      <path d="M20.07 3.93a10 10 0 010 16.14"/>
+      <path d="M3.93 3.93a10 10 0 000 16.14"/>
     </svg>
   ),
 
-  // Sinema — film perdesi + koltuklar
+  // Sinema — film şeridi
   cinema: (active) => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
@@ -198,7 +163,7 @@ function loadOrder() {
 }
 
 export default function Sidebar() {
-  const { currentPage, setCurrentPage, sidebarCollapsed, toggleSidebar, db } = useStore();
+  const { currentPage, setCurrentPage, sidebarCollapsed, toggleSidebar } = useStore();
   const [order, setOrder] = useState(loadOrder);
   const [editMode, setEditMode] = useState(false);
   const [dragging, setDragging] = useState(null);
@@ -206,7 +171,6 @@ export default function Sidebar() {
   const dragItem = useRef(null);
   const dragOverItem = useRef(null);
 
-  const badges = { films: db.f?.length, books: db.b?.length, goals: db.g?.length };
   const sortedItems = order.map(id => DEFAULT_NAV.find(n => n.id === id)).filter(Boolean);
 
   const onDragStart = (e, idx) => { dragItem.current = idx; setDragging(idx); e.dataTransfer.effectAllowed = 'move'; };
@@ -227,7 +191,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 flex flex-col z-50 transition-all duration-300 ${sidebarCollapsed ? 'w-[58px]' : 'w-[220px]'}`}
+      className={`fixed left-0 top-0 bottom-0 flex flex-col z-50 transition-all duration-300 ${sidebarCollapsed ? 'w-[52px]' : 'w-[195px]'}`}
       style={{ background: 'rgba(10,12,18,.95)', backdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,255,255,.07)' }}
     >
       {/* Brand */}
@@ -314,27 +278,14 @@ export default function Sidebar() {
               </div>
 
               {!sidebarCollapsed && (
-                <>
-                  <span style={{
-                    flex: 1,
-                    fontSize: 13,
-                    color: active && !editMode ? COLOR : 'rgba(232,237,245,.55)',
-                    fontWeight: active && !editMode ? 500 : 400,
-                    userSelect: 'none',
-                    transition: 'color .15s',
-                  }}>{item.label}</span>
-
-                  {!editMode && badges[item.id] != null && badges[item.id] > 0 && (
-                    <span style={{
-                      fontSize: 11,
-                      padding: '1px 7px',
-                      borderRadius: 10,
-                      background: active ? `rgba(0,194,255,0.15)` : 'rgba(255,255,255,.06)',
-                      color: active ? COLOR : 'rgba(232,237,245,.35)',
-                      flexShrink: 0,
-                    }}>{badges[item.id]}</span>
-                  )}
-                </>
+                <span style={{
+                  flex: 1,
+                  fontSize: 13,
+                  color: active && !editMode ? COLOR : 'rgba(232,237,245,.55)',
+                  fontWeight: active && !editMode ? 500 : 400,
+                  userSelect: 'none',
+                  transition: 'color .15s',
+                }}>{item.label}</span>
               )}
 
               {/* Collapsed aktif göstergesi */}

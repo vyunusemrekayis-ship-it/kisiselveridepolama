@@ -2,9 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
 import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, wxc, buildWeatherAlerts } from '../../lib/utils';
 
-// ── Widget'ın gerçek piksel boyutunu (genişlik/yükseklik) ölçen ortak hook ──
-// Resize tutamacıyla widget büyütülüp küçültüldüğünde, içerik buna göre
-// dinamik ölçeklenebilsin diye kullanılır (sabit boşluk kalmaması için).
 function useElementSize() {
   const ref = useRef(null);
   const [el, setEl] = useState({ width: 0, height: 0 });
@@ -21,15 +18,12 @@ function useElementSize() {
   return [ref, el];
 }
 
-
 const PRIORITY_COLORS = {
   high:   { dot: '#d97a72' },
   medium: { dot: '#f59e0b' },
   low:    { dot: '#a78bfa' },
 };
 
-
-// Özel gün renkleri — Calendar.jsx ile senkron (localStorage: gn_spec_colors)
 const DEFAULT_SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
 function loadSpecColors() {
   try { return { ...DEFAULT_SPEC_COLORS, ...JSON.parse(localStorage.getItem('gn_spec_colors') || '{}') }; } catch { return { ...DEFAULT_SPEC_COLORS }; }
@@ -41,7 +35,6 @@ const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronomet
 function loadWidgetOrder() {
   try {
     const saved = JSON.parse(localStorage.getItem('gn_widget_order') || JSON.stringify(ALL_WIDGET_IDS));
-    // Eski kayıtlarda henüz olmayan yeni widget'ları (örn. films) sona ekle
     const missing = ALL_WIDGET_IDS.filter(id => !saved.includes(id));
     return missing.length ? [...saved, ...missing] : saved;
   } catch { return [...ALL_WIDGET_IDS]; }
@@ -49,7 +42,6 @@ function loadWidgetOrder() {
 function loadWidgetVisible() {
   try {
     const saved = JSON.parse(localStorage.getItem('gn_widget_visible') || JSON.stringify(ALL_WIDGET_IDS));
-    // Eski kayıtlarda henüz olmayan yeni widget'lar varsayılan olarak görünür sayılsın
     const missing = ALL_WIDGET_IDS.filter(id => !saved.includes(id));
     return missing.length ? [...saved, ...missing] : saved;
   } catch { return [...ALL_WIDGET_IDS]; }
@@ -57,15 +49,12 @@ function loadWidgetVisible() {
 function saveWidgetOrder(order) { localStorage.setItem('gn_widget_order', JSON.stringify(order)); }
 function saveWidgetVisible(visible) { localStorage.setItem('gn_widget_visible', JSON.stringify(visible)); }
 
-// ── WIDGET BOYUTLANDIRMA ────────────────────────────────────────────────
-// Masaüstü: 4 kolon, mobil: 2 kolon. Her hücre kare-ish bir birim (ROW_UNIT px).
 const DESKTOP_COLS = 4;
 const MOBILE_COLS = 2;
-const ROW_UNIT_DESKTOP = 64;  // px — bir "row" biriminin yüksekliği
+const ROW_UNIT_DESKTOP = 64;
 const ROW_UNIT_MOBILE = 56;
-const GAP = 8; // px — grid gap (Tailwind gap-2)
+const GAP = 8;
 
-// Varsayılan boyutlar — { col, row } grid birimi cinsinden
 const DEFAULT_SIZES = {
   desktop: {
     todos:    { col: 1, row: 4 },
@@ -103,10 +92,6 @@ function getWidgetSize(mode, id, sizes) {
   return { col, row };
 }
 
-// ── OTOMATİK YERLEŞİM ────────────────────────────────────────────────────
-// Kaydedilmiş pozisyonu olmayan widget'lar için, sıraya göre soldan sağa /
-// yukarıdan aşağıya boş hücre bulan basit bir "akış" yerleştirici.
-// occupied: Set<"col,row"> — bir önceki widget'ların kapladığı hücreler.
 function findFreeSlot(occupied, cols, size) {
   let row = 1;
   while (true) {
@@ -121,7 +106,7 @@ function findFreeSlot(occupied, cols, size) {
       if (fits) return { col, row };
     }
     row++;
-    if (row > 200) return { col: 1, row: 1 }; // güvenlik
+    if (row > 200) return { col: 1, row: 1 };
   }
 }
 
@@ -133,8 +118,6 @@ function markOccupied(occupied, position, size) {
   }
 }
 
-// Tüm widget'lar için pozisyon hesapla: kayıtlı varsa onu kullan, yoksa
-// otomatik yerleştir (occupied set'i sırayla güncellenerek çakışma önlenir).
 function computeLayout(order, visible, mode, sizes, positions) {
   const cols = mode==='mobile' ? MOBILE_COLS : DESKTOP_COLS;
   const occupied = new Set();
@@ -143,9 +126,7 @@ function computeLayout(order, visible, mode, sizes, positions) {
     const size = getWidgetSize(mode, id, sizes);
     let pos = positions?.[mode]?.[id];
     if (pos) {
-      // Kayıtlı pozisyon grid dışına taşıyorsa düzelt
       pos = { col: Math.min(Math.max(1,pos.col), cols - size.col + 1), row: Math.max(1,pos.row) };
-      // Kayıtlı pozisyon başka bir widget ile çakışıyorsa (örn. ekran boyutu değişti), boş yer bul
       let conflict = false;
       outer:
       for (let r = 0; r < size.row; r++) {
@@ -189,7 +170,6 @@ function WidgetTitle({ children, accent = '#3a7bd5', icon }) {
   );
 }
 
-// ── WIDGET SARMALAYICI (taşıma + resize tutamaçlı) ──────────────────────
 function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, isDragging, isDropTarget, children }) {
   return (
     <div
@@ -211,7 +191,6 @@ function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, i
         <div style={{flex:1,minWidth:0,minHeight:0,display:'flex',flexDirection:'column'}}>
           {children}
         </div>
-        {/* Taşıma tutamacı — sağ üst köşe */}
         <div
           onPointerDown={e=>onMoveStart(e,id)}
           title="Sürükleyerek taşı"
@@ -234,7 +213,6 @@ function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, i
             <circle cx="3" cy="9.5" r="1.2"/><circle cx="9" cy="9.5" r="1.2"/>
           </svg>
         </div>
-        {/* Resize tutamacı — sağ alt köşe */}
         <div
           onPointerDown={e=>onResizeStart(e,id)}
           title="Sürükleyerek boyutlandır"
@@ -258,112 +236,6 @@ function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, i
   );
 }
 
-// ── AKILLI BİLGİ ŞERİDİ ─────────────────────────────────────────────────
-function fmtDurShort(ms) {
-  const totalMin = Math.round(ms / 60000);
-  const h = Math.floor(totalMin / 60), m = totalMin % 60;
-  if (h > 0) return m > 0 ? `${h}s ${m}dk` : `${h}s`;
-  return `${m}dk`;
-}
-
-function buildTickerMessages({ db, todos, chains, swLog, today, tomorrow }) {
-  const msgs = [];
-
-  // Görevler — bugün
-  const todayTodos = todos[today] || [];
-  if (todayTodos.length) {
-    const done = todayTodos.filter(t=>t.done).length;
-    const remaining = todayTodos.length - done;
-    msgs.push(remaining>0 ? `${todayTodos.length} görevden ${done} tamamlandı, ${remaining} kaldı` : 'Bugünün tüm görevleri tamamlandı');
-  } else {
-    msgs.push('Bugün için görev yok');
-  }
-  // Görevler — yarın
-  const tomorrowTodos = todos[tomorrow] || [];
-  if (tomorrowTodos.length) msgs.push(`Yarın için ${tomorrowTodos.length} görev planlandı`);
-
-  // Hedefler
-  const totalBooks = db.b?.length || 0;
-  const totalFilms = db.f?.length || 0;
-  (db.g || []).filter(isGoalActive).forEach(g => {
-    const isBook = g.track==='book', isFilm = g.track==='film';
-    const cur = isBook ? totalBooks : isFilm ? totalFilms : (parseFloat(g.current)||0);
-    const tgt = parseFloat(g.target)||0;
-    if (tgt > 0) {
-      if (cur >= tgt) msgs.push(`Hedef tamamlandı: ${g.name}`);
-      else {
-        const pct = Math.round(Math.min(1, cur/tgt)*100);
-        msgs.push(`${g.name}: %${pct}, ${tgt-cur} kaldı`);
-      }
-    }
-  });
-
-  // Zincir Kırma
-  (chains || []).forEach(ch => {
-    const { streak, todayIdx, doneSet } = calcChainStreak(ch);
-    msgs.push(doneSet.has(todayIdx) ? `${ch.name}: ${streak}. gün tamamlandı` : `${ch.name}: ${streak}. gün, bugün henüz işaretlenmedi`);
-  });
-
-  // Kronometre — bugün
-  const todaySessions = (swLog || []).filter(e => e.date===today);
-  if (todaySessions.length) {
-    const totalMs = todaySessions.reduce((a,s)=>a+(s.dur||0),0);
-    if (totalMs > 0) msgs.push(`Bugün ${fmtDurShort(totalMs)} çalışıldı`);
-  }
-
-  // Kitaplar — okunuyor
-  (db.b || []).filter(b => b.status==='reading').forEach(b => msgs.push(`"${b.name}" okunuyor`));
-
-  // Takvim — yaklaşan özel günler (7 gün)
-  for (let off=0; off<7; off++) {
-    const dt = new Date(); dt.setDate(dt.getDate()+off);
-    const ds = dt.toISOString().split('T')[0];
-    getSpecialDays(ds, db.s || []).forEach(sp => {
-      msgs.push(off===0 ? `Bugün özel gün: ${sp.n}` : `${off} gün sonra: ${sp.n}`);
-    });
-  }
-
-  // Hava durumu — Firestore'dan (db.wx), son 1 saat taze ise
-  if (db.wx && db.wx.ts && (Date.now()-db.wx.ts) < 60*60*1000) {
-    const { temp, uv, city } = db.wx;
-    if (temp !== undefined) msgs.push(`${city || 'Hava'}: ${Math.round(temp)}°C`);
-    if (uv !== undefined && uv >= 6) msgs.push(`UV yüksek (${uv}) — güneş kremi ve gözlük öner`);
-    if (temp !== undefined && temp <= 5) msgs.push(`Hava soğuk: ${Math.round(temp)}°C, mont gerekebilir`);
-  }
-
-  if (!msgs.length) msgs.push('Her şey sakin görünüyor');
-  return msgs;
-}
-
-function TickerBar({ messages, hh, mm, time, onOpenManager }) {
-  const text = messages.join('   ·   ');
-  return (
-    <div style={{background:'#000',borderRadius:8,height:34,display:'flex',alignItems:'center',overflow:'hidden'}}>
-      <div style={{flexShrink:0,padding:'0 14px',borderRight:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'baseline',gap:6}}>
-        <span style={{fontFamily:'Lora,serif',fontSize:14,color:'#fff'}}>{hh}:{mm}</span>
-        <span style={{fontSize:10,color:'rgba(255,255,255,0.4)',letterSpacing:'0.04em',whiteSpace:'nowrap'}}>{TR_D[time.getDay()]}, {time.getDate()} {TR_M[time.getMonth()]}</span>
-      </div>
-      <div style={{flex:1,overflow:'hidden',height:'100%',display:'flex',alignItems:'center',minWidth:0}}>
-        <div style={{display:'flex',whiteSpace:'nowrap',animation:'tickerScroll 32s linear infinite'}}>
-          <span style={{padding:'0 24px',fontSize:12,color:'rgba(255,255,255,0.55)'}}>{text}</span>
-          <span style={{padding:'0 24px',fontSize:12,color:'rgba(255,255,255,0.55)'}}>{text}</span>
-        </div>
-      </div>
-      <button onClick={onOpenManager} title="Widget'ları Düzenle" style={{flexShrink:0,width:34,height:34,border:'none',borderLeft:'1px solid rgba(255,255,255,0.08)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.45)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'background .2s,color .2s'}}
-        onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.75)';}}
-        onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.45)';}}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-          <rect x="14" y="14" width="7" height="7" rx="1.5"/>
-        </svg>
-      </button>
-      <style>{`@keyframes tickerScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}`}</style>
-    </div>
-  );
-}
-
 // ── TODO ──────────────────────────────────────────────────────────────────
 function TodoWidget({ onNavigate, getTodos, setTodos }) {
   const today = todayStr(), tomorrow = getDateKey(1), yesterday = getDateKey(-1);
@@ -379,7 +251,6 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
   useEffect(() => {
     const handler = () => setShowOverdue(localStorage.getItem('gn_show_overdue') !== 'false');
     window.addEventListener('storage', handler);
-    // aynı sekme için custom event
     window.addEventListener('gn_overdue_changed', handler);
     return () => { window.removeEventListener('storage', handler); window.removeEventListener('gn_overdue_changed', handler); };
   }, []);
@@ -464,12 +335,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
                   ? <input autoFocus value={editText} onClick={e=>e.stopPropagation()} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveEdit(e);if(e.key==='Escape'){e.stopPropagation();setEditingKey(null);}}} onBlur={saveEdit} style={{flex:1,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#e8edf5',outline:'none',borderRadius:4,padding:'1px 6px',fontSize:11,minWidth:0}}/>
                   : <span onDoubleClick={e=>startEdit(e,t.dateKey,t.idx,t.text)} style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:t.done?'rgba(255,255,255,0.25)':'rgba(232,237,245,0.85)',textDecoration:t.done?'line-through':'none',cursor:'default'}}>{t.text}</span>
                 }
-                <select
-                  value={t.priority||'medium'}
-                  onChange={e=>setPrio(e,t.dateKey,t.idx,e.target.value)}
-                  onClick={e=>e.stopPropagation()}
-                  style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:pc.dot,fontSize:9,fontWeight:500,borderRadius:5,padding:'1px 3px',cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}
-                >
+                <select value={t.priority||'medium'} onChange={e=>setPrio(e,t.dateKey,t.idx,e.target.value)} onClick={e=>e.stopPropagation()} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:pc.dot,fontSize:9,fontWeight:500,borderRadius:5,padding:'1px 3px',cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}>
                   <option value="high" style={{color:'#d97a72'}}>Yüksek</option>
                   <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
                   <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
@@ -483,12 +349,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
         }
       </div>
       <div onClick={e=>e.stopPropagation()} style={{display:'flex',gap:5,alignItems:'center',marginTop:4}}>
-        <select
-          value={addPriority}
-          onChange={e=>{e.stopPropagation();setAddPriority(e.target.value);}}
-          onClick={e=>e.stopPropagation()}
-          style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:PRIORITY_COLORS[addPriority].dot,fontSize:10,fontWeight:500,borderRadius:7,padding:'4px 4px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',width:62}}
-        >
+        <select value={addPriority} onChange={e=>{e.stopPropagation();setAddPriority(e.target.value);}} onClick={e=>e.stopPropagation()} style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:PRIORITY_COLORS[addPriority].dot,fontSize:10,fontWeight:500,borderRadius:7,padding:'4px 4px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',width:62}}>
           <option value="high" style={{color:'#d97a72'}}>Yüksek</option>
           <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
           <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
@@ -506,11 +367,8 @@ function GoalsWidget({ db, onNavigate, size }) {
   const totalBooks = db.b?.length || 0;
   const totalFilms = db.f?.length || 0;
   const goals = (db.g || []).filter(g => g.period === period && isGoalActive(g)).slice(0, 4);
-  // Ring boyutu, içerik alanının GERÇEK piksel boyutuna göre hesaplanır (ResizeObserver) —
-  // widget büyütülünce ringler boşluk kalmadan alanı doldurur.
   const [areaRef, area] = useElementSize();
   const cols = Math.max(1, Math.min(goals.length, 4));
-  // Her ring hücresi yaklaşık kare; genişlik ve yükseklikten küçük olanı baz al
   const cellW = area.width ? area.width / cols - 8 : 64;
   const cellH = area.height || 64;
   const SVG_SIZE = Math.max(36, Math.round(Math.min(cellW, cellH)));
@@ -575,17 +433,11 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
   const today = todayStr();
   const todaySessions = (swLog||[]).filter(e=>e.date===today);
   const SESS_COLORS = ['#3a7bd5','#7b5ea7','#34d399','#fb923c','#f87171','#60a5fa','#e879f9','#facc15'];
-  const liveSession = swRunning ? {
-    id: '__live__',
-    start: window._sw.sessionStartLabel || '—',
-    live: true,
-  } : null;
+  const liveSession = swRunning ? { id: '__live__', start: window._sw.sessionStartLabel || '—', live: true } : null;
   const displaySessions = liveSession ? [liveSession, ...todaySessions] : todaySessions;
-  const ROW_H = 25; // her seans satırının yaklaşık yüksekliği (gap dahil)
-  // Boyut büyüdükçe sayaç yazısı ve görünür seans sayısı, konteynerin GERÇEK piksel
-  // yüksekliğine göre büyür (ResizeObserver) — sabit boşluk kalmaz.
+  const ROW_H = 25;
   const [bodyRef, body] = useElementSize();
-  const baseH = isNarrow ? 110 : 90; // yaklaşık varsayılan içerik yüksekliği
+  const baseH = isNarrow ? 110 : 90;
   const heightScale = Math.max(0.7, Math.min(2.8, (body.height || baseH) / baseH));
   const clockFontSize = Math.round((isNarrow ? 26 : 30) * heightScale);
   const MAX_VISIBLE = Math.max(2, Math.round(4 * heightScale));
@@ -604,9 +456,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
   return (
     <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl overflow-hidden cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col">
       <div ref={bodyRef} style={{padding:'14px 16px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
-
         {isNarrow ? (
-          // ── DAR DÜZEN: etiket üstte, sayaç+kontroller altında tam genişlik ──
           <div style={{marginBottom: displaySessions.length?12:0}}>
             <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.5"/><path d="M10 3h4"/></svg>}>Kronometre</WidgetTitle>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
@@ -615,7 +465,6 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
             </div>
           </div>
         ) : (
-          // ── GENİŞ DÜZEN: Kronometre solda, zaman + kontroller ortada ──
           <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',marginBottom: displaySessions.length?12:0}}>
             <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4.5l3 1.5"/><path d="M10 3h4"/></svg>}>Kronometre</WidgetTitle>
             <div style={{display:'flex',alignItems:'center',gap:14,justifySelf:'center'}}>
@@ -625,25 +474,10 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
             <div/>
           </div>
         )}
-
-        {/* Bugünkü seans listesi — 4'ten fazlaysa kaydırılabilir */}
         {displaySessions.length>0 && (
           <>
             <div style={{height:1,background:'rgba(255,255,255,0.06)',marginBottom:10}}/>
-            <div
-              onClick={e=>e.stopPropagation()}
-              onWheel={e=>e.stopPropagation()}
-              style={{
-                display:'flex',flexDirection:'column',gap:7,
-                flex:1,
-                maxHeight: displaySessions.length>MAX_VISIBLE ? ROW_H*MAX_VISIBLE : 'none',
-                overflowY: 'auto',
-                paddingRight:6,
-                cursor:'default',
-                minHeight:0,
-              }}
-              className="sw-session-scroll"
-            >
+            <div onClick={e=>e.stopPropagation()} onWheel={e=>e.stopPropagation()} style={{display:'flex',flexDirection:'column',gap:7,flex:1,maxHeight: displaySessions.length>MAX_VISIBLE ? ROW_H*MAX_VISIBLE : 'none',overflowY: 'auto',paddingRight:6,cursor:'default',minHeight:0}} className="sw-session-scroll">
               {displaySessions.map((s,i)=>{
                 const color = SESS_COLORS[i%SESS_COLORS.length];
                 const isOngoing = !!s.live;
@@ -660,7 +494,6 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
             </div>
           </>
         )}
-
       </div>
       <style>{`
         @keyframes swPulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -675,10 +508,8 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 // ── ZİNCİR ────────────────────────────────────────────────────────────────
 function ChainWidget({ chains, onNavigate, size }) {
   const SEGS = 20;
-  // Widget büyüdükçe, konteynerin GERÇEK piksel yüksekliğine göre (ResizeObserver)
-  // daha fazla alışkanlık satırı ve daha büyük yazı gösterilir, boşluk dağıtılır.
   const [bodyRef, body] = useElementSize();
-  const baseH = 130; // 4 alışkanlık satırı için yaklaşık varsayılan yükseklik
+  const baseH = 130;
   const heightScale = Math.max(0.7, Math.min(3, (body.height || baseH) / baseH));
   const maxVisible = Math.max(2, Math.round(4 * heightScale));
   const nameFontSize = Math.max(10, Math.round(12 * heightScale));
@@ -710,7 +541,6 @@ function ChainWidget({ chains, onNavigate, size }) {
           );
         })}
         </div>
-
       }
     </div>
   );
@@ -718,8 +548,6 @@ function ChainWidget({ chains, onNavigate, size }) {
 
 // ── KİTAPLAR ─────────────────────────────────────────────────────────────
 function BookWidget({ books, onNavigate, size }) {
-  // Kitap sırtı boyutu, şerit konteynerinin GERÇEK piksel yüksekliğine göre hesaplanır (ResizeObserver) —
-  // widget büyütülünce dikey boşluk kalmadan sırtlar tam doldurur. Sayfa sayısına göre de orantılı genişler.
   const stripRef = useRef(null);
   const [stripH, setStripH] = useState(75);
   useEffect(() => {
@@ -733,7 +561,6 @@ function BookWidget({ books, onNavigate, size }) {
     return () => ro.disconnect();
   }, []);
   const minP=80,maxP=1400;
-  // Konteyner yüksekliğine göre min/maks kitap sırtı yüksekliği — oran sabit (75:125 ~ 0.6)
   const maxH = Math.round(stripH);
   const minH = Math.round(maxH * 0.6);
   const minW = Math.round(minH * (24/75));
@@ -781,15 +608,26 @@ function BookWidget({ books, onNavigate, size }) {
 }
 
 // ── FİLMLER ────────────────────────────────────────────────────────────
+function FilmPoster({ film, width, height }) {
+  const [poster, setPoster] = useState(posterCache[film.name] ?? null);
+  const iconSize = Math.max(16, Math.round((width||58) * 0.38));
+  useEffect(() => {
+    if (poster) return;
+    fetchPoster(film.name).then(url => { if (url) setPoster(url); });
+  }, [film.name]);
+  return poster
+    ? <img src={poster} alt={film.name} title={film.name} style={{width,height,objectFit:'cover',borderRadius:4,flexShrink:0,display:'block'}}/>
+    : <div title={film.name} style={{width,height,borderRadius:4,flexShrink:0,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9l6 3-6 3V9z"/></svg>
+      </div>;
+}
+
 function FilmWidget({ films, onNavigate, size }) {
-  // En yeni izlenen solda: tarihli olanlar tarihe göre yeniden eskiye, tarihsiz ("eskiden izledim") en sona
   const sorted = [...films].sort((a, b) => {
     const da = a.date || '', db2 = b.date || '';
     if (da && db2) return db2.localeCompare(da);
     if (da) return -1; if (db2) return 1; return 0;
   });
-  // Poster boyutu, şerit konteynerinin GERÇEK piksel yüksekliğine göre hesaplanır (ResizeObserver) —
-  // böylece widget büyütülünce dikey boşluk kalmadan posterler tam doldurur.
   const stripRef = useRef(null);
   const [stripH, setStripH] = useState(84);
   useEffect(() => {
@@ -802,7 +640,7 @@ function FilmWidget({ films, onNavigate, size }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const ASPECT = 58/84; // poster en/boy oranı
+  const ASPECT = 58/84;
   const posterH = Math.round(stripH);
   const posterW = Math.round(posterH * ASPECT);
 
@@ -822,342 +660,11 @@ function FilmWidget({ films, onNavigate, size }) {
   );
 }
 
-function FilmPoster({ film, width, height }) {
-  const [poster, setPoster] = useState(posterCache[film.name] ?? null);
-  const iconSize = Math.max(16, Math.round((width||58) * 0.38));
-
-  useEffect(() => {
-    if (poster) return;
-    fetchPoster(film.name).then(url => { if (url) setPoster(url); });
-  }, [film.name]);
-
-  return poster
-    ? <img
-        src={poster}
-        title={film.name}
-        style={{width,height,objectFit:'cover',borderRadius:5,flexShrink:0,display:'block',transition:'transform .2s,filter .2s',cursor:'pointer'}}
-        onClick={e=>e.stopPropagation()}
-        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-5px)';e.currentTarget.style.filter='brightness(1.15)';}}
-        onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.filter='';}}
-      />
-    : <div
-        title={film.name}
-        style={{width,height,borderRadius:5,flexShrink:0,background:'#2a2d35',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'transform .2s,filter .2s'}}
-        onClick={e=>e.stopPropagation()}
-        onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-5px)';e.currentTarget.style.filter='brightness(1.15)';}}
-        onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.filter='';}}
-      >
-        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><path d="M10 9l6 3-6 3V9z" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.25)"/></svg>
-      </div>;
-}
-
 // ── HAVA DURUMU ──────────────────────────────────────────────────────────
-// Gün döngüsüne göre arka plan paleti: gece / şafak / gündüz / akşam üstü.
-// sunrise/sunset "HH:MM" string olarak gelir, şu anki dakika cinsinden konum
-// gün doğumu/batımına ne kadar yakınsa o paletin ağırlığı artar (kademeli geçiş).
-function wxPalette(nowMin, sunriseMin, sunsetMin) {
-  const TWILIGHT = 45; // dakika — şafak/akşam üstü paleti bu pencere içinde aktif
-  const night   = ['#0a1128', '#1b2a4a', '#2d3561'];
-  const dawn    = ['#f4a896', '#e0758a', '#7a5d99'];
-  const day     = ['#5fa8e0', '#3a7bc8', '#2c5a9e'];
-  const dusk    = ['#e8985c', '#c4577a', '#4a3a6e'];
-  const dSunrise = Math.abs(nowMin - sunriseMin);
-  const dSunset  = Math.abs(nowMin - sunsetMin);
-  if (dSunrise <= TWILIGHT) return dawn;
-  if (dSunset  <= TWILIGHT) return dusk;
-  if (nowMin > sunriseMin && nowMin < sunsetMin) return day;
-  return night;
+function WxIcon({ bg, size = 20 }) {
+  return <div style={{width:size,height:size,borderRadius:'50%',background:bg,display:'inline-block'}}/>;
 }
 
-// Hava durumu ikonu — Weather.jsx'teki WxIcon ile birebir aynı (görsel tutarlılık için
-// buraya kopyalandı; animasyonlu, detaylı SVG kompozisyonu).
-function WxIcon({ bg, size = 28 }) {
-  const s = size;
-
-  const css = `
-    @keyframes wxSpin{to{transform:rotate(360deg)}}
-    @keyframes wxBob{0%,100%{transform:translateY(0)}50%{transform:translateY(${-s*.05}px)}}
-    @keyframes wxDrift{0%,100%{transform:translateX(0)}50%{transform:translateX(${s*.05}px)}}
-    @keyframes wxDrizzle{0%{transform:translateY(0);opacity:0}15%{opacity:.55}85%{opacity:.55}100%{transform:translateY(${s*.22}px);opacity:0}}
-    @keyframes wxRain{0%{transform:translateY(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(${s*.3}px);opacity:0}}
-    @keyframes wxShower{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateY(${s*.34}px);opacity:0}}
-    @keyframes wxSplash{0%{transform:scale(.2);opacity:.9}100%{transform:scale(1.8);opacity:0}}
-    @keyframes wxSnow{0%{transform:translateY(-${s*.04}px);opacity:0}15%{opacity:.85}85%{opacity:.85}100%{transform:translateY(${s*.32}px);opacity:0}}
-    @keyframes wxHSnow{0%{transform:translateY(-${s*.04}px);opacity:0}12%{opacity:1}88%{opacity:1}100%{transform:translateY(${s*.36}px);opacity:0}}
-    @keyframes wxFog1{0%,100%{transform:translateX(0);opacity:.55}50%{transform:translateX(${s*.1}px);opacity:.8}}
-    @keyframes wxFog2{0%,100%{transform:translateX(0);opacity:.4}50%{transform:translateX(${-s*.08}px);opacity:.7}}
-    @keyframes wxFog3{0%,100%{transform:translateX(0);opacity:.45}50%{transform:translateX(${s*.12}px);opacity:.75}}
-    @keyframes wxBolt{0%,60%,100%{opacity:0}62%,64%{opacity:1}63%,65%{opacity:.3}67%{opacity:1}68%{opacity:0}}
-    @keyframes wxHail{0%{transform:translateY(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(${s*.28}px);opacity:0}}
-    @keyframes wxTwinkle{0%,100%{opacity:.8;transform:scale(1)}50%{opacity:.2;transform:scale(.7)}}
-  `;
-
-  const Sun = ({ cx=s*.5, cy=s*.45, rs=s*.18 }) => (
-    <g style={{ animation:`wxSpin 12s linear infinite`, transformOrigin:`${cx}px ${cy}px` }}>
-      <circle cx={cx} cy={cy} r={rs} fill="#fde68a"/>
-      {[0,45,90,135,180,225,270,315].map((deg,i) => {
-        const rad = deg*Math.PI/180;
-        return <line key={i}
-          x1={cx+(rs+s*.04)*Math.cos(rad)} y1={cy+(rs+s*.04)*Math.sin(rad)}
-          x2={cx+(rs+s*.11)*Math.cos(rad)} y2={cy+(rs+s*.11)*Math.sin(rad)}
-          stroke="#fbbf24" strokeWidth={s*.028} strokeLinecap="round" opacity=".85"/>;
-      })}
-    </g>
-  );
-
-  const Moon = ({ cx=s*.52, cy=s*.44 }) => (
-    <g>
-      <circle cx={cx} cy={cy} r={s*.2} fill="#fef3c7"/>
-      <circle cx={cx+s*.11} cy={cy-s*.07} r={s*.16} fill="#0d1117"/>
-    </g>
-  );
-
-  const Stars = () => (
-    <g>
-      {[[s*.12,s*.12],[s*.82,s*.15],[s*.9,s*.55],[s*.08,s*.62],[s*.45,s*.08]].map(([x,y],i) => (
-        <circle key={i} cx={x} cy={y} r={s*.025} fill="#fde68a"
-          style={{ animation:`wxTwinkle 2s ease-in-out infinite ${i*.4}s` }}/>
-      ))}
-    </g>
-  );
-
-  const Cloud = ({ x=0, y=s*.38, w=s*.9, fill='rgba(185,210,232,.88)', op=1 }) => {
-    const ch = w*.38;
-    return (
-      <g opacity={op} style={{ animation:`wxDrift 5s ease-in-out infinite` }}>
-        <ellipse cx={x+w*.25} cy={y} rx={w*.17} ry={ch*.55} fill={fill}/>
-        <ellipse cx={x+w*.48} cy={y-ch*.18} rx={w*.24} ry={ch*.68} fill={fill}/>
-        <ellipse cx={x+w*.72} cy={y} rx={w*.17} ry={ch*.5} fill={fill}/>
-        <rect x={x+w*.08} y={y} width={w*.84} height={ch*.52} fill={fill}/>
-      </g>
-    );
-  };
-
-  const RainLines = ({ xs, color='#3b82f6', sw=1.8, len=s*.28, anim='wxRain', dur='1.2s', delays=[0,.3,.6,.15] }) => (
-    <g>
-      {xs.map((x,i) => (
-        <line key={i} x1={x} y1={s*.58} x2={x-len*.15} y2={s*.58+len}
-          stroke={color} strokeWidth={sw} strokeLinecap="round" opacity="0"
-          style={{ animation:`${anim} ${dur} ease-in infinite ${delays[i]||0}s` }}/>
-      ))}
-    </g>
-  );
-
-  const SnowFlakes = ({ xs, yBase=s*.62, fontSize=s*.28, anim='wxSnow', dur='2.4s', delays=[0,.8,1.6,.3] }) => (
-    <g>
-      {xs.map((x,i) => (
-        <text key={i} x={x} y={yBase+(i%2)*s*.08} fontSize={fontSize}
-          fill="#bae6fd" textAnchor="middle" opacity="0"
-          style={{ animation:`${anim} ${dur} ease-in-out infinite ${delays[i]||0}s` }}>*</text>
-      ))}
-    </g>
-  );
-
-  const SnowAccum = ({ cx=s*.5, y=s*.92 }) => (
-    <g>
-      <ellipse cx={cx} cy={y} rx={s*.38} ry={s*.06} fill="#c8e6f8" opacity=".28"/>
-      <ellipse cx={cx} cy={y-.01*s} rx={s*.28} ry={s*.04} fill="#daeefa" opacity=".32"/>
-    </g>
-  );
-
-  const Lightning = ({ x=s*.46, y=s*.6, delay='0s' }) => (
-    <g style={{ animation:`wxBolt 2.5s ease-in-out infinite ${delay}` }}>
-      <polygon points={`${x},${y} ${x-s*.1},${y+s*.16} ${x+s*.02},${y+s*.16} ${x-s*.08},${y+s*.32}`}
-        fill="#fbbf24" stroke="#fde68a" strokeWidth={s*.018} strokeLinejoin="round"/>
-    </g>
-  );
-
-  const HailBalls = ({ xs }) => (
-    <g>
-      {xs.map((x,i) => (
-        <circle key={i} cx={x} cy={s*.5} r={s*.04} fill="#bae6fd" stroke="rgba(147,197,253,.8)" strokeWidth={s*.016} opacity="0"
-          style={{ animation:`wxHail 1.1s ease-in infinite ${[0,.2,.42,.1,.32][i]||0}s` }}/>
-      ))}
-    </g>
-  );
-
-  const FogLayers = ({ dark=false }) => {
-    const base = dark ? 'rgba(50,70,90,' : 'rgba(130,155,178,';
-    const layers = [
-      { y:s*.3,  w:s*.7,  x:s*.05, op:.55, anim:'wxFog1', dur:'3.5s' },
-      { y:s*.42, w:s*.55, x:s*.2,  op:.65, anim:'wxFog2', dur:'4.2s' },
-      { y:s*.54, w:s*.8,  x:s*.02, op:.6,  anim:'wxFog1', dur:'5s'   },
-      { y:s*.65, w:s*.6,  x:s*.15, op:.5,  anim:'wxFog3', dur:'3.8s' },
-      { y:s*.76, w:s*.75, x:s*.05, op:.45, anim:'wxFog2', dur:'4.5s' },
-    ];
-    return (
-      <g>
-        {layers.map((l,i) => (
-          <rect key={i} x={l.x} y={l.y} width={l.w} height={s*.055} rx={s*.028}
-            fill={`${base}${l.op})`}
-            style={{ animation:`${l.anim} ${l.dur} ease-in-out infinite ${i*.2}s` }}/>
-        ))}
-      </g>
-    );
-  };
-
-  const SplashRings = ({ xs }) => (
-    <g>
-      {xs.map((x,i) => (
-        <ellipse key={i} cx={x} cy={s*.9} rx={s*.08} ry={s*.03}
-          fill="none" stroke="#60a5fa" strokeWidth={s*.02} opacity="0"
-          style={{ animation:`wxSplash ${.65}s ease-out infinite ${[.1,.34,.21][i]||0}s` }}/>
-      ))}
-    </g>
-  );
-
-  const CL  = 'rgba(185,210,232,.88)';
-  const CM  = 'rgba(100,135,160,.92)';
-  const CDK = 'rgba(42,58,76,.95)';
-  const CNK = 'rgba(28,40,55,.95)';
-
-  const icons = {
-    'sunny': (<Sun/>),
-    'partly': (
-      <>
-        <g style={{ animation:`wxBob 3s ease-in-out infinite` }}>
-          <Sun cx={s*.65} cy={s*.3} rs={s*.15}/>
-        </g>
-        <Cloud x={s*.03} y={s*.5} w={s*.85} fill={CL}/>
-      </>
-    ),
-    'cloudy': (
-      <>
-        <Cloud x={s*.05} y={s*.28} w={s*.82} fill={CM} op={.55}/>
-        <Cloud x={0}     y={s*.48} w={s*.98} fill={CL}/>
-      </>
-    ),
-    'fog': (
-      <>
-        <circle cx={s*.5} cy={s*.12} r={s*.1} fill="#fde68a" opacity=".1"/>
-        <FogLayers/>
-      </>
-    ),
-    'drizzle': (
-      <>
-        <Cloud x={0} y={s*.3} w={s*.98} fill={CL} op={.8}/>
-        <RainLines xs={[s*.25,s*.5,s*.74]} color="#93c5fd" sw={s*.03} len={s*.16} anim="wxDrizzle" dur="2.8s" delays={[0,.9,1.7]}/>
-      </>
-    ),
-    'rain': (
-      <>
-        <Cloud x={0} y={s*.28} w={s*.98} fill={CM}/>
-        <RainLines xs={[s*.18,s*.34,s*.54,s*.72]} color="#3b82f6" sw={s*.045} len={s*.28} anim="wxRain" dur="1.2s" delays={[0,.3,.6,.15]}/>
-      </>
-    ),
-    'shower': (
-      <>
-        <Cloud x={0} y={s*.22} w={s*.98} fill={CDK}/>
-        <Cloud x={s*.05} y={s*.36} w={s*.85} fill={CDK} op={.6}/>
-        <RainLines xs={[s*.12,s*.26,s*.42,s*.58,s*.74]} color="#1d4ed8" sw={s*.06} len={s*.34} anim="wxShower" dur=".65s" delays={[0,.13,.26,.07,.2]}/>
-        <SplashRings xs={[s*.14,s*.44,s*.74]}/>
-      </>
-    ),
-    'snow': (
-      <>
-        <Cloud x={0} y={s*.3} w={s*.98} fill={CL} op={.85}/>
-        <SnowFlakes xs={[s*.22,s*.5,s*.76]} fontSize={s*.28} anim="wxSnow" dur="2.4s" delays={[0,.8,1.6]}/>
-      </>
-    ),
-    'heavysnow': (
-      <>
-        <Cloud x={0}     y={s*.2} w={s*.98} fill={CDK}/>
-        <Cloud x={s*.05} y={s*.34} w={s*.85} fill={CDK} op={.65}/>
-        <SnowFlakes xs={[s*.14,s*.32,s*.52,s*.72]} fontSize={s*.3} anim="wxHSnow" dur="1.3s" delays={[0,.22,.45,.11]}/>
-        <SnowFlakes xs={[s*.22,s*.62]} yBase={s*.75} fontSize={s*.26} anim="wxHSnow" dur="1.3s" delays={[.33,.55]}/>
-        <SnowAccum/>
-      </>
-    ),
-    'storm': (
-      <>
-        <Cloud x={0} y={s*.2} w={s*.98} fill={CDK}/>
-        <RainLines xs={[s*.15,s*.72]} color="#3b82f6" sw={s*.04} len={s*.24} anim="wxRain" dur="1.1s" delays={[0,.3]}/>
-        <Lightning x={s*.38} delay="0s"/>
-        <Lightning x={s*.6}  delay="1.4s"/>
-      </>
-    ),
-    'hail': (
-      <>
-        <Cloud x={0} y={s*.2} w={s*.98} fill={CDK}/>
-        <HailBalls xs={[s*.12,s*.28,s*.48,s*.66,s*.86]}/>
-      </>
-    ),
-    'night-hail': (
-      <>
-        <Cloud x={0} y={s*.2} w={s*.98} fill={CNK}/>
-        <HailBalls xs={[s*.12,s*.28,s*.48,s*.66,s*.86]}/>
-      </>
-    ),
-    'night': (
-      <>
-        <Stars/>
-        <Moon/>
-      </>
-    ),
-    'night-partly': (
-      <>
-        <Stars/>
-        <g style={{ animation:`wxBob 4s ease-in-out infinite` }}>
-          <Moon cx={s*.64} cy={s*.28}/>
-        </g>
-        <Cloud x={s*.03} y={s*.5} w={s*.85} fill={CNK}/>
-      </>
-    ),
-    'night-cloudy': (
-      <>
-        <Stars/>
-        <Cloud x={s*.05} y={s*.28} w={s*.82} fill={CNK} op={.5}/>
-        <Cloud x={0}     y={s*.48} w={s*.98} fill={CNK}/>
-      </>
-    ),
-    'night-drizzle': (
-      <>
-        <Stars/>
-        <Cloud x={0} y={s*.3} w={s*.98} fill={CNK} op={.9}/>
-        <RainLines xs={[s*.25,s*.5,s*.74]} color="#93c5fd" sw={s*.03} len={s*.16} anim="wxDrizzle" dur="2.8s" delays={[0,.9,1.7]}/>
-      </>
-    ),
-    'night-rain': (
-      <>
-        <Cloud x={0} y={s*.28} w={s*.98} fill={CNK}/>
-        <RainLines xs={[s*.18,s*.34,s*.54,s*.72]} color="#3b82f6" sw={s*.045} len={s*.28} anim="wxRain" dur="1.2s" delays={[0,.3,.6,.15]}/>
-      </>
-    ),
-    'night-shower': (
-      <>
-        <Cloud x={0}     y={s*.22} w={s*.98} fill={CNK}/>
-        <Cloud x={s*.05} y={s*.36} w={s*.85} fill={CNK} op={.6}/>
-        <RainLines xs={[s*.12,s*.26,s*.42,s*.58,s*.74]} color="#1d4ed8" sw={s*.06} len={s*.34} anim="wxShower" dur=".65s" delays={[0,.13,.26,.07,.2]}/>
-        <SplashRings xs={[s*.14,s*.44,s*.74]}/>
-      </>
-    ),
-    'night-snow': (
-      <>
-        <Stars/>
-        <Cloud x={0} y={s*.3} w={s*.98} fill={CNK} op={.9}/>
-        <SnowFlakes xs={[s*.22,s*.5,s*.76]} fontSize={s*.28} anim="wxSnow" dur="2.4s" delays={[0,.8,1.6]}/>
-      </>
-    ),
-    'night-storm': (
-      <>
-        <Cloud x={0} y={s*.2} w={s*.98} fill={CNK}/>
-        <RainLines xs={[s*.15,s*.72]} color="#3b82f6" sw={s*.04} len={s*.24} anim="wxRain" dur="1.1s" delays={[0,.3]}/>
-        <Lightning x={s*.38} delay="0s"/>
-        <Lightning x={s*.6}  delay="1.4s"/>
-      </>
-    ),
-  };
-
-  return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ overflow:'visible', flexShrink:0 }}>
-      <defs><style>{css}</style></defs>
-      {icons[bg] || icons['cloudy']}
-    </svg>
-  );
-}
-
-// Acil uyarı metnini widget şeridi için kısaltır: UV/sıcaklık gibi sayısal uyarılarda
-// rakamı koruyup gerekçeyi kısa tutar, tekrarlı "Yüksek UV" gibi boş başlıkları önler.
 function wxShortAlertText(a) {
   const m = a.detail?.match(/(UV indeksi|AQI)\s*([\d.]+)/i);
   if (a.title.includes('UV') && m) return `UV ${parseFloat(m[2]).toFixed(0)} — güneş kremi şart`;
@@ -1169,7 +676,7 @@ function wxShortAlertText(a) {
 
 function WeatherWidget({ onNavigate, size }) {
   const [data, setData] = useState(null);
-  const [status, setStatus] = useState('loading'); // loading | ok | no-city | error
+  const [status, setStatus] = useState('loading');
   const [stripRef, strip] = useElementSize();
 
   useEffect(() => {
@@ -1194,44 +701,38 @@ function WeatherWidget({ onNavigate, size }) {
     });
   }, []);
 
-  if (status === 'no-city') {
-    return (
-      <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col">
-        <WidgetTitle accent="#3a7bd5">Hava Durumu ›</WidgetTitle>
-        <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Şehir eklenmedi</div>
-      </div>
-    );
-  }
-  if (status === 'loading' || status === 'error' || !data) {
-    return (
-      <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col">
-        <WidgetTitle accent="#3a7bd5">Hava Durumu ›</WidgetTitle>
-        <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>{status==='error'?'Yüklenemedi':'Yükleniyor...'}</div>
-      </div>
-    );
-  }
+  if (status === 'no-city') return (
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col items-center justify-center">
+      <div style={{fontSize:11,color:'rgba(255,255,255,0.3)'}}>Hava durumu için şehir ekle</div>
+    </div>
+  );
+  if (status === 'loading') return (
+    <div className="bg-surface2 border border-white/[0.08] rounded-2xl p-4 h-full w-full flex items-center justify-center">
+      <div style={{width:20,height:20,border:'2px solid rgba(255,255,255,.1)',borderTopColor:'#3a7bd5',borderRadius:'50%',animation:'spin .8s linear infinite'}}/>
+    </div>
+  );
+  if (status === 'error' || !data) return (
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-4 cursor-pointer h-full w-full flex items-center justify-center">
+      <div style={{fontSize:11,color:'rgba(255,255,255,0.3)'}}>Hava verisi yüklenemedi</div>
+    </div>
+  );
 
-  const cur = data.current || {};
   const hourly = data.hourly || {};
-  const daily = data.daily || {};
   const now = new Date();
-
-  const maxTemp = daily.temperature_2m_max?.[0];
-  const minTemp = daily.temperature_2m_min?.[0];
-
-  // Bugün, şu andan gece yarısına kadar olan saatler — hem tarih hem saat eşleşmeli,
-  // yoksa forecast_days=2 nedeniyle yarının aynı saatleri de listeye girip tekrar gösterilir.
   const nowHour = now.getHours();
-  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const hourlyList = (hourly.time||[])
-    .map((t,i)=>({ date:t.split('T')[0], hour:new Date(t).getHours(), temp:hourly.temperature_2m?.[i], code:hourly.weather_code?.[i], isDay:hourly.is_day?.[i] }))
-    .filter(h => h.date === todayDateStr && h.hour >= nowHour);
+  const todayDateStr = now.toISOString().split('T')[0];
+  const maxTemp = data.daily?.temperature_2m_max?.[0];
+  const minTemp = data.daily?.temperature_2m_min?.[0];
+
+  const hourlyList = (hourly.time || []).map((t,i) => {
+    const d = new Date(t);
+    return { date: d.toISOString().split('T')[0], hour: d.getHours(), temp: hourly.temperature_2m?.[i], code: hourly.weather_code?.[i], isDay: hourly.is_day?.[i] };
+  }).filter(h => h.date === todayDateStr && h.hour >= nowHour);
 
   const alerts = buildWeatherAlerts(data).slice(0, 5);
   const hasAlert = alerts.length > 0;
   const alertColors = { danger:'#f87171', warning:'#fb923c', info:'#9ca3af' };
 
-  // Saatlik şerit boyutu, konteynerin gerçek genişliğine göre (ResizeObserver) ölçeklenir
   const colW = Math.max(34, Math.min(54, strip.width ? strip.width / 6.2 : 42));
   const iconSize = Math.round(colW * 0.42);
 
@@ -1281,14 +782,11 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
   const firstDay = new Date(y, m-1, 1).getDay();
   const daysInMonth = new Date(y, m, 0).getDate();
   const startOffset = (firstDay + 6) % 7;
-  // Gün hücresi boyutu, takvim grid'inin GERÇEK piksel genişliğine göre hesaplanır (ResizeObserver) —
-  // widget genişletilince hücreler orantılı büyür.
   const [gridRef2, grid] = useElementSize();
   const cellWidthCalc = grid.width ? grid.width / 7 : 28;
   const cellHeight = Math.max(18, Math.round(cellWidthCalc * 0.78));
   const cellFontSize = Math.max(9, Math.round(cellWidthCalc * 0.36));
   const maxUpcoming = Math.max(2, Math.round((size?.row || 4) / 4 * 3));
-
   const notes = getNotes();
 
   const cells = [];
@@ -1320,9 +818,7 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
     const dt = new Date(); dt.setDate(dt.getDate()+off);
     const ds = dt.toISOString().split('T')[0];
     const specials = getSpecialDays(ds, db.s || []);
-    if (specials.length) {
-      upcoming.push({ ds, specials, isToday: ds===today });
-    }
+    if (specials.length) upcoming.push({ ds, specials, isToday: ds===today });
   }
 
   const WD = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
@@ -1334,52 +830,33 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
         <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}>Takvim ›</WidgetTitle>
         <div style={{fontSize:11,color:'#7b5ea7',fontWeight:600,marginTop:-8}}>{TR_M[m-1]}</div>
       </div>
-
       <div ref={gridRef2} style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',rowGap:3,marginBottom:10}}>
-        {WD.map(w=>(
-          <div key={w} style={{textAlign:'center',fontSize:8,color:'rgba(232,237,245,0.25)',letterSpacing:'.05em',paddingBottom:4}}>{w}</div>
-        ))}
+        {WD.map(w=>(<div key={w} style={{textAlign:'center',fontSize:8,color:'rgba(232,237,245,0.25)',letterSpacing:'.05em',paddingBottom:4}}>{w}</div>))}
         {cells.map((ds,i)=>{
           if (!ds) return <div key={`e-${i}`}/>;
           const day = parseInt(ds.split('-')[2]);
           const isToday = ds===today;
           const dayDots = getDayDots(ds);
           return (
-            <div key={ds} style={{
-              display:'flex',alignItems:'center',justifyContent:'center',
-              height:cellHeight,borderRadius:6,fontSize:cellFontSize,position:'relative',
-              background: isToday?'rgba(123,94,167,0.35)':'transparent',
-              color: isToday?'#c4b5fd':'rgba(232,237,245,0.6)',
-              fontWeight: isToday?700:400,
-              boxShadow: isToday?'0 0 0 1.5px rgba(123,94,167,0.6)':'none',
-            }}>
+            <div key={ds} style={{display:'flex',alignItems:'center',justifyContent:'center',height:cellHeight,borderRadius:6,fontSize:cellFontSize,position:'relative',background: isToday?'rgba(123,94,167,0.35)':'transparent',color: isToday?'#c4b5fd':'rgba(232,237,245,0.6)',fontWeight: isToday?700:400,boxShadow: isToday?'0 0 0 1.5px rgba(123,94,167,0.6)':'none'}}>
               {day}
               {dayDots.length>0 && (
                 <div style={{position:'absolute',bottom:2,left:'50%',transform:'translateX(-50%)',display:'flex',gap:2}}>
-                  {dayDots.slice(0,3).map((dot,di)=>(
-                    <div key={di} style={{width:3,height:3,borderRadius:'50%',background:dot.color}}/>
-                  ))}
+                  {dayDots.slice(0,3).map((dot,di)=>(<div key={di} style={{width:3,height:3,borderRadius:'50%',background:dot.color}}/>))}
                 </div>
               )}
             </div>
           );
         })}
       </div>
-
       <div style={{borderTop:'1px solid rgba(255,255,255,0.05)',paddingTop:8,flex:1,overflowY:'auto',minHeight:0}} className="custom-scroll">
         {upcoming.length===0
           ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Yaklaşan etkinlik yok</div>
           : upcoming.map((u,i)=>(
             <div key={u.ds} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 0',borderBottom:i<upcoming.length-1?'1px solid rgba(255,255,255,0.04)':'none'}}>
-              <span style={{fontSize:10,color:u.isToday?'#7ab8f5':'rgba(232,237,245,0.35)',fontWeight:u.isToday?600:400,flexShrink:0,width:42}}>
-                {u.isToday?'Bugün':fmtShort(u.ds)}
-              </span>
-              <span style={{fontSize:11,color:'rgba(232,237,245,0.7)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
-                {u.specials[0]?.n}
-              </span>
-              {u.specials.length > 1 && (
-                <span style={{fontSize:9,color:'rgba(232,237,245,0.25)',flexShrink:0}}>+{u.specials.length - 1}</span>
-              )}
+              <span style={{fontSize:10,color:u.isToday?'#7ab8f5':'rgba(232,237,245,0.35)',fontWeight:u.isToday?600:400,flexShrink:0,width:42}}>{u.isToday?'Bugün':fmtShort(u.ds)}</span>
+              <span style={{fontSize:11,color:'rgba(232,237,245,0.7)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{u.specials[0]?.n}</span>
+              {u.specials.length > 1 && (<span style={{fontSize:9,color:'rgba(232,237,245,0.25)',flexShrink:0}}>+{u.specials.length - 1}</span>)}
             </div>
           ))
         }
@@ -1442,10 +919,10 @@ export default function Home() {
   const [showManager, setShowManager] = useState(false);
   const [isMobile, setIsMobile] = useState(()=>typeof window!=='undefined' && window.innerWidth < 640);
   const gridRef = useRef(null);
-  const [resizing, setResizing] = useState(null); // { id, startX, startY, startCol, startRow }
-  const [liveSize, setLiveSize] = useState(null); // sürüklenirken anlık önizleme: { id, col, row }
-  const [moving, setMoving] = useState(null); // { id, startX, startY, colWidth }
-  const [dropTarget, setDropTarget] = useState(null); // { col, row } — sürüklenen widget'ın anlık hedef hücresi
+  const [resizing, setResizing] = useState(null);
+  const [liveSize, setLiveSize] = useState(null);
+  const [moving, setMoving] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
 
   useEffect(()=>{
     const onResize=()=>setIsMobile(window.innerWidth < 640);
@@ -1457,8 +934,6 @@ export default function Home() {
     if(!swState) return;
     if(swState.running&&swState.startTime){
       if(!window._sw)window._sw={};
-      // segStart: senkron gelen gerçek "başlat" anı — "şimdi" DEĞİL, aksi halde bu cihazda
-      // durdurulunca log süresi (partDur) sıfıra yakın çıkar.
       const segStart = swState.segStart || swState.startTime;
       window._sw.running=true;
       window._sw.startTime=swState.startTime;
@@ -1496,7 +971,6 @@ export default function Home() {
       window._sw.elapsed=elapsed; window._sw.running=false; window._sw.startTime=null; window._sw.sessionStartMs=null;
       localStorage.setItem('gn_sw_elapsed',elapsed); localStorage.removeItem('gn_sw_running'); localStorage.removeItem('gn_sw_startTime'); localStorage.removeItem('gn_sw_segStart');
       if(window._fbUser){import('../../lib/firebase').then(({saveToFirestore})=>{saveToFirestore(window._fbUser.uid,{gn_sw_elapsed:elapsed,gn_sw_running:false,gn_sw_startTime:null,gn_sw_segStart:null});});}
-      // Log kaydı ekle
       const newEntry={id:Date.now(),date:today,start:window._sw.sessionStartLabel||'—',end:getNow(),dur:partDur,note:''};
       window._sw.sessionStartLabel=null;
       const currentLog=JSON.parse(localStorage.getItem('gn_sw_log')||'[]');
@@ -1507,7 +981,7 @@ export default function Home() {
       setSwRunning(false);
     } else {
       const startTime=Date.now()-window._sw.elapsed;
-      const segStart=Date.now(); // Bu session'ın gerçek başlangıcı (birikimli değil)
+      const segStart=Date.now();
       const getNow=()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;};
       window._sw.startTime=startTime; window._sw.running=true;
       window._sw.sessionStartMs=segStart; window._sw.sessionStartLabel=getNow();
@@ -1529,7 +1003,6 @@ export default function Home() {
   };
   const handleWidgetReorder = (newOrder) => { setWidgetOrder(newOrder); saveWidgetOrder(newOrder); };
 
-  // ── RESIZE ────────────────────────────────────────────────────────────
   const mode = isMobile ? 'mobile' : 'desktop';
   const cols = isMobile ? MOBILE_COLS : DESKTOP_COLS;
   const rowUnit = isMobile ? ROW_UNIT_MOBILE : ROW_UNIT_DESKTOP;
@@ -1578,9 +1051,7 @@ export default function Home() {
     return getWidgetSize(mode, id, widgetSizes);
   };
 
-  // ── LAYOUT (pozisyonlar) ─────────────────────────────────────────────
   const layout = computeLayout(widgetOrder, widgetVisible, mode, widgetSizes, widgetPositions);
-  // Resize sırasında anlık boyutu layout'a yansıt (pozisyon sabit kalır)
   if (liveSize) {
     const lp = layout[liveSize.id];
     if (lp) lp.size = { col: liveSize.col, row: liveSize.row };
@@ -1588,7 +1059,6 @@ export default function Home() {
 
   const positionFor = (id) => layout[id]?.position || { col:1, row:1 };
 
-  // ── TAŞIMA (drag & swap) ─────────────────────────────────────────────
   const handleMoveStart = (e, id) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1613,7 +1083,6 @@ export default function Home() {
         if (curr) {
           const movingId = moving.id;
           const movingSize = getWidgetSize(mode, movingId, widgetSizes);
-          // Hedef hücrede başka bir widget var mı? (movingId hariç)
           let targetId = null;
           for (const wid of Object.keys(layout)) {
             if (wid === movingId) continue;
@@ -1623,17 +1092,13 @@ export default function Home() {
             }
           }
           const newPositions = { ...(widgetPositions[mode] || {}) };
-          // Tüm widget'ların güncel (otomatik dahil) pozisyonlarını yazalım ki tutarlı kalsın
           Object.keys(layout).forEach(wid => { if(!newPositions[wid]) newPositions[wid] = layout[wid].position; });
-
           if (targetId) {
-            // Yer değiştir (swap)
             const a = newPositions[movingId] || layout[movingId].position;
             const b = newPositions[targetId] || layout[targetId].position;
             newPositions[movingId] = b;
             newPositions[targetId] = a;
           } else {
-            // Boş hücreye taşı — grid sınırı kontrolü
             const clampedCol = Math.min(curr.col, cols - movingSize.col + 1);
             newPositions[movingId] = { col: Math.max(1,clampedCol), row: curr.row };
           }
@@ -1651,11 +1116,8 @@ export default function Home() {
     };
   },[moving, cols, rowUnit, mode, widgetPositions, widgetSizes, layout, setWidgetPositions]);
 
-  const hh=String(time.getHours()).padStart(2,'0'), mm=String(time.getMinutes()).padStart(2,'0');
   const today=todayStr();
-  const tomorrow=getDateKey(1);
   const chains=getChains();
-  const tickerMessages = buildTickerMessages({ db, todos:getTodos(), chains, swLog, today, tomorrow });
 
   const renderWidget = (id) => {
     if (!widgetVisible.includes(id)) return null;
@@ -1689,12 +1151,25 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen -m-5 md:-m-[26px_30px] overflow-hidden bg-bg">
-      <div className="relative z-10 p-3 md:p-5 min-h-screen grid grid-rows-[auto_1fr_auto] gap-3">
+      {/* Widget ayar butonu — sağ üst köşe */}
+      <div style={{position:'absolute',top:12,right:12,zIndex:20}}>
+        <button
+          onClick={()=>setShowManager(true)}
+          title="Widget'ları Düzenle"
+          style={{width:34,height:34,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.45)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'background .2s,color .2s'}}
+          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.75)';}}
+          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.45)';}}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          </svg>
+        </button>
+      </div>
 
-        {/* Üst şerit: saat/tarih + akıllı bilgi şeridi + widget ayar ikonu */}
-        <TickerBar messages={tickerMessages} hh={hh} mm={mm} time={time} onOpenManager={()=>setShowManager(true)}/>
-
-        {/* Widget grid — sabit kolon sayısı, satır birimi rowUnit px */}
+      <div className="relative z-10 p-3 md:p-5 min-h-screen">
+        {/* Widget grid */}
         <div
           ref={gridRef}
           style={{
@@ -1709,7 +1184,6 @@ export default function Home() {
         >
           {widgetOrder.map(id => renderWidget(id))}
         </div>
-
       </div>
 
       {showManager && (
