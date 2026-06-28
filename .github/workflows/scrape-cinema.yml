@@ -2,9 +2,8 @@ name: Sinema Verisini Güncelle
 
 on:
   schedule:
-    # Her gün 06:00 TRT (03:00 UTC) - seans saatleri o gün için güncel olsun
-    - cron: "0 3 * * *"
-  workflow_dispatch: {} # Manuel tetikleme için (Actions sekmesinden "Run workflow")
+    - cron: "0 3 * * *"  # Her gün 06:00 TRT
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -19,10 +18,18 @@ jobs:
       - name: Node kurulumu
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
 
-      - name: Bağımlılıkları yükle
-        run: npm install cheerio --no-save
+      - name: Chromium bağımlılıklarını kur
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 \
+            libgbm1 libgtk-3-0 libnspr4 libnss3 libxcomposite1 \
+            libxdamage1 libxfixes3 libxkbcommon0 libxrandr2
+
+      - name: Puppeteer kur
+        run: npm install puppeteer --no-save
 
       - name: Sinema verisini çek
         run: node scripts/scrape-cinema.mjs
