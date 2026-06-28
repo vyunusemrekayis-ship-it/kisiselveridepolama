@@ -1,611 +1,116 @@
 {
-  "generatedAt": "2026-06-23T10:26:31.372Z",
+  "generatedAt": "2026-06-28T06:58:30.111Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
-      "name": "Paribu Cineverse Forum Trabzon",
-      "address": "Devlet Sahil Yolu Cad. 100.Yıl Parkı Yanı, Trabzon",
+      "name": "Trabzon Paribu Cineverse (Forum Trabzon) Sinema Salonu",
+      "address": null,
       "phone": "0 (850) 220 09 67",
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
       "days": [
         {
-          "date": "2026-06-23",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-24",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-25",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-26",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-27",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
           "date": "2026-06-28",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
+          "films": []
         },
         {
           "date": "2026-06-29",
-          "films": [
-            {
-              "title": "Bizi Takip Et",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
+          "films": []
+        },
+        {
+          "date": "2026-06-30",
+          "films": []
+        },
+        {
+          "date": "2026-07-01",
+          "films": []
+        },
+        {
+          "date": "2026-07-02",
+          "films": []
+        },
+        {
+          "date": "2026-07-03",
+          "films": []
+        },
+        {
+          "date": "2026-07-04",
+          "films": []
         }
       ]
     },
     {
       "id": "lara",
       "name": "Trabzon Lara Sinema Salonu",
-      "address": "Gazipaşa Mahallesi, Kasımoğlu Çk., Trabzon",
+      "address": null,
       "phone": "0 (462) 321 00 06",
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
       "days": [
         {
-          "date": "2026-06-23",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Sihirli Annem: Periler Okulu",
-              "poster": null,
-              "genre": "Fantastik •\n                                                         Aile •\n                                                         Komedi •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Super Mario Galaxy",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         Fantastik •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Zootropolis 2",
-              "poster": null,
-              "genre": "Aksiyon •\n                                                         Macera •\n                                                         Animasyon •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Cinhar",
-              "poster": null,
-              "genre": "Korku •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "İfşa Günü",
-              "poster": null,
-              "genre": "Gerilim •\n                                                         Bilim",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Oyuncak Hikayesi 5",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         IMAX •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Kehribar ile Boncuk: Kayıp Robot",
-              "poster": null,
-              "genre": "Animasyon •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Backrooms",
-              "poster": null,
-              "genre": "Korku •\n                                                         Bilim",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Normal",
-              "poster": null,
-              "genre": "Aksiyon •\n                                                         Suç •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Saplantı",
-              "poster": null,
-              "genre": "Gerilim •\n                                                         Korku •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Robin Hood'un Ölümü",
-              "poster": null,
-              "genre": "Dram •\n                                                         Macera •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Cesur Kedi Moxy",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         Aile •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Külkedisi: Üç Dilek",
-              "poster": null,
-              "genre": "Animasyon •\n                                                         Fantastik •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Korkunç Bir Film",
-              "poster": null,
-              "genre": "Korku •\n                                                         Komedi •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Siccin 9",
-              "poster": null,
-              "genre": "Korku •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Oflu Hoca 6: Define",
-              "poster": null,
-              "genre": "Komedi •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-24",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Sihirli Annem: Periler Okulu",
-              "poster": null,
-              "genre": "Fantastik •\n                                                         Aile •\n                                                         Komedi •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Super Mario Galaxy",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         Fantastik •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Zootropolis 2",
-              "poster": null,
-              "genre": "Aksiyon •\n                                                         Macera •\n                                                         Animasyon •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Cinhar",
-              "poster": null,
-              "genre": "Korku •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "İfşa Günü",
-              "poster": null,
-              "genre": "Gerilim •\n                                                         Bilim",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Oyuncak Hikayesi 5",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         IMAX •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Kehribar ile Boncuk: Kayıp Robot",
-              "poster": null,
-              "genre": "Animasyon •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Backrooms",
-              "poster": null,
-              "genre": "Korku •\n                                                         Bilim",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Normal",
-              "poster": null,
-              "genre": "Aksiyon •\n                                                         Suç •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Saplantı",
-              "poster": null,
-              "genre": "Gerilim •\n                                                         Korku •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Robin Hood'un Ölümü",
-              "poster": null,
-              "genre": "Dram •\n                                                         Macera •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Cesur Kedi Moxy",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         Aile •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Külkedisi: Üç Dilek",
-              "poster": null,
-              "genre": "Animasyon •\n                                                         Fantastik •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Korkunç Bir Film",
-              "poster": null,
-              "genre": "Korku •\n                                                         Komedi •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Siccin 9",
-              "poster": null,
-              "genre": "Korku •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Oflu Hoca 6: Define",
-              "poster": null,
-              "genre": "Komedi •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "571 Rahmet Peygamberi Hz. Muhammed",
-              "poster": null,
-              "genre": "Animasyon •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Gizemli Ağaç",
-              "poster": null,
-              "genre": "Macera •\n                                                         Fantastik •\n                                                         Aile •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Süper 1 Takım",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         Aile •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-25",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "571 Rahmet Peygamberi Hz. Muhammed",
-              "poster": null,
-              "genre": "Animasyon •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Gizemli Ağaç",
-              "poster": null,
-              "genre": "Macera •\n                                                         Fantastik •\n                                                         Aile •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Süper 1 Takım",
-              "poster": null,
-              "genre": "Macera •\n                                                         Animasyon •\n                                                         Aile •\n\n                                        \n                                        \n                                        \n\n\n\n                                            BİLETİNİ",
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-26",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
-          "date": "2026-06-27",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
-        },
-        {
           "date": "2026-06-28",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
+          "films": []
         },
         {
           "date": "2026-06-29",
-          "films": [
-            {
-              "title": "Kategori",
-              "poster": "https://b6s54eznn8xq.merlincdn.net/dist/assets/img/login.svg",
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Telefon",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Adres",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            },
-            {
-              "title": "Bilet İptali & Destek",
-              "poster": null,
-              "genre": null,
-              "formats": null,
-              "times": []
-            }
-          ]
+          "films": []
+        },
+        {
+          "date": "2026-06-30",
+          "films": []
+        },
+        {
+          "date": "2026-07-01",
+          "films": []
+        },
+        {
+          "date": "2026-07-02",
+          "films": []
+        },
+        {
+          "date": "2026-07-03",
+          "films": []
+        },
+        {
+          "date": "2026-07-04",
+          "films": []
         }
       ]
     },
     {
       "id": "cinegalaxy",
       "name": "Cinegalaxy Trabzon Sinema Salonu",
-      "error": "fetch failed",
+      "address": null,
+      "phone": "0 (462) 223 18 81",
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
-      "days": []
+      "days": [
+        {
+          "date": "2026-06-28",
+          "films": []
+        },
+        {
+          "date": "2026-06-29",
+          "films": []
+        },
+        {
+          "date": "2026-06-30",
+          "films": []
+        },
+        {
+          "date": "2026-07-01",
+          "films": []
+        },
+        {
+          "date": "2026-07-02",
+          "films": []
+        },
+        {
+          "date": "2026-07-03",
+          "films": []
+        },
+        {
+          "date": "2026-07-04",
+          "films": []
+        }
+      ]
     }
   ]
 }
