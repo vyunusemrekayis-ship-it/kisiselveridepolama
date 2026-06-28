@@ -18,59 +18,28 @@
 .cinema-updated {
   color: #8b8b9a;
   font-size: 0.85rem;
-  margin: 0;
+  margin: 0 0 0.75rem;
 }
 
 .cinema-error {
   color: #ff8a8a;
 }
 
-/* --- Gün sekmeleri --- */
-.day-tabs {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #222229;
-}
-
-.day-tab {
-  background: transparent;
-  border: 1px solid #26262f;
-  color: #8b8b9a;
+.fetch-all-btn {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(108,99,255,0.15);
+  border: 1px solid #6c63ff;
+  color: #9d97ff;
   border-radius: 10px;
-  padding: 0.4rem 0.85rem;
-  cursor: pointer;
-  font-size: 0.83rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  transition: all 0.15s ease;
-  min-width: 60px;
-}
-
-.day-tab:hover {
-  border-color: #3a3a48;
-  color: #c9c9d8;
-}
-
-.day-tab--active {
-  background: rgba(108, 99, 255, 0.12);
-  border-color: #6c63ff;
-  color: #fff;
-}
-
-.day-tab__short {
-  font-weight: 500;
   font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-.day-tab__long {
-  font-size: 0.7rem;
-  color: inherit;
-  opacity: 0.75;
+.fetch-all-btn:hover {
+  background: rgba(108,99,255,0.25);
+  color: #fff;
 }
 
 /* --- Sinema grid --- */
@@ -122,6 +91,44 @@
   color: #6f6f80;
   font-size: 0.88rem;
   font-style: italic;
+}
+
+.fetch-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #2e2e3a;
+  color: #8b8b9a;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+
+.fetch-btn:hover {
+  border-color: #6c63ff;
+  color: #9d97ff;
+}
+
+.cinema-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #8b8b9a;
+  font-size: 0.85rem;
+}
+
+.cinema-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(108,99,255,0.2);
+  border-top-color: #6c63ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* --- Film listesi --- */
@@ -236,28 +243,6 @@
 
 .booking-link:hover {
   text-decoration: underline;
-}
-
-/* --- Skeleton --- */
-.cinema-card--skeleton {
-  gap: 1rem;
-}
-
-.skeleton-line,
-.skeleton-film {
-  border-radius: 8px;
-  background: linear-gradient(90deg, #1c1c24 0%, #25252f 50%, #1c1c24 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-
-.skeleton-line--title { width: 60%; height: 1.1rem; }
-.skeleton-line--sub   { width: 40%; height: 0.8rem; }
-.skeleton-film        { width: 100%; height: 84px; }
-
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }
 
 @keyframes cardIn {
