@@ -6,6 +6,7 @@ const DEFAULT_NAV = [
   { id: 'calendar', label: 'Takvim' },
   { id: 'goals',    label: 'Hedefler' },
   { id: 'films',    label: 'Filmler' },
+  { id: 'series',   label: 'Diziler' },
   { id: 'books',    label: 'Kitaplar' },
   { id: 'clock',    label: 'Kronometre' },
   { id: 'chain',    label: 'Zincir Kırma' },
@@ -61,6 +62,18 @@ const ICONS = {
       <path d="M10 9l6 3-6 3V9z"
         fill={active ? `${COLOR}25` : 'rgba(232,237,245,.1)'}
         stroke={active ? COLOR : 'rgba(232,237,245,.3)'}/>
+    </svg>
+  ),
+
+  // Diziler — TV/ekran
+  series: (active) => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke={active ? COLOR : 'rgba(232,237,245,.3)'}
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2"
+        fill={active ? `${COLOR}15` : 'rgba(232,237,245,.05)'}/>
+      <path d="M8 2l4 3 4-3"/>
+      <path d="M8 19v2M16 19v2M6 21h12"/>
     </svg>
   ),
 
@@ -305,12 +318,12 @@ export default function Sidebar() {
       {/* Footer */}
       <div className={`border-t border-border flex items-center ${sidebarCollapsed ? 'justify-center p-[10px]' : 'justify-end px-4 py-[10px]'}`}>
         <button
-          onClick={() => { if (confirm('Çıkış yapmak istediğinize emin misiniz?')) window._fbSignOut?.(window._fbAuth); }}
-          className="bg-transparent border border-border rounded-lg text-muted cursor-pointer p-[5px] flex items-center hover:border-red-500/40 hover:text-red-400 transition-colors"
+          onClick={() => { if (confirm('Çıkış yapmak istediğinize emin misiniz?')) window._fbSignOut?.(); }}
           title="Çıkış Yap"
+          className="bg-transparent border-0 text-muted cursor-pointer flex items-center justify-center hover:text-text transition-colors"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>

@@ -6,6 +6,7 @@ const PAGE_TITLES = {
   clock:    'Kronometre',
   calendar: 'Takvim',
   films:    'Filmler',
+  series:   'Diziler',
   books:    'Kitaplar',
   goals:    'Hedefler',
   ai:       'Asistan',

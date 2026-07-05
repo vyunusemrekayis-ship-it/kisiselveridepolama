@@ -3,7 +3,7 @@ import { create } from 'zustand';
 const SK = 'gn_db';
 
 const defaultDb = {
-  f: [], b: [], g: [], s: [], wl: [], rl: [],
+  f: [], b: [], g: [], s: [], wl: [], rl: [], sr: [], srwl: [],
 };
 
 function loadDb() {
@@ -126,9 +126,6 @@ export const useStore = create((set, get) => ({
           elapsed: incoming.gn_sw_elapsed ?? parseInt(localStorage.getItem('gn_sw_elapsed') || '0'),
         };
         // Gereksiz yeniden render / efekt tetiklemesini önle: değerler aynıysa swState referansını değiştirme.
-        // (Aksi halde her Firestore senkronunda — sw ile ilgisiz bir değişiklikte bile — swState yeni
-        // bir nesne olarak gelir ve Clock.jsx/Home.jsx'teki "swState değişti" efekti gereksiz yere
-        // yeniden çalışıp segment başlangıcını "şimdi"ye sıfırlardı.)
         const prev = get().swState;
         const changed = !prev || prev.running !== nextSwState.running || prev.startTime !== nextSwState.startTime
           || prev.segStart !== nextSwState.segStart || prev.elapsed !== nextSwState.elapsed;
@@ -170,6 +167,13 @@ export const useStore = create((set, get) => ({
   addFilm: (film) => { const db = get().db; const updated = { ...db, f: [film, ...db.f] }; saveDb(updated); set({ db: updated }); },
   updateFilm: (i, film) => { const db = get().db; const f = [...db.f]; f[i] = film; const updated = { ...db, f }; saveDb(updated); set({ db: updated }); },
   deleteFilm: (i) => { const db = get().db; const updated = { ...db, f: db.f.filter((_, idx) => idx !== i) }; saveDb(updated); set({ db: updated }); },
+
+  // ── SERIES ──
+  addSeries: (series) => { const db = get().db; const updated = { ...db, sr: [series, ...db.sr] }; saveDb(updated); set({ db: updated }); },
+  updateSeries: (i, series) => { const db = get().db; const sr = [...db.sr]; sr[i] = series; const updated = { ...db, sr }; saveDb(updated); set({ db: updated }); },
+  deleteSeries: (i) => { const db = get().db; const updated = { ...db, sr: db.sr.filter((_, idx) => idx !== i) }; saveDb(updated); set({ db: updated }); },
+  getSeriesWatchlist: () => get().db.srwl || [],
+  setSeriesWatchlist: (srwl) => { const db = get().db; const updated = { ...db, srwl }; saveDb(updated); set({ db: updated }); },
 
   // ── BOOKS ──
   addBook: (book) => { const db = get().db; const updated = { ...db, b: [book, ...db.b] }; saveDb(updated); set({ db: updated }); },

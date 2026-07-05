@@ -6,6 +6,7 @@ const NAV = [
   { id: 'calendar', label: 'Takvim' },
   { id: 'goals',    label: 'Hedefler' },
   { id: 'films',    label: 'Filmler' },
+  { id: 'series',   label: 'Diziler' },
   { id: 'books',    label: 'Kitaplar' },
   { id: 'clock',    label: 'Kronometre' },
   { id: 'chain',    label: 'Zincir Kırma' },

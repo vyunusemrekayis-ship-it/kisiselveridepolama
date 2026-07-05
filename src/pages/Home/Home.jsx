@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, wxc, buildWeatherAlerts } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, wxc, buildWeatherAlerts } from '../../lib/utils';
 
 function useElementSize() {
   const ref = useRef(null);
@@ -29,8 +29,8 @@ function loadSpecColors() {
   try { return { ...DEFAULT_SPEC_COLORS, ...JSON.parse(localStorage.getItem('gn_spec_colors') || '{}') }; } catch { return { ...DEFAULT_SPEC_COLORS }; }
 }
 
-const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar','films','weather'];
-const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim', films:'Filmler', weather:'Hava Durumu' };
+const ALL_WIDGET_IDS = ['todos','goals','stopwatch','chains','books','calendar','films','series','weather'];
+const WIDGET_LABELS = { todos:'Görevler', goals:'Hedefler', stopwatch:'Kronometre', chains:'Zincir Kırma', books:'Kitaplar', calendar:'Takvim', films:'Filmler', series:'Diziler', weather:'Hava Durumu' };
 
 function loadWidgetOrder() {
   try {
@@ -64,6 +64,7 @@ const DEFAULT_SIZES = {
     books:    { col: 1, row: 4 },
     calendar: { col: 1, row: 4 },
     films:    { col: 1, row: 4 },
+    series:   { col: 1, row: 4 },
     weather:  { col: 2, row: 3 },
   },
   mobile: {
@@ -74,6 +75,7 @@ const DEFAULT_SIZES = {
     books:    { col: 2, row: 5 },
     calendar: { col: 2, row: 5 },
     films:    { col: 2, row: 5 },
+    series:   { col: 2, row: 5 },
     weather:  { col: 2, row: 4 },
   },
 };
@@ -158,6 +160,7 @@ const WIDGET_ACCENT = {
   books:     '#4a7a5a',
   calendar:  '#7b5ea7',
   films:     '#a06040',
+  series:    '#6c63ff',
   weather:   '#38bdf8',
 };
 
@@ -660,6 +663,63 @@ function FilmWidget({ films, onNavigate, size }) {
   );
 }
 
+// ── DİZİLER ────────────────────────────────────────────────────────────
+function SeriesPoster({ series, width, height }) {
+  const [poster, setPoster] = useState(seriesPosterCache[series.name] ?? null);
+  const iconSize = Math.max(16, Math.round((width||58) * 0.38));
+  useEffect(() => {
+    if (poster) return;
+    fetchSeriesPoster(series.name).then(url => { if (url) setPoster(url); });
+  }, [series.name]);
+  return poster
+    ? <img src={poster} alt={series.name} title={series.name} style={{width,height,objectFit:'cover',borderRadius:4,flexShrink:0,display:'block'}}/>
+    : <div title={series.name} style={{width,height,borderRadius:4,flexShrink:0,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
+        <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M8 2l4 3 4-3"/></svg>
+        <div style={{position:'absolute',left:0,right:0,top:'20%',height:1,background:'rgba(108,99,255,0.35)',animation:'seriesWidgetScan 2.4s ease-in-out infinite'}}/>
+      </div>;
+}
+
+function SeriesWidget({ series, onNavigate, size }) {
+  const sorted = [...series].sort((a, b) => {
+    const da = a.date || '', db2 = b.date || '';
+    if (da && db2) return db2.localeCompare(da);
+    if (da) return -1; if (db2) return 1; return 0;
+  });
+  const stripRef = useRef(null);
+  const [stripH, setStripH] = useState(84);
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect?.height;
+      if (h && h > 0) setStripH(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const ASPECT = 58/84;
+  const posterH = Math.round(stripH);
+  const posterW = Math.round(posterH * ASPECT);
+
+  return (
+    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors overflow-hidden h-full w-full flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <WidgetTitle accent="#6c63ff" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" fill="#6c63ff" fillOpacity=".3"/><path d="M8 2l4 3 4-3"/></svg>}>Diziler ›</WidgetTitle>
+        <div style={{fontSize:11,color:'rgba(232,237,245,0.35)',marginTop:-8}}><span style={{fontSize:15,color:'#6c63ff',fontFamily:'Lora,serif',marginRight:3,fontWeight:700}}>{series.length}</span>izlendi</div>
+      </div>
+      {series.length===0
+        ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Dizi yok</div>
+        : <div ref={stripRef} style={{display:'flex',alignItems:'stretch',gap:7,flex:1,minHeight:0,overflowX:'auto',overflowY:'hidden',paddingBottom:2,scrollbarWidth:'none'}}>
+            {sorted.map((s,i)=>(<SeriesPoster key={i} series={s} width={posterW} height={posterH}/>))}
+          </div>
+      }
+      <style>{`
+        @keyframes seriesWidgetScan { 0%{top:15%} 50%{top:78%} 100%{top:15%} }
+      `}</style>
+    </div>
+  );
+}
+
 // ── HAVA DURUMU ──────────────────────────────────────────────────────────
 function WxIcon({ bg, size = 20 }) {
   return <div style={{width:size,height:size,borderRadius:'50%',background:bg,display:'inline-block'}}/>;
@@ -1133,6 +1193,7 @@ export default function Home() {
       case 'books': content = <BookWidget books={db.b||[]} onNavigate={()=>setCurrentPage('books')} size={size}/>; break;
       case 'calendar': content = <CalendarWidget db={db} getTodos={getTodos} getNotes={getNotes} onNavigate={()=>setCurrentPage('calendar')} size={size}/>; break;
       case 'films': content = <FilmWidget films={db.f||[]} onNavigate={()=>setCurrentPage('films')} size={size}/>; break;
+      case 'series': content = <SeriesWidget series={db.sr||[]} onNavigate={()=>setCurrentPage('series')} size={size}/>; break;
       case 'weather': content = <WeatherWidget onNavigate={()=>setCurrentPage('weather')} size={size}/>; break;
       default: return null;
     }

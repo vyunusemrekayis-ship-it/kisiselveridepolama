@@ -9,6 +9,7 @@ const PAGES = {
   calendar: lazy(() => import('../../pages/Calendar/Calendar')),
   goals: lazy(() => import('../../pages/Goals/Goals')),
   films: lazy(() => import('../../pages/Films/Films')),
+  series: lazy(() => import('../../pages/Series/Series')),
   books: lazy(() => import('../../pages/Books/Books')),
   clock: lazy(() => import('../../pages/Clock/Clock')),
   chain: lazy(() => import('../../pages/Chain/Chain')),

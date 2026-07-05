@@ -101,26 +101,48 @@ export function calcChainStreak(ch) {
   return { streak, todayIdx, doneSet };
 }
 
-// ── FİLM POSTERİ (Films.jsx ve Home.jsx ortak kullanır) ──────────────────
-// url string ya da null saklar; Promise yoktur — aynı isim için tek fetch garantili
+const TMDB_KEY = '02792d3c2e983660a6da5ad2a30c3ed3';
+const TMDB_IMG = 'https://image.tmdb.org/t/p/w500';
+
+// ── FİLM POSTERİ — TMDB (Films.jsx ve Home.jsx ortak kullanır) ───────────
 export const posterCache = {};
 const posterInFlight = {};
 
 export function fetchPoster(name) {
   if (name in posterCache) return Promise.resolve(posterCache[name]);
   if (posterInFlight[name]) return posterInFlight[name];
-  const p = fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(name)}&apikey=${OMDB_KEY}`)
+  const p = fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(name)}&api_key=${TMDB_KEY}`)
     .then(r => r.json())
     .then(data => {
-      const url = (data.Poster && data.Poster !== 'N/A')
-        ? data.Poster.replace(/SX\d+/, 'SX1000').replace('http://', 'https://')
-        : null;
+      const path = data.results?.[0]?.poster_path;
+      const url = path ? `${TMDB_IMG}${path}` : null;
       posterCache[name] = url;
       delete posterInFlight[name];
       return url;
     })
     .catch(() => { posterCache[name] = null; delete posterInFlight[name]; return null; });
   posterInFlight[name] = p;
+  return p;
+}
+
+// ── DİZİ POSTERİ — TMDB (Series.jsx ve Home.jsx ortak kullanır) ──────────
+export const seriesPosterCache = {};
+const seriesPosterInFlight = {};
+
+export function fetchSeriesPoster(name) {
+  if (name in seriesPosterCache) return Promise.resolve(seriesPosterCache[name]);
+  if (seriesPosterInFlight[name]) return seriesPosterInFlight[name];
+  const p = fetch(`https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(name)}&api_key=${TMDB_KEY}`)
+    .then(r => r.json())
+    .then(data => {
+      const path = data.results?.[0]?.poster_path;
+      const url = path ? `${TMDB_IMG}${path}` : null;
+      seriesPosterCache[name] = url;
+      delete seriesPosterInFlight[name];
+      return url;
+    })
+    .catch(() => { seriesPosterCache[name] = null; delete seriesPosterInFlight[name]; return null; });
+  seriesPosterInFlight[name] = p;
   return p;
 }
 
