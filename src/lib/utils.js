@@ -146,6 +146,84 @@ export function fetchSeriesPoster(name) {
   return p;
 }
 
+// ── KİTAP KAPAĞI — Google Books (Books.jsx ve Home.jsx ortak kullanır) ───
+export const bookCoverCache = {};
+const bookCoverInFlight = {};
+
+function normalizeTr(s) {
+  return s
+    .replace(/ı/g, 'i').replace(/İ/g, 'I')
+    .replace(/ş/g, 's').replace(/Ş/g, 'S')
+    .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+    .replace(/ü/g, 'u').replace(/Ü/g, 'U')
+    .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+    .replace(/ç/g, 'c').replace(/Ç/g, 'C');
+}
+
+const GOOGLE_BOOKS_KEY = 'AIzaSyDEwMWaEbg8J6OAzfM-IwIRyhCqg2HCYzU';
+
+export function fetchBookCover(name, author) {
+  const key = name + '|' + (author || '');
+  if (key in bookCoverCache) return Promise.resolve(bookCoverCache[key]);
+  if (bookCoverInFlight[key]) return bookCoverInFlight[key];
+
+  const pickCover = (data) => {
+    const item = (data.items || []).find(it => it.volumeInfo?.imageLinks?.thumbnail || it.volumeInfo?.imageLinks?.smallThumbnail);
+    const img = item?.volumeInfo?.imageLinks;
+    const thumb = img?.thumbnail || img?.smallThumbnail;
+    return thumb ? thumb.replace('http://', 'https://') : null;
+  };
+
+  const searchGoogle = (q) => fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&key=${GOOGLE_BOOKS_KEY}`).then(r => r.json());
+
+  // Google'da hiç kapak yoksa son çare: Open Library, ISBN üzerinden.
+  // Open Library kapağı olmayan ISBN'lerde çok küçük bir placeholder görsel döndürür,
+  // bunu content-length'e bakarak eliyoruz.
+  const tryOpenLibrary = async (title) => {
+    try {
+      const res = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=3`);
+      const data = await res.json();
+      for (const doc of data.docs || []) {
+        const isbn = doc.isbn?.[0];
+        if (!isbn) continue;
+        const url = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+        const head = await fetch(url, { method: 'HEAD' }).catch(() => null);
+        const len = parseInt(head?.headers?.get('content-length') || '0');
+        if (head?.ok && len > 2000) return url;
+      }
+    } catch {}
+    return null;
+  };
+
+  const p = (async () => {
+    try {
+      let url = null;
+      if (author) {
+        url = pickCover(await searchGoogle(`intitle:${encodeURIComponent(name)}+inauthor:${encodeURIComponent(author)}`));
+      }
+      if (!url) {
+        url = pickCover(await searchGoogle(`intitle:${encodeURIComponent(name)}`));
+      }
+      if (!url) {
+        const norm = normalizeTr(name);
+        if (norm !== name) url = pickCover(await searchGoogle(`intitle:${encodeURIComponent(norm)}`));
+      }
+      if (!url) {
+        url = await tryOpenLibrary(name);
+      }
+      bookCoverCache[key] = url;
+      return url;
+    } catch {
+      bookCoverCache[key] = null;
+      return null;
+    } finally {
+      delete bookCoverInFlight[key];
+    }
+  })();
+  bookCoverInFlight[key] = p;
+  return p;
+}
+
 // ── HAVA DURUMU KODU → İKON/RENK (Weather.jsx ile aynı WMO eşlemesi) ─────
 // Home.jsx'teki Hava Durumu widget'ı bu basitleştirilmiş eşlemeyi kullanır.
 export function wxc(code, isDay) {

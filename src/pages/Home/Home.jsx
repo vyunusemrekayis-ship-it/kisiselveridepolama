@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, wxc, buildWeatherAlerts } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookCover, bookCoverCache, wxc, buildWeatherAlerts } from '../../lib/utils';
 
 function useElementSize() {
   const ref = useRef(null);
@@ -550,6 +550,36 @@ function ChainWidget({ chains, onNavigate, size }) {
 }
 
 // ── KİTAPLAR ─────────────────────────────────────────────────────────────
+// Kapak bulunursa gerçek kapaktan kırpılmış dar bir "sırt" gösterir (genişlik sayfa sayısına göre değişken kalır),
+// bulunamazsa mevcut renkli/isimli SVG sırta düşer.
+function BookSpine({ spine, book }) {
+  const cacheKey = book.name + '|' + (book.author || '');
+  const [cover, setCover] = useState(bookCoverCache[cacheKey] ?? null);
+  useEffect(() => {
+    if (cover) return;
+    fetchBookCover(book.name, book.author).then(url => { if (url) setCover(url); });
+  }, [book.name, book.author]);
+
+  const { W, H, color, tspans, fs, isReading, name } = spine;
+  const hoverIn = e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.filter = 'brightness(1.3)'; };
+  const hoverOut = e => { e.currentTarget.style.transform = ''; e.currentTarget.style.filter = ''; };
+
+  if (cover) {
+    return (
+      <img src={cover} alt={name} title={name}
+        style={{ width: W, height: H, objectFit: 'cover', objectPosition: 'left center', borderRadius: 3, flexShrink: 0, cursor: 'pointer', display: 'block', outline: isReading ? '1.5px solid rgba(255,255,255,0.3)' : 'none', transition: 'transform .2s, filter .2s' }}
+        onMouseEnter={hoverIn} onMouseLeave={hoverOut} />
+    );
+  }
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
+      style={{ flexShrink: 0, borderRadius: 3, cursor: 'pointer', transition: 'transform .2s,filter .2s', display: 'block', background: color, outline: isReading ? '1.5px solid rgba(255,255,255,0.3)' : 'none' }}
+      title={name} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+      <text transform={`rotate(-90 ${W/2} ${H/2})`} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={fs} fontFamily="system-ui,sans-serif" fontWeight="500" dangerouslySetInnerHTML={{__html: tspans}} />
+    </svg>
+  );
+}
+
 function BookWidget({ books, onNavigate, size }) {
   const stripRef = useRef(null);
   const [stripH, setStripH] = useState(75);
@@ -595,15 +625,7 @@ function BookWidget({ books, onNavigate, size }) {
       {books.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Kitap yok</div>
         : <div ref={stripRef} style={{display:'flex',alignItems:'flex-end',gap:4,flex:1,minHeight:0,overflowX:'auto',paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.05)',scrollbarWidth:'none'}}>
-            {spines.map((s,i)=>(
-              <svg key={i} width={s.W} height={s.H} viewBox={`0 0 ${s.W} ${s.H}`}
-                style={{flexShrink:0,borderRadius:3,cursor:'pointer',transition:'transform .2s,filter .2s',display:'block',background:s.color,outline:s.isReading?'1.5px solid rgba(255,255,255,0.3)':'none'}}
-                title={s.name}
-                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-5px)';e.currentTarget.style.filter='brightness(1.3)';}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.filter='';}}>
-                <text transform={`rotate(-90 ${s.W/2} ${s.H/2})`} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={s.fs} fontFamily="system-ui,sans-serif" fontWeight="500" dangerouslySetInnerHTML={{__html:s.tspans}}/>
-              </svg>
-            ))}
+            {spines.map((s,i)=>(<BookSpine key={i} spine={s} book={books[i]} />))}
           </div>
       }
     </div>

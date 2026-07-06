@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtDate, OMDB_KEY } from '../../lib/utils';
+import { fmtDate, OMDB_KEY, fetchBookCover, bookCoverCache } from '../../lib/utils';
 
 async function autoFillBookInfo(name) {
   try {
@@ -65,23 +65,49 @@ function BookForm({ book, onSave, onCancel }) {
   );
 }
 
-function BookCard({ book, onEdit, onDelete, onMoveTo }) {
+// Kapak bulunamadığında gösterilen CSS animasyonlu yer tutucu
+function BookCoverPlaceholder({ width, height }) {
   return (
-    <div className="card p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm text-text truncate">{book.name}</div>
-          <div className="text-xs text-muted mt-0.5">
-            {[book.author, book.pages ? book.pages + ' sf.' : ''].filter(Boolean).join(' · ')}
-          </div>
-          {(book.start || book.end) && (
-            <div className="text-xs text-muted mt-0.5">
-              {[book.start ? 'Başlangıç: ' + fmtDate(book.start) : '', book.end ? 'Bitiş: ' + fmtDate(book.end) : ''].filter(Boolean).join(' · ')}
-            </div>
-          )}
-          {book.note && <div className="mt-2 text-xs text-muted leading-relaxed">{book.note}</div>}
+    <div className="rounded-t-xl flex items-center justify-center" style={{ width, height, background: 'var(--surface2)' }}>
+      <div style={{ width: 40, height: 52, borderRadius: 4, border: '2px solid rgba(58,123,213,0.35)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: '15%', height: 2, background: 'rgba(58,123,213,0.55)', animation: 'bookScan 2.2s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 4, animation: 'bookPulse 2.2s ease-in-out infinite' }} />
+      </div>
+      <style>{`
+        @keyframes bookScan { 0%{top:15%} 50%{top:80%} 100%{top:15%} }
+        @keyframes bookPulse { 0%,100%{opacity:.35} 50%{opacity:.8} }
+      `}</style>
+    </div>
+  );
+}
+
+function BookCard({ book, onEdit, onDelete, onMoveTo }) {
+  const cacheKey = book.name + '|' + (book.author || '');
+  const [cover, setCover] = useState(bookCoverCache[cacheKey] ?? null);
+
+  useEffect(() => {
+    if (cover) return;
+    fetchBookCover(book.name, book.author).then(url => { if (url) setCover(url); });
+  }, [book.name, book.author]);
+
+  return (
+    <div className="card group" style={{ width: 170 }}>
+      {cover
+        ? <img src={cover} alt={book.name} className="rounded-t-xl block" style={{ width: 170, height: 250, objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
+        : <BookCoverPlaceholder width={170} height={250} />
+      }
+      <div className="p-3">
+        <div className="font-medium text-sm text-text truncate">{book.name}</div>
+        <div className="text-xs text-muted mt-0.5">
+          {[book.author, book.pages ? book.pages + ' sf.' : ''].filter(Boolean).join(' · ')}
         </div>
-        <div className="flex gap-1 flex-shrink-0">
+        {(book.start || book.end) && (
+          <div className="text-xs text-muted mt-0.5">
+            {[book.start ? 'Başlangıç: ' + fmtDate(book.start) : '', book.end ? 'Bitiş: ' + fmtDate(book.end) : ''].filter(Boolean).join(' · ')}
+          </div>
+        )}
+        {book.note && <div className="mt-2 text-xs text-muted leading-relaxed border-t border-border pt-2">{book.note}</div>}
+        <div className="flex gap-1 justify-end mt-2">
           {onMoveTo && (
             <button onClick={onMoveTo} className="text-[13px] text-[#237F52] opacity-80 bg-transparent border-0 cursor-pointer px-1" title="Okudum">✓</button>
           )}
@@ -197,7 +223,7 @@ export default function Books() {
           {sorted.length === 0 ? (
             <div className="empty-state"><div className="text-3xl opacity-30 mb-3">📚</div>Henüz kitap eklemediniz</div>
           ) : (
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+            <div className="flex flex-wrap gap-3 justify-center">
               {sorted.map(({ b, i }) => (
                 <BookCard
                   key={i} book={b}
@@ -231,7 +257,7 @@ export default function Books() {
           {rl.length === 0 ? (
             <div className="empty-state"><div className="text-3xl opacity-30 mb-3">📚</div>Okuyacak kitap listesi boş</div>
           ) : (
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+            <div className="flex flex-wrap gap-3 justify-center">
               {rl.map((b, i) => (
                 <BookCard
                   key={i} book={b}
