@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtDate, OMDB_KEY, fetchBookCover, bookCoverCache } from '../../lib/utils';
+import { fmtDate, OMDB_KEY, fetchBookInfo, bookInfoCache, isCoverLikelyBlank } from '../../lib/utils';
 
 async function autoFillBookInfo(name) {
   try {
@@ -15,14 +15,17 @@ async function autoFillBookInfo(name) {
 }
 
 function BookForm({ book, onSave, onCancel }) {
-  const [form, setForm] = useState({ name: '', author: '', pages: '', start: '', end: '', note: '', ...book });
+  const [form, setForm] = useState({ name: '', author: '', pages: '', start: '', end: '', note: '', old: false, ...book });
   const [loading, setLoading] = useState(false);
 
   const autoFill = async () => {
     if (!form.name.trim()) return;
     setLoading(true);
     const info = await autoFillBookInfo(form.name);
-    if (info.author) setForm(f => ({ ...f, author: info.author, pages: info.pages || f.pages }));
+    const author = info.author || form.author;
+    if (info.author) setForm(f => ({ ...f, author: info.author }));
+    const gInfo = await fetchBookInfo(form.name, author);
+    setForm(f => ({ ...f, pages: gInfo.pages || info.pages || f.pages }));
     setLoading(false);
   };
 
@@ -44,15 +47,43 @@ function BookForm({ book, onSave, onCancel }) {
           <label className="form-label">Sayfa</label>
           <input type="number" className="form-input" value={form.pages} onChange={e => setForm(f => ({...f, pages: e.target.value}))} placeholder="300" />
         </div>
-        <div>
-          <label className="form-label">Başlangıç</label>
-          <input type="date" className="form-input" value={form.start} onChange={e => setForm(f => ({...f, start: e.target.value}))} />
-        </div>
-        <div>
-          <label className="form-label">Bitiş</label>
-          <input type="date" className="form-input" value={form.end} onChange={e => setForm(f => ({...f, end: e.target.value}))} />
-        </div>
+        {!form.old && (
+          <>
+            <div>
+              <label className="form-label">Başlangıç</label>
+              <input type="date" className="form-input" value={form.start} onChange={e => setForm(f => ({...f, start: e.target.value}))} />
+            </div>
+            <div>
+              <label className="form-label">Bitiş</label>
+              <input type="date" className="form-input" value={form.end} onChange={e => setForm(f => ({...f, end: e.target.value}))} />
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Eskiden okudum toggle */}
+      <div className="mb-3">
+        <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+          <div
+            onClick={() => setForm(f => ({ ...f, old: !f.old, start: !f.old ? '' : f.start, end: !f.old ? '' : f.end }))}
+            style={{
+              width: 36, height: 20, borderRadius: 10,
+              background: form.old ? 'rgba(58,123,213,0.5)' : 'rgba(255,255,255,0.1)',
+              border: `1px solid ${form.old ? '#3a7bd5' : 'rgba(255,255,255,0.15)'}`,
+              position: 'relative', transition: 'all 0.2s', flexShrink: 0,
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: 2, left: form.old ? 17 : 2,
+              width: 14, height: 14, borderRadius: '50%',
+              background: form.old ? '#3a7bd5' : 'rgba(255,255,255,0.4)',
+              transition: 'all 0.2s',
+            }} />
+          </div>
+          <span className="text-xs text-muted">Eskiden okudum (tarihi hatırlamıyorum)</span>
+        </label>
+      </div>
+
       <div className="mb-3">
         <label className="form-label">Notlarım</label>
         <textarea className="form-input resize-y min-h-[75px]" value={form.note||''} onChange={e => setForm(f => ({...f, note: e.target.value}))} placeholder="Kitap hakkında düşüncelerim..." />
@@ -83,29 +114,41 @@ function BookCoverPlaceholder({ width, height }) {
 
 function BookCard({ book, onEdit, onDelete, onMoveTo }) {
   const cacheKey = book.name + '|' + (book.author || '');
-  const [cover, setCover] = useState(bookCoverCache[cacheKey] ?? null);
+  const cached = bookInfoCache[cacheKey];
+  const [info, setInfo] = useState(cached || { cover: null, pages: null });
+  const [coverFailed, setCoverFailed] = useState(false);
 
   useEffect(() => {
-    if (cover) return;
-    fetchBookCover(book.name, book.author).then(url => { if (url) setCover(url); });
+    if (cached) return;
+    fetchBookInfo(book.name, book.author).then(setInfo);
   }, [book.name, book.author]);
 
+  useEffect(() => {
+    if (!info.cover || coverFailed) return;
+    isCoverLikelyBlank(info.cover).then(blank => { if (blank) setCoverFailed(true); });
+  }, [info.cover]);
+
+  const pages = book.pages || info.pages;
+
   return (
-    <div className="card group" style={{ width: 170 }}>
-      {cover
-        ? <img src={cover} alt={book.name} className="rounded-t-xl block" style={{ width: 170, height: 250, objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
-        : <BookCoverPlaceholder width={170} height={250} />
+    <div className="card group" style={{ width: 275 }}>
+      {info.cover && !coverFailed
+        ? <img src={info.cover} alt={book.name} className="rounded-t-xl block" style={{ width: 275, height: 388, objectFit: 'cover', objectPosition: 'center top', display: 'block' }} onError={() => setCoverFailed(true)} />
+        : <BookCoverPlaceholder width={275} height={388} />
       }
       <div className="p-3">
         <div className="font-medium text-sm text-text truncate">{book.name}</div>
         <div className="text-xs text-muted mt-0.5">
-          {[book.author, book.pages ? book.pages + ' sf.' : ''].filter(Boolean).join(' · ')}
+          {[book.author, pages ? pages + ' sf.' : ''].filter(Boolean).join(' · ')}
         </div>
-        {(book.start || book.end) && (
-          <div className="text-xs text-muted mt-0.5">
-            {[book.start ? 'Başlangıç: ' + fmtDate(book.start) : '', book.end ? 'Bitiş: ' + fmtDate(book.end) : ''].filter(Boolean).join(' · ')}
-          </div>
-        )}
+        {book.old
+          ? <div className="text-xs mt-0.5" style={{ color: 'rgba(232,237,245,0.3)', fontStyle: 'italic' }}>eskiden okudum</div>
+          : (book.start || book.end) && (
+            <div className="text-xs text-muted mt-0.5">
+              {[book.start ? 'Başlangıç: ' + fmtDate(book.start) : '', book.end ? 'Bitiş: ' + fmtDate(book.end) : ''].filter(Boolean).join(' · ')}
+            </div>
+          )
+        }
         {book.note && <div className="mt-2 text-xs text-muted leading-relaxed border-t border-border pt-2">{book.note}</div>}
         <div className="flex gap-1 justify-end mt-2">
           {onMoveTo && (
@@ -165,11 +208,14 @@ export default function Books() {
   const rl = db.rl || [];
   const refreshRl = () => {};
 
-  const sorted = [...(db.b || [])].map((b, i) => ({ b, i })).sort((a, b) => {
+  // Tarihli kitaplar yeniden eskiye, "eskiden" olanlar en sona
+  const allBooks = [...(db.b || [])].map((b, i) => ({ b, i }));
+  const datedBooks = allBooks.filter(({ b }) => !b.old).sort((a, b) => {
     const da = a.b.end || a.b.start || ''; const db2 = b.b.end || b.b.start || '';
     if (da && db2) return db2.localeCompare(da);
     if (da) return -1; if (db2) return 1; return 0;
   });
+  const oldBooks = allBooks.filter(({ b }) => b.old);
 
   const handleSaveBook = (form) => {
     if (editingBook !== null) { updateBook(editingBook, form); setEditingBook(null); }
@@ -220,18 +266,42 @@ export default function Books() {
             />
           )}
 
-          {sorted.length === 0 ? (
+          {datedBooks.length === 0 && oldBooks.length === 0 ? (
             <div className="empty-state"><div className="text-3xl opacity-30 mb-3">📚</div>Henüz kitap eklemediniz</div>
           ) : (
-            <div className="flex flex-wrap gap-3 justify-center">
-              {sorted.map(({ b, i }) => (
-                <BookCard
-                  key={i} book={b}
-                  onEdit={() => { setEditingBook(i); setShowForm(true); }}
-                  onDelete={() => { if (confirm('Silinsin mi?')) deleteBook(i); }}
-                />
-              ))}
-            </div>
+            <>
+              {datedBooks.length > 0 && (
+                <div className="flex flex-wrap gap-3 justify-center mb-6">
+                  {datedBooks.map(({ b, i }) => (
+                    <BookCard
+                      key={i} book={b}
+                      onEdit={() => { setEditingBook(i); setShowForm(true); }}
+                      onDelete={() => { if (confirm('Silinsin mi?')) deleteBook(i); }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {oldBooks.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-xs px-3 py-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(232,237,245,0.35)' }}>
+                      Eskiden okuduklarım · {oldBooks.length} kitap
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                  </div>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {oldBooks.map(({ b, i }) => (
+                      <BookCard
+                        key={i} book={b}
+                        onEdit={() => { setEditingBook(i); setShowForm(true); }}
+                        onDelete={() => { if (confirm('Silinsin mi?')) deleteBook(i); }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookCover, bookCoverCache, wxc, buildWeatherAlerts } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookInfo, bookInfoCache, extractSpineColors, spineColorCache, wxc, buildWeatherAlerts } from '../../lib/utils';
 
 function useElementSize() {
   const ref = useRef(null);
@@ -552,29 +552,70 @@ function ChainWidget({ chains, onNavigate, size }) {
 // ── KİTAPLAR ─────────────────────────────────────────────────────────────
 // Kapak bulunursa gerçek kapaktan kırpılmış dar bir "sırt" gösterir (genişlik sayfa sayısına göre değişken kalır),
 // bulunamazsa mevcut renkli/isimli SVG sırta düşer.
-function BookSpine({ spine, book }) {
+// Sayfa sayısına göre sırt genişliği/yüksekliği ve başlık metnini hesaplar
+function computeSpineGeom(name, pages, { minP, maxP, minH, maxH, minW, maxW }) {
+  const p = pages || 200;
+  const r = Math.min(1, Math.max(0, (p - minP) / (maxP - minP)));
+  const W = Math.round(minW + r * (maxW - minW));
+  const H = Math.round(minH + r * (maxH - minH));
+  const fs = Math.max(7, Math.min(W * 0.32, 16));
+  const lineH = fs * 1.4, maxTW = H - 14;
+  const words = name.split(' ');
+  const lines = []; let cur = '';
+  const cpp = Math.floor(maxTW / (fs * 0.58));
+  words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (t.length <= cpp) { cur = t; } else { if (cur) lines.push(cur); cur = w; } });
+  if (cur) lines.push(cur);
+  const totalTH = lines.length * lineH;
+  const startY = H / 2 - totalTH / 2 + fs * 0.85;
+  const tspans = lines.map((l, i) => `<tspan x="${W/2}" y="${startY + i*lineH}">${l}</tspan>`).join('');
+  return { W, H, fs, tspans };
+}
+
+// Gerçek kitap sırtı fotoğrafı hiçbir ücretsiz kaynakta yok (yayınevleri sadece ön kapak sağlıyor).
+// Bu yüzden kalınlığı sayfa sayısına göre değişen, renkli + başlık etiketli bir sırt çiziyoruz —
+// gerçek bir kitapçı rafındaki sırt etiketiyle aynı mantık.
+function BookSpine({ book, geomParams, color, isReading }) {
   const cacheKey = book.name + '|' + (book.author || '');
-  const [cover, setCover] = useState(bookCoverCache[cacheKey] ?? null);
+  const cached = bookInfoCache[cacheKey];
+  const [info, setInfo] = useState(cached || { cover: null, pages: null });
   useEffect(() => {
-    if (cover) return;
-    fetchBookCover(book.name, book.author).then(url => { if (url) setCover(url); });
+    if (cached) return;
+    fetchBookInfo(book.name, book.author).then(setInfo);
   }, [book.name, book.author]);
 
-  const { W, H, color, tspans, fs, isReading, name } = spine;
-  const hoverIn = e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.filter = 'brightness(1.3)'; };
+  const cachedSpine = info.cover ? spineColorCache[info.cover] : undefined;
+  const [spineColors, setSpineColors] = useState(cachedSpine ?? null);
+  useEffect(() => {
+    if (!info.cover) return;
+    if (cachedSpine !== undefined) return;
+    extractSpineColors(info.cover).then(setSpineColors);
+  }, [info.cover]);
+
+  const pages = parseInt(book.pages) || info.pages || 200;
+  const { W, H, fs, tspans } = computeSpineGeom(book.name, pages, geomParams);
+  const hoverIn = e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.filter = 'brightness(1.15)'; };
   const hoverOut = e => { e.currentTarget.style.transform = ''; e.currentTarget.style.filter = ''; };
 
-  if (cover) {
+  // Kapaktan renk çıkarılabildiyse: baskınlık oranına göre iki bantlı sırt
+  if (spineColors) {
+    const { colorA, colorB, ratioA, textOnA } = spineColors;
+    const titleFs = Math.max(9, Math.min(W * 0.34, 14));
     return (
-      <img src={cover} alt={name} title={name}
-        style={{ width: W, height: H, objectFit: 'cover', objectPosition: 'left center', borderRadius: 3, flexShrink: 0, cursor: 'pointer', display: 'block', outline: isReading ? '1.5px solid rgba(255,255,255,0.3)' : 'none', transition: 'transform .2s, filter .2s' }}
-        onMouseEnter={hoverIn} onMouseLeave={hoverOut} />
+      <div title={book.name} onMouseEnter={hoverIn} onMouseLeave={hoverOut}
+        style={{ width: W, height: H, borderRadius: 3, overflow: 'hidden', flexShrink: 0, cursor: 'pointer', transition: 'transform .2s, filter .2s', display: 'flex', flexDirection: 'column', outline: isReading ? '1.5px solid rgba(255,255,255,0.3)' : 'none' }}>
+        <div style={{ flex: `0 0 ${ratioA}%`, minHeight: 0, background: colorA, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ writingMode: 'vertical-rl', color: textOnA, fontSize: titleFs, fontWeight: 500, fontFamily: 'system-ui,sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxHeight: '100%' }}>{book.name}</span>
+        </div>
+        <div style={{ flex: 1, minHeight: 0, background: colorB }} />
+      </div>
     );
   }
+
+  // Kapak yok ya da renk çıkarılamadıysa (CORS engeli vb.): sabit renkli eski sırt
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}
       style={{ flexShrink: 0, borderRadius: 3, cursor: 'pointer', transition: 'transform .2s,filter .2s', display: 'block', background: color, outline: isReading ? '1.5px solid rgba(255,255,255,0.3)' : 'none' }}
-      title={name} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+      title={book.name} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
       <text transform={`rotate(-90 ${W/2} ${H/2})`} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontSize={fs} fontFamily="system-ui,sans-serif" fontWeight="500" dangerouslySetInnerHTML={{__html: tspans}} />
     </svg>
   );
@@ -596,25 +637,10 @@ function BookWidget({ books, onNavigate, size }) {
   const minP=80,maxP=1400;
   const maxH = Math.round(stripH);
   const minH = Math.round(maxH * 0.6);
-  const minW = Math.round(minH * (24/75));
-  const maxW = Math.round(maxH * (46/125));
+  const minW = Math.round(minH * (30/75));   // aşırı ince görünmesin diye artırıldı
+  const maxW = Math.round(maxH * (52/125));
+  const geomParams = { minP, maxP, minH, maxH, minW, maxW };
   const readCount = books.length;
-  const spines = books.map(b=>{
-    const p=parseInt(b.pages)||200;
-    const r=Math.min(1,Math.max(0,(p-minP)/(maxP-minP)));
-    const W=Math.round(minW+r*(maxW-minW)), H=Math.round(minH+r*(maxH-minH));
-    const fs=Math.max(7,Math.min(W*0.32, 16));
-    const lineH=fs*1.4, maxTW=H-14;
-    const words=b.name.split(' ');
-    const lines=[];let cur='';
-    const cpp=Math.floor(maxTW/(fs*0.58));
-    words.forEach(w=>{ const t=cur?cur+' '+w:w; if(t.length<=cpp){cur=t;}else{if(cur)lines.push(cur);cur=w;} });
-    if(cur)lines.push(cur);
-    const totalTH=lines.length*lineH;
-    const startY=H/2-totalTH/2+fs*0.85;
-    const tspans=lines.map((l,i)=>`<tspan x="${W/2}" y="${startY+i*lineH}">${l}</tspan>`).join('');
-    return {W,H,color:b.color||'#2a3a5a',tspans,fs,isReading:b.status==='reading',name:b.name};
-  });
 
   return (
     <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors overflow-hidden h-full w-full flex flex-col">
@@ -625,7 +651,7 @@ function BookWidget({ books, onNavigate, size }) {
       {books.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Kitap yok</div>
         : <div ref={stripRef} style={{display:'flex',alignItems:'flex-end',gap:4,flex:1,minHeight:0,overflowX:'auto',paddingBottom:4,borderBottom:'1px solid rgba(255,255,255,0.05)',scrollbarWidth:'none'}}>
-            {spines.map((s,i)=>(<BookSpine key={i} spine={s} book={books[i]} />))}
+            {books.map((b,i)=>(<BookSpine key={i} book={b} geomParams={geomParams} color={b.color||'#2a3a5a'} isReading={b.status==='reading'} />))}
           </div>
       }
     </div>

@@ -146,9 +146,9 @@ export function fetchSeriesPoster(name) {
   return p;
 }
 
-// ── KİTAP KAPAĞI — Google Books (Books.jsx ve Home.jsx ortak kullanır) ───
-export const bookCoverCache = {};
-const bookCoverInFlight = {};
+// ── KİTAP KAPAĞI + SAYFA SAYISI — Google Books (Books.jsx ve Home.jsx ortak kullanır) ───
+export const bookInfoCache = {};
+const bookInfoInFlight = {};
 
 function normalizeTr(s) {
   return s
@@ -162,21 +162,53 @@ function normalizeTr(s) {
 
 const GOOGLE_BOOKS_KEY = 'AIzaSyDEwMWaEbg8J6OAzfM-IwIRyhCqg2HCYzU';
 
-export function fetchBookCover(name, author) {
-  const key = name + '|' + (author || '');
-  if (key in bookCoverCache) return Promise.resolve(bookCoverCache[key]);
-  if (bookCoverInFlight[key]) return bookCoverInFlight[key];
+// Google'ın döndürdüğü küçük thumbnail'ı yüksek çözünürlüğe çeker (zoom değerini artırır, kıvrım efektini kaldırır)
+function upscaleCover(url) {
+  if (!url) return null;
+  // zoom=3 bazı eski taramalarda desteklenmiyor ve görseli kırıyor; zoom=2 daha güvenli ve yine de zoom=1'den net
+  return url.replace('http://', 'https://').replace(/zoom=\d/, 'zoom=2').replace(/&edge=curl/, '');
+}
 
-  const pickCover = (data) => {
-    const item = (data.items || []).find(it => it.volumeInfo?.imageLinks?.thumbnail || it.volumeInfo?.imageLinks?.smallThumbnail);
-    const img = item?.volumeInfo?.imageLinks;
-    const thumb = img?.thumbnail || img?.smallThumbnail;
-    return thumb ? thumb.replace('http://', 'https://') : null;
+// Bir sonuç listesinden hem kapağı hem sayfa sayısını çıkarır
+function pickInfo(data) {
+  const items = data.items || [];
+  const withCover = items.find(it => it.volumeInfo?.imageLinks?.thumbnail || it.volumeInfo?.imageLinks?.smallThumbnail);
+  const item = withCover || items[0];
+  if (!item) return { cover: null, pages: null };
+  const img = item.volumeInfo?.imageLinks;
+  const thumb = img?.thumbnail || img?.smallThumbnail;
+  return { cover: upscaleCover(thumb), pages: item.volumeInfo?.pageCount || null };
+}
+
+// Aynı anda çok fazla Google Books isteği gönderilirse Google bazen 503 döndürüyor —
+// istekleri sıraya koyup aralarına gecikme bırakıyoruz, ayrıca 503 gelirse otomatik tekrar deniyoruz.
+// (Google Books API'de saniyelik gizli bir hız sınırı var, günlük kotayla ilgisi yok — bu yüzden
+// bekleme süreleri kısa dosya boyutuna göre değil, bu limite göre ayarlanmış durumda.)
+let _googleBooksQueue = Promise.resolve();
+function queuedGoogleFetch(url) {
+  const run = async () => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const res = await fetch(url);
+      if (res.status === 503 && attempt < 3) {
+        await new Promise(r => setTimeout(r, 2500 * (attempt + 1)));
+        continue;
+      }
+      return res.json();
+    }
   };
+  const result = _googleBooksQueue.then(run, run);
+  _googleBooksQueue = result.catch(() => {}).then(() => new Promise(res => setTimeout(res, 2000)));
+  return result;
+}
 
-  const searchGoogle = (q) => fetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&key=${GOOGLE_BOOKS_KEY}`).then(r => r.json());
+export function fetchBookInfo(name, author) {
+  const key = name + '|' + (author || '');
+  if (key in bookInfoCache) return Promise.resolve(bookInfoCache[key]);
+  if (bookInfoInFlight[key]) return bookInfoInFlight[key];
 
-  // Google'da hiç kapak yoksa son çare: Open Library, ISBN üzerinden.
+  const searchGoogle = (q) => queuedGoogleFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&key=${GOOGLE_BOOKS_KEY}`);
+
+  // Google'da hiç kapak yoksa son çare: Open Library, ISBN üzerinden (sadece kapak, sayfa sayısı bu yoldan gelmez).
   // Open Library kapağı olmayan ISBN'lerde çok küçük bir placeholder görsel döndürür,
   // bunu content-length'e bakarak eliyoruz.
   const tryOpenLibrary = async (title) => {
@@ -186,42 +218,179 @@ export function fetchBookCover(name, author) {
       for (const doc of data.docs || []) {
         const isbn = doc.isbn?.[0];
         if (!isbn) continue;
-        const url = `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`;
+        const url = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
         const head = await fetch(url, { method: 'HEAD' }).catch(() => null);
         const len = parseInt(head?.headers?.get('content-length') || '0');
-        if (head?.ok && len > 2000) return url;
+        if (head?.ok && len > 2000) return { cover: url, pages: doc.number_of_pages_median || null };
       }
     } catch {}
-    return null;
+    return { cover: null, pages: null };
   };
 
   const p = (async () => {
     try {
-      let url = null;
+      let info = { cover: null, pages: null };
       if (author) {
-        url = pickCover(await searchGoogle(`intitle:${encodeURIComponent(name)}+inauthor:${encodeURIComponent(author)}`));
+        info = pickInfo(await searchGoogle(`intitle:${encodeURIComponent(name)}+inauthor:${encodeURIComponent(author)}`));
       }
-      if (!url) {
-        url = pickCover(await searchGoogle(`intitle:${encodeURIComponent(name)}`));
+      if (!info.cover) {
+        const info2 = pickInfo(await searchGoogle(`intitle:${encodeURIComponent(name)}`));
+        info = { cover: info2.cover || info.cover, pages: info.pages || info2.pages };
       }
-      if (!url) {
+      if (!info.cover) {
         const norm = normalizeTr(name);
-        if (norm !== name) url = pickCover(await searchGoogle(`intitle:${encodeURIComponent(norm)}`));
+        if (norm !== name) {
+          const info3 = pickInfo(await searchGoogle(`intitle:${encodeURIComponent(norm)}`));
+          info = { cover: info3.cover || info.cover, pages: info.pages || info3.pages };
+        }
       }
-      if (!url) {
-        url = await tryOpenLibrary(name);
+      if (!info.cover) {
+        const info4 = await tryOpenLibrary(name);
+        info = { cover: info4.cover || info.cover, pages: info.pages || info4.pages };
       }
-      bookCoverCache[key] = url;
-      return url;
+      bookInfoCache[key] = info;
+      return info;
     } catch {
-      bookCoverCache[key] = null;
-      return null;
+      // Geçici hata (503, ağ vb.) — kalıcı önbelleğe YAZMIYORUZ ki sonraki mount tekrar denesin
+      return { cover: null, pages: null };
     } finally {
-      delete bookCoverInFlight[key];
+      delete bookInfoInFlight[key];
     }
   })();
-  bookCoverInFlight[key] = p;
+  bookInfoInFlight[key] = p;
   return p;
+}
+
+// ── SIRT RENGİ — kapaktan otomatik baskın 2 renk + oranını çıkarır (Home.jsx kullanır) ───
+export const spineColorCache = {};
+const spineColorInFlight = {};
+
+function relLuminance(r, g, b) {
+  const a = [r, g, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+}
+
+const toHex = (r, g, b) => '#' + [r, g, b].map(v => Math.min(255, Math.max(0, v)).toString(16).padStart(2, '0')).join('');
+
+// Kapak görseli CORS izni vermiyorsa canvas "tainted" olur ve getImageData hata fırlatır —
+// bu durumda null dönüp Home.jsx'teki sabit renkli sırta düşülür, sayfa kırılmaz.
+export function extractSpineColors(coverUrl) {
+  if (!coverUrl) return Promise.resolve(null);
+  if (coverUrl in spineColorCache) return Promise.resolve(spineColorCache[coverUrl]);
+  if (spineColorInFlight[coverUrl]) return spineColorInFlight[coverUrl];
+
+  const p = new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const W = 24, H = 32;
+        const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        const targetRatio = W / H;
+        const srcRatio = iw / ih;
+        let sx, sy, sw, sh;
+        if (srcRatio > targetRatio) { sh = ih; sw = ih * targetRatio; sx = (iw - sw) / 2; sy = 0; }
+        else { sw = iw; sh = iw / targetRatio; sx = 0; sy = (ih - sh) / 2; }
+        // Kenarlardaki olası ince beyaz boşluğu/çerçeveyi de dışarıda bırakmak için %8 içeri kırp
+        const insetX = sw * 0.08, insetY = sh * 0.08;
+        sx += insetX; sy += insetY; sw -= insetX * 2; sh -= insetY * 2;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+        const data = ctx.getImageData(0, 0, W, H).data;
+
+        // Renkleri 32'lik kovalara yuvarlayıp frekans sayıyoruz
+        const buckets = new Map();
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 200) continue; // saydam pikselleri atla
+          const r = Math.round(data[i] / 32) * 32;
+          const g = Math.round(data[i + 1] / 32) * 32;
+          const b = Math.round(data[i + 2] / 32) * 32;
+          const key = `${r},${g},${b}`;
+          buckets.set(key, (buckets.get(key) || 0) + 1);
+        }
+        const sorted = [...buckets.entries()].sort((a, b) => b[1] - a[1]);
+        if (sorted.length === 0) { spineColorCache[coverUrl] = null; resolve(null); return; }
+
+        // Saf beyaz/siyah genelde kapaktaki başlık yazısıdır, arka plan rengi değil — mümkünse hariç tut
+        const isTextLike = (r, g, b) => (r > 245 && g > 245 && b > 245) || (r < 12 && g < 12 && b < 12);
+        let candidates = sorted.filter(([k]) => { const [r, g, b] = k.split(',').map(Number); return !isTextLike(r, g, b); });
+        if (candidates.length < 2) candidates = sorted; // gerçekten düz siyah/beyaz kapaksa filtreleme devre dışı
+
+        const [k1, c1] = candidates[0];
+        const [r1, g1, b1] = k1.split(',').map(Number);
+        let k2 = null, c2 = 0;
+        for (let i = 1; i < candidates.length; i++) {
+          const [kk, cc] = candidates[i];
+          const [r2, g2, b2] = kk.split(',').map(Number);
+          const dist = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+          if (dist > 60) { k2 = kk; c2 = cc; break; } // ikinci renk yeterince farklı olmalı
+        }
+        const [r2, g2, b2] = k2 ? k2.split(',').map(Number) : [r1, g1, b1];
+
+        const total = c1 + c2 || 1;
+        let ratioA = Math.round((c1 / total) * 100);
+        ratioA = Math.min(80, Math.max(20, ratioA)); // aşırı ince/kalın bant olmasın
+
+        const colorA = toHex(r1, g1, b1), colorB = toHex(r2, g2, b2);
+        const result = {
+          colorA, colorB, ratioA,
+          textOnA: relLuminance(r1, g1, b1) > 0.45 ? '#20242c' : '#f2ede2',
+          textOnB: relLuminance(r2, g2, b2) > 0.45 ? '#20242c' : '#f2ede2',
+        };
+        spineColorCache[coverUrl] = result;
+        resolve(result);
+      } catch {
+        spineColorCache[coverUrl] = null;
+        resolve(null);
+      } finally {
+        delete spineColorInFlight[coverUrl];
+      }
+    };
+    img.onerror = () => {
+      spineColorCache[coverUrl] = null;
+      delete spineColorInFlight[coverUrl];
+      resolve(null);
+    };
+    // Google'ın kapak sunucusu CORS izni vermiyor; wsrv.nl görseli CORS başlığıyla yeniden sunuyor
+    img.src = `https://wsrv.nl/?url=${encodeURIComponent(coverUrl)}&w=48&h=64&fit=cover`;
+  });
+  spineColorInFlight[coverUrl] = p;
+  return p;
+}
+
+// Google bazı kitaplar için (bölge/lisans kısıtı vb.) 200 döner ama içeriği "image not available"
+// yazan sahte bir görseldir — onError bunu yakalayamaz çünkü yükleme teknik olarak başarılıdır.
+// Görsel neredeyse tamamen beyazsa (gerçek kapaklarda nadir) sahte kabul ediyoruz.
+export function isCoverLikelyBlank(coverUrl) {
+  if (!coverUrl) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const W = 16, H = 16;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, W, H);
+        const data = ctx.getImageData(0, 0, W, H).data;
+        let lightCount = 0, total = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 200) continue;
+          total++;
+          if (data[i] > 205 && data[i + 1] > 205 && data[i + 2] > 205) lightCount++;
+        }
+        resolve(total > 0 && (lightCount / total) > 0.88);
+      } catch {
+        resolve(false); // emin değilsek kapağı geçerli say
+      }
+    };
+    img.onerror = () => resolve(false); // gerçek ağ hatası zaten onError ile ayrı ele alınıyor
+    img.src = `https://wsrv.nl/?url=${encodeURIComponent(coverUrl)}&w=16&h=16&fit=cover`;
+  });
 }
 
 // ── HAVA DURUMU KODU → İKON/RENK (Weather.jsx ile aynı WMO eşlemesi) ─────
