@@ -5,8 +5,11 @@ import { fmtDate, OMDB_KEY, fetchPoster, posterCache } from '../../lib/utils';
 function FilmCard({ film, onEdit, onDelete, onMoveTo }) {
   const [poster, setPoster] = useState(posterCache[film.name] ?? null);
 
+  // film.name değişirse (örn. React kartı farklı bir kayıt için yeniden kullanırsa) eski afiş
+  // görünümde takılı kalmasın diye önce sıfırlanır, sonra cache'ten/API'den yeniden doldurulur.
   useEffect(() => {
-    if (poster) return;
+    setPoster(posterCache[film.name] ?? null);
+    if (posterCache[film.name]) return;
     fetchPoster(film.name).then(url => { if (url) setPoster(url); });
   }, [film.name]);
 
@@ -228,7 +231,7 @@ export default function Films() {
                 <div className="flex flex-wrap gap-3 justify-center mb-6">
                   {datedFilms.map(({ f, i }) => (
                     <FilmCard
-                      key={i} film={f}
+                      key={f.id ?? i} film={f}
                       onEdit={() => { setEditingFilm(i); setShowForm(true); }}
                       onDelete={() => { if (confirm('Silinsin mi?')) deleteFilm(i); }}
                     />
@@ -247,7 +250,7 @@ export default function Films() {
                   <div className="flex flex-wrap gap-3 justify-center">
                     {oldFilms.map(({ f, i }) => (
                       <FilmCard
-                        key={i} film={f}
+                        key={f.id ?? i} film={f}
                         onEdit={() => { setEditingFilm(i); setShowForm(true); }}
                         onDelete={() => { if (confirm('Silinsin mi?')) deleteFilm(i); }}
                       />
@@ -284,7 +287,7 @@ export default function Films() {
             <div className="flex flex-wrap gap-3 justify-center">
               {wl.map((f, i) => (
                 <FilmCard
-                  key={i} film={f}
+                  key={f.id ?? i} film={f}
                   onEdit={() => { setEditingWl(i); setShowWlForm(true); }}
                   onDelete={() => { const list = getWatchlist(); list.splice(i, 1); setWatchlist(list); refreshWl(); }}
                   onMoveTo={() => moveToWatched(i)}

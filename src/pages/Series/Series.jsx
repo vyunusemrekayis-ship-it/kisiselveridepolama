@@ -28,8 +28,11 @@ function EmptyStateIcon() {
 function SeriesCard({ serie, onEdit, onDelete, onMoveTo }) {
   const [poster, setPoster] = useState(seriesPosterCache[serie.name] ?? null);
 
+  // serie.name değişirse (örn. React kartı farklı bir kayıt için yeniden kullanırsa) eski afiş
+  // görünümde takılı kalmasın diye önce sıfırlanır, sonra cache'ten/API'den yeniden doldurulur.
   useEffect(() => {
-    if (poster) return;
+    setPoster(seriesPosterCache[serie.name] ?? null);
+    if (seriesPosterCache[serie.name]) return;
     fetchSeriesPoster(serie.name).then(url => { if (url) setPoster(url); });
   }, [serie.name]);
 
@@ -252,7 +255,7 @@ export default function Series() {
                 <div className="flex flex-wrap gap-3 justify-center mb-6">
                   {datedSeries.map(({ f, i }) => (
                     <SeriesCard
-                      key={i} serie={f}
+                      key={f.id ?? i} serie={f}
                       onEdit={() => { setEditingSeries(i); setShowForm(true); }}
                       onDelete={() => { if (confirm('Silinsin mi?')) deleteSeries(i); }}
                     />
@@ -271,7 +274,7 @@ export default function Series() {
                   <div className="flex flex-wrap gap-3 justify-center">
                     {oldSeries.map(({ f, i }) => (
                       <SeriesCard
-                        key={i} serie={f}
+                        key={f.id ?? i} serie={f}
                         onEdit={() => { setEditingSeries(i); setShowForm(true); }}
                         onDelete={() => { if (confirm('Silinsin mi?')) deleteSeries(i); }}
                       />
@@ -308,7 +311,7 @@ export default function Series() {
             <div className="flex flex-wrap gap-3 justify-center">
               {wl.map((f, i) => (
                 <SeriesCard
-                  key={i} serie={f}
+                  key={f.id ?? i} serie={f}
                   onEdit={() => { setEditingWl(i); setShowWlForm(true); }}
                   onDelete={() => { const list = getSeriesWatchlist(); list.splice(i, 1); setSeriesWatchlist(list); refreshWl(); }}
                   onMoveTo={() => moveToWatched(i)}

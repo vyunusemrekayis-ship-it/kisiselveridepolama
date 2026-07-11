@@ -6,6 +6,21 @@ const defaultDb = {
   f: [], b: [], g: [], s: [], wl: [], rl: [], sr: [], srwl: [],
 };
 
+// Kalıcı benzersiz id üretir — afiş/kart karışması (React key kayması) sorununu önlemek için
+function makeId() {
+  return `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+// Eski kayıtlarda (id alanı olmayan) id eksikse tamamlar, değişiklik varsa true döner
+function ensureIds(arr) {
+  let changed = false;
+  const next = (arr || []).map(item => {
+    if (item && !item.id) { changed = true; return { ...item, id: makeId() }; }
+    return item;
+  });
+  return { next, changed };
+}
+
 function loadDb() {
   try {
     const db = { ...defaultDb, ...JSON.parse(localStorage.getItem(SK) || '{}') };
@@ -16,6 +31,13 @@ function loadDb() {
         if (old.b?.length > 0 && (!db.rl || db.rl.length === 0)) db.rl = old.b;
       } catch {}
     }
+    // Migrasyon: film/dizi/kitap kayıtlarına kalıcı id ata (yoksa)
+    let anyChanged = false;
+    const sr = ensureIds(db.sr); if (sr.changed) anyChanged = true;
+    const f = ensureIds(db.f); if (f.changed) anyChanged = true;
+    const b = ensureIds(db.b); if (b.changed) anyChanged = true;
+    db.sr = sr.next; db.f = f.next; db.b = b.next;
+    if (anyChanged) localStorage.setItem(SK, JSON.stringify(db));
     return db;
   } catch { return defaultDb; }
 }
@@ -164,20 +186,20 @@ export const useStore = create((set, get) => ({
   setDb: (db) => { saveDb(db); set({ db }); },
 
   // ── FILMS ──
-  addFilm: (film) => { const db = get().db; const updated = { ...db, f: [film, ...db.f] }; saveDb(updated); set({ db: updated }); },
-  updateFilm: (i, film) => { const db = get().db; const f = [...db.f]; f[i] = film; const updated = { ...db, f }; saveDb(updated); set({ db: updated }); },
+  addFilm: (film) => { const db = get().db; const withId = { ...film, id: film.id || makeId() }; const updated = { ...db, f: [withId, ...db.f] }; saveDb(updated); set({ db: updated }); },
+  updateFilm: (i, film) => { const db = get().db; const f = [...db.f]; f[i] = { ...f[i], ...film, id: f[i].id }; const updated = { ...db, f }; saveDb(updated); set({ db: updated }); },
   deleteFilm: (i) => { const db = get().db; const updated = { ...db, f: db.f.filter((_, idx) => idx !== i) }; saveDb(updated); set({ db: updated }); },
 
   // ── SERIES ──
-  addSeries: (series) => { const db = get().db; const updated = { ...db, sr: [series, ...db.sr] }; saveDb(updated); set({ db: updated }); },
-  updateSeries: (i, series) => { const db = get().db; const sr = [...db.sr]; sr[i] = series; const updated = { ...db, sr }; saveDb(updated); set({ db: updated }); },
+  addSeries: (series) => { const db = get().db; const withId = { ...series, id: series.id || makeId() }; const updated = { ...db, sr: [withId, ...db.sr] }; saveDb(updated); set({ db: updated }); },
+  updateSeries: (i, series) => { const db = get().db; const sr = [...db.sr]; sr[i] = { ...sr[i], ...series, id: sr[i].id }; const updated = { ...db, sr }; saveDb(updated); set({ db: updated }); },
   deleteSeries: (i) => { const db = get().db; const updated = { ...db, sr: db.sr.filter((_, idx) => idx !== i) }; saveDb(updated); set({ db: updated }); },
   getSeriesWatchlist: () => get().db.srwl || [],
   setSeriesWatchlist: (srwl) => { const db = get().db; const updated = { ...db, srwl }; saveDb(updated); set({ db: updated }); },
 
   // ── BOOKS ──
-  addBook: (book) => { const db = get().db; const updated = { ...db, b: [book, ...db.b] }; saveDb(updated); set({ db: updated }); },
-  updateBook: (i, book) => { const db = get().db; const b = [...db.b]; b[i] = book; const updated = { ...db, b }; saveDb(updated); set({ db: updated }); },
+  addBook: (book) => { const db = get().db; const withId = { ...book, id: book.id || makeId() }; const updated = { ...db, b: [withId, ...db.b] }; saveDb(updated); set({ db: updated }); },
+  updateBook: (i, book) => { const db = get().db; const b = [...db.b]; b[i] = { ...b[i], ...book, id: b[i].id }; const updated = { ...db, b }; saveDb(updated); set({ db: updated }); },
   deleteBook: (i) => { const db = get().db; const updated = { ...db, b: db.b.filter((_, idx) => idx !== i) }; saveDb(updated); set({ db: updated }); },
 
   // ── GOALS ──
