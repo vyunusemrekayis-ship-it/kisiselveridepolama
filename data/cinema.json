@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-09T06:37:30.447Z",
+  "generatedAt": "2026-07-11T05:34:18.806Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
@@ -8,14 +8,6 @@
       "phone": "0 (850) 220 09 67",
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
       "days": [
-        {
-          "date": "2026-07-09",
-          "films": []
-        },
-        {
-          "date": "2026-07-10",
-          "films": []
-        },
         {
           "date": "2026-07-11",
           "films": []
@@ -34,6 +26,14 @@
         },
         {
           "date": "2026-07-15",
+          "films": []
+        },
+        {
+          "date": "2026-07-16",
+          "films": []
+        },
+        {
+          "date": "2026-07-17",
           "films": []
         }
       ]
@@ -46,14 +46,6 @@
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
       "days": [
         {
-          "date": "2026-07-09",
-          "films": []
-        },
-        {
-          "date": "2026-07-10",
-          "films": []
-        },
-        {
           "date": "2026-07-11",
           "films": []
         },
@@ -71,6 +63,14 @@
         },
         {
           "date": "2026-07-15",
+          "films": []
+        },
+        {
+          "date": "2026-07-16",
+          "films": []
+        },
+        {
+          "date": "2026-07-17",
           "films": []
         }
       ]
@@ -83,14 +83,6 @@
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
       "days": [
         {
-          "date": "2026-07-09",
-          "films": []
-        },
-        {
-          "date": "2026-07-10",
-          "films": []
-        },
-        {
           "date": "2026-07-11",
           "films": []
         },
@@ -108,6 +100,14 @@
         },
         {
           "date": "2026-07-15",
+          "films": []
+        },
+        {
+          "date": "2026-07-16",
+          "films": []
+        },
+        {
+          "date": "2026-07-17",
           "films": []
         }
       ]
