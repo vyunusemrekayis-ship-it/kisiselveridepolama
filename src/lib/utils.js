@@ -424,7 +424,7 @@ export function wxc(code, isDay) {
 }
 
 // ── HAVA DURUMU UYARI SİSTEMİ (Weather.jsx ve Home.jsx widget'ı ortak kullanır) ──
-// data: Open-Meteo /v1/forecast yanıtı + { air, quake } eklenmiş hali (Weather.jsx'teki "data" state'i ile aynı şekil)
+// data: Open-Meteo /v1/forecast yanıtı + { air } eklenmiş hali (Weather.jsx'teki "data" state'i ile aynı şekil)
 export function buildWeatherAlerts(data) {
   if (!data?.hourly || !data?.daily) return [];
   const alerts = [];
@@ -636,19 +636,7 @@ export function buildWeatherAlerts(data) {
     alerts.push({ level:'info', icon:'📈', title:'Yağmur olasılığı artıyor', detail:`Şu an %${probNow} → 6 saat içinde %${prob6h} yağmur ihtimali.` });
   }
 
-  // 15. DEPREM (USGS)
-  if (data.quake?.features?.length) {
-    const q = data.quake.features[0];
-    const mag = q.properties.mag;
-    const place = q.properties.place;
-    const qTime = new Date(q.properties.time);
-    const hoursAgo = Math.round((Date.now() - qTime) / 3600000);
-    const lvl = mag >= 5.5 ? 'danger' : mag >= 4.5 ? 'warning' : 'info';
-    const timeStr = hoursAgo < 1 ? 'Az önce' : hoursAgo === 1 ? '1 saat önce' : `${hoursAgo} saat önce`;
-    alerts.push({ level:lvl, icon:'🌍', title:`Deprem M${mag.toFixed(1)}`, detail:`${timeStr} — ${place}. Artçı sarsıntılara dikkat.` });
-  }
-
-  // 16. HAVA KALİTESİ (PM2.5 / AQI)
+  // 15. HAVA KALİTESİ (PM2.5 / AQI)
   if (data.air?.current) {
     const aqi = data.air.current.us_aqi ?? 0;
     const pm25 = data.air.current.pm2_5 ?? 0;

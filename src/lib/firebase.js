@@ -32,6 +32,7 @@ export async function loadFromFirestore(uid) {
       if (d.gn_sw_elapsed !== undefined) localStorage.setItem('gn_sw_elapsed', String(d.gn_sw_elapsed));
       if (d.gn_widget_sizes) localStorage.setItem('gn_widget_sizes', JSON.stringify(d.gn_widget_sizes));
       if (d.gn_widget_positions) localStorage.setItem('gn_widget_positions', JSON.stringify(d.gn_widget_positions));
+      if (d.gn_wx_cities) localStorage.setItem('gn_wx_cities', JSON.stringify(d.gn_wx_cities));
       // eski key göç
       if (!d.main && d.gunlugum_v3) localStorage.setItem('gn_db', JSON.stringify(d.gunlugum_v3));
       if (!d.gn_sw_log && d.sw_log) localStorage.setItem('gn_sw_log', JSON.stringify(d.sw_log));
@@ -81,6 +82,7 @@ window.saveToFirestore = async function() {
       gn_wl: JSON.parse(localStorage.getItem('gn_wl') || '[]'),
       gn_rl: JSON.parse(localStorage.getItem('gn_rl') || '[]'),
       gn_sw_log: JSON.parse(localStorage.getItem('gn_sw_log') || '[]'),
+      gn_wx_cities: JSON.parse(localStorage.getItem('gn_wx_cities') || '[]'),
     }, { merge: true });
   } catch(e) { console.error('Firestore kayıt:', e); }
 };

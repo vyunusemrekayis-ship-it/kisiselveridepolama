@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookInfo, bookInfoCache, extractSpineColors, spineColorCache, wxc, buildWeatherAlerts } from '../../lib/utils';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookInfo, bookInfoCache, extractSpineColors, spineColorCache, wxc } from '../../lib/utils';
+import { WxIcon } from '../../lib/WxIcon';
 
 function useElementSize() {
   const ref = useRef(null);
@@ -768,46 +769,48 @@ function SeriesWidget({ series, onNavigate, size }) {
   );
 }
 
-// ── HAVA DURUMU ──────────────────────────────────────────────────────────
-function WxIcon({ bg, size = 20 }) {
-  return <div style={{width:size,height:size,borderRadius:'50%',background:bg,display:'inline-block'}}/>;
-}
-
-function wxShortAlertText(a) {
-  const m = a.detail?.match(/(UV indeksi|AQI)\s*([\d.]+)/i);
-  if (a.title.includes('UV') && m) return `UV ${parseFloat(m[2]).toFixed(0)} — güneş kremi şart`;
-  if (a.title.includes('hava kalitesi') && m) return `AQI ${m[2]} — ${a.title.toLowerCase()}`;
-  const tempM = a.detail?.match(/(-?\d+)\s*°C/);
-  if ((a.title.includes('Don') || a.title.includes('sıcak')) && tempM) return `${a.title} (${tempM[1]}°C)`;
-  return a.title;
-}
 
 function WeatherWidget({ onNavigate, size }) {
+  const { wxCities } = useStore();
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('loading');
-  const [stripRef, strip] = useElementSize();
+
+  // wxCities Firestore'dan (başka bir cihazdan) güncellendiğinde ya da
+  // Weather sayfasında sıra değiştirildiğinde otomatik yeniden çeker.
+  const city = wxCities?.[0];
 
   useEffect(() => {
-    let cities = [];
-    try { cities = JSON.parse(localStorage.getItem('gn_wx_cities') || '[]'); } catch {}
-    const city = cities[0];
     if (!city) { setStatus('no-city'); return; }
+
+    let cancelled = false;
+    let retryTimer = null;
 
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,uv_index,visibility,is_day,precipitation&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,wind_speed_10m,wind_gusts_10m,visibility,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=2`;
     const airUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=pm2_5,pm10,us_aqi&timezone=auto`;
-    const quakeUrl = `https://earthquake.usgs.gov/fdsnws/event/1.1/query?format=geojson&latitude=${city.lat}&longitude=${city.lon}&maxradiuskm=300&minmagnitude=3.5&limit=5&orderby=time`;
 
-    Promise.allSettled([fetch(url), fetch(airUrl), fetch(quakeUrl)]).then(async ([wRes, aRes, qRes]) => {
-      try {
-        if (wRes.status !== 'fulfilled') { setStatus('error'); return; }
-        const w = await wRes.value.json();
-        const air = aRes.status === 'fulfilled' ? await aRes.value.json() : null;
-        const quake = qRes.status === 'fulfilled' ? await qRes.value.json() : null;
-        setData({ ...w, city, air, quake });
-        setStatus('ok');
-      } catch { setStatus('error'); }
-    });
-  }, []);
+    // Başarısız olursa kullanıcıya buton göstermeden 8sn sonra otomatik olarak yeniden dener.
+    const load = () => {
+      setStatus(prev => (prev === 'ok' ? prev : 'loading'));
+      Promise.allSettled([fetch(url), fetch(airUrl)]).then(async ([wRes, aRes]) => {
+        if (cancelled) return;
+        try {
+          if (wRes.status !== 'fulfilled' || !wRes.value.ok) throw new Error('http');
+          const w = await wRes.value.json();
+          if (!w.current || !w.daily || !w.hourly) throw new Error('data');
+          const air = aRes.status === 'fulfilled' && aRes.value.ok ? await aRes.value.json() : null;
+          setData({ ...w, city, air });
+          setStatus('ok');
+        } catch {
+          if (cancelled) return;
+          setStatus('error');
+          retryTimer = setTimeout(load, 8000);
+        }
+      });
+    };
+
+    load();
+    return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
+  }, [city?.lat, city?.lon]);
 
   if (status === 'no-city') return (
     <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col items-center justify-center">
@@ -825,59 +828,92 @@ function WeatherWidget({ onNavigate, size }) {
     </div>
   );
 
+  const c = data.current || {};
   const hourly = data.hourly || {};
   const now = new Date();
   const nowHour = now.getHours();
   const todayDateStr = now.toISOString().split('T')[0];
   const maxTemp = data.daily?.temperature_2m_max?.[0];
   const minTemp = data.daily?.temperature_2m_min?.[0];
+  const info = wxc(c.weather_code, c.is_day);
 
   const hourlyList = (hourly.time || []).map((t,i) => {
     const d = new Date(t);
-    return { date: d.toISOString().split('T')[0], hour: d.getHours(), temp: hourly.temperature_2m?.[i], code: hourly.weather_code?.[i], isDay: hourly.is_day?.[i] };
+    return {
+      date: d.toISOString().split('T')[0], hour: d.getHours(),
+      temp: hourly.temperature_2m?.[i], code: hourly.weather_code?.[i], isDay: hourly.is_day?.[i],
+      pop: hourly.precipitation_probability?.[i] ?? 0,
+    };
   }).filter(h => h.date === todayDateStr && h.hour >= nowHour);
-
-  const alerts = buildWeatherAlerts(data).slice(0, 5);
-  const hasAlert = alerts.length > 0;
-  const alertColors = { danger:'#f87171', warning:'#fb923c', info:'#9ca3af' };
-
-  const colW = Math.max(34, Math.min(54, strip.width ? strip.width / 6.2 : 42));
-  const iconSize = Math.round(colW * 0.42);
 
   return (
     <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
-      {hasAlert && (
-        <div style={{background:'rgba(0,0,0,0.25)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'5px 14px',display:'flex',alignItems:'center',gap:7,overflow:'hidden',flexShrink:0}}>
-          <div style={{display:'flex',gap:16,whiteSpace:'nowrap',animation:'wxWidgetScroll 16s linear infinite',fontSize:10,fontWeight:500}}>
-            {[...alerts,...alerts].map((a,i)=>(<span key={i} style={{color:alertColors[a.level]}}>{a.icon} {wxShortAlertText(a)}</span>))}
+      <div style={{padding:'14px 16px',flex:1,display:'flex',gap:14,minHeight:0}}>
+
+        {/* Sol: güncel durum */}
+        <div style={{flex:'0 0 42%',minWidth:170,maxWidth:260,display:'flex',flexDirection:'column',minHeight:0}}>
+          <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/><path d="M8 20l-1 3M13 20v3M18 20l1 3"/></svg>}>{data.city?.name?.split(',')[0]} ›</WidgetTitle>
+
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flex:1,minHeight:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <WxIcon bg={info.bg} size={40}/>
+              <div style={{fontSize:30,fontWeight:300,lineHeight:1,color:'#fff'}}>{Math.round(c.temperature_2m)}°</div>
+            </div>
+            <div style={{fontSize:12,color:'rgba(232,237,245,.55)',marginTop:8,textAlign:'center'}}>{info.t}</div>
+          </div>
+
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+            <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Hissedilen {Math.round(c.apparent_temperature)}°</span>
+            {(maxTemp!=null && minTemp!=null) && (
+              <span style={{fontSize:10}}>
+                <span style={{color:'#f87171'}}>{Math.round(maxTemp)}°</span>
+                <span style={{color:'rgba(232,237,245,.25)'}}> / </span>
+                <span style={{color:'#93c5fd'}}>{Math.round(minTemp)}°</span>
+              </span>
+            )}
+          </div>
+
+          <div style={{marginTop:10,borderTop:'1px solid rgba(255,255,255,.06)',paddingTop:8}}>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
+              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Nem</span>
+              <span style={{fontSize:11,color:'#93c5fd'}}>%{Math.round(c.relative_humidity_2m ?? 0)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
+              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Rüzgar</span>
+              <span style={{fontSize:11,color:'#93c5fd'}}>{Math.round(c.wind_speed_10m ?? 0)} km/s</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
+              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>UV</span>
+              <span style={{fontSize:11,color:'#fbbf24'}}>{Math.round(c.uv_index ?? 0)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
+              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Yağış</span>
+              <span style={{fontSize:11,color:'#93c5fd'}}>%{Math.round(hourlyList[0]?.pop ?? 0)}</span>
+            </div>
           </div>
         </div>
-      )}
-      <div style={{padding:'12px 14px',flex:1,display:'flex',flexDirection:'column',minHeight:0}}>
-        <div className="flex items-center justify-between mb-2">
-          <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/><path d="M8 20l-1 3M13 20v3M18 20l1 3"/></svg>}>{data.city?.name?.split(',')[0]} ›</WidgetTitle>
-          {(maxTemp!=null && minTemp!=null) && (
-            <div style={{fontSize:11,color:'rgba(232,237,245,0.4)',marginTop:-8}}>Y:<span style={{color:'#f87171'}}>{Math.round(maxTemp)}°</span> D:<span style={{color:'#93c5fd'}}>{Math.round(minTemp)}°</span></div>
-          )}
-        </div>
-        <div ref={stripRef} style={{display:'flex',gap:0,overflowX:'auto',flex:1,minHeight:0,scrollbarWidth:'none'}}>
-          {hourlyList.map((h,i)=>{
-            const isNow = i===0;
-            const info = wxc(h.code, h.isDay);
+
+        <div style={{width:1,background:'rgba(255,255,255,.06)',flexShrink:0}}/>
+
+        {/* Sağ: saatlik ızgara — dikeyde kaydırılabilir, satır genişliğine göre sütun sayısı otomatik ayarlanır */}
+        <div className="wx-hourly-scroll" style={{flex:1,minWidth:0,overflowY:'auto',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(52px, 1fr))',gap:4,alignContent:'start'}}>
+          {hourlyList.map((h,i) => {
+            const isNow = i === 0;
+            const hInfo = wxc(h.code, h.isDay);
             return (
-              <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,flexShrink:0,width:colW,position:'relative'}}>
-                {isNow && <div style={{position:'absolute',top:'8%',left:'50%',transform:'translateX(-50%)',background:'rgba(58,123,213,0.18)',border:'1px solid rgba(58,123,213,0.35)',borderRadius:10,width:colW*0.82,height:'84%'}}/>}
-                <div style={{fontSize:10,color: isNow?'#93c5fd':'rgba(232,237,245,0.4)',fontWeight: isNow?700:400,position:'relative'}}>{isNow?'Şimdi':`${String(h.hour).padStart(2,'0')}:00`}</div>
-                <div style={{position:'relative'}}><WxIcon bg={info.bg} size={isNow?iconSize+4:iconSize}/></div>
-                <div style={{fontSize: isNow?13:12,color:'#e8edf5',fontWeight: isNow?700:400,position:'relative'}}>{Math.round(h.temp)}°</div>
+              <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 2px',borderRadius:10,background: isNow?'rgba(58,123,213,.12)':'transparent'}}>
+                <span style={{fontSize:9,color: isNow?'#93c5fd':'rgba(232,237,245,.4)',fontWeight: isNow?600:400}}>{isNow?'Şimdi':String(h.hour).padStart(2,'0')}</span>
+                <WxIcon bg={hInfo.bg} size={20}/>
+                <span style={{fontSize:11,color: isNow?'#fff':'rgba(232,237,245,.75)',fontWeight: isNow?600:400}}>{Math.round(h.temp)}°</span>
               </div>
             );
           })}
         </div>
       </div>
       <style>{`
-        @keyframes wxWidgetPulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-        @keyframes wxWidgetScroll { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+        .wx-hourly-scroll{scrollbar-width:thin;}
+        .wx-hourly-scroll::-webkit-scrollbar{width:4px;}
+        .wx-hourly-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px;}
       `}</style>
     </div>
   );

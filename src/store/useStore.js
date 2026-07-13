@@ -81,6 +81,8 @@ export const useStore = create((set, get) => ({
   widgetSizes: lsParse('gn_widget_sizes', defaultWidgetSizes),
   // Widget pozisyonları — { desktop: { [widgetId]: {col, row} }, mobile: { [widgetId]: {col, row} } } (grid başlangıç hücresi, 1-bazlı)
   widgetPositions: lsParse('gn_widget_positions', defaultWidgetPositions),
+  // Hava durumu şehirleri — sıra önemli, ilk şehir widget'larda gösterilir
+  wxCities: lsParse('gn_wx_cities', []),
 
   // ── NAV ──
   setCurrentPage: (page) => set({ currentPage: page }),
@@ -138,6 +140,10 @@ export const useStore = create((set, get) => ({
         localStorage.setItem('gn_widget_positions', JSON.stringify(mergedPos));
         updates.widgetPositions = mergedPos;
       }
+      if (incoming.gn_wx_cities !== undefined) {
+        localStorage.setItem('gn_wx_cities', JSON.stringify(incoming.gn_wx_cities));
+        updates.wxCities = incoming.gn_wx_cities;
+      }
       if (incoming.gn_sw_running !== undefined) {
         const nextSwState = {
           running: !!incoming.gn_sw_running,
@@ -177,6 +183,7 @@ export const useStore = create((set, get) => ({
         aiSummary: localStorage.getItem('gn_ai_summary') || '',
         widgetSizes: lsParse('gn_widget_sizes', defaultWidgetSizes),
         widgetPositions: lsParse('gn_widget_positions', defaultWidgetPositions),
+        wxCities: lsParse('gn_wx_cities', []),
       });
     }
     // window._sw güvenli güncelle
@@ -278,6 +285,10 @@ export const useStore = create((set, get) => ({
     fsWrite({ gn_widget_positions: widgetPositions });
     set({ widgetPositions });
   },
+
+  // ── HAVA DURUMU ŞEHİRLERİ ──
+  getWxCities: () => get().wxCities,
+  setWxCities: (wxCities) => { localStorage.setItem('gn_wx_cities', JSON.stringify(wxCities)); fsWrite({ gn_wx_cities: wxCities }); set({ wxCities }); },
 
   // ── AI ──
   getAiProfile: () => get().aiProfile,
