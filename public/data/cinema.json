@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T06:08:36.985Z",
+  "generatedAt": "2026-07-14T05:23:35.881Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
@@ -8,10 +8,6 @@
       "phone": "0 (850) 220 09 67",
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
       "days": [
-        {
-          "date": "2026-07-13",
-          "films": []
-        },
         {
           "date": "2026-07-14",
           "films": []
@@ -34,6 +30,10 @@
         },
         {
           "date": "2026-07-19",
+          "films": []
+        },
+        {
+          "date": "2026-07-20",
           "films": []
         }
       ]
@@ -46,10 +46,6 @@
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
       "days": [
         {
-          "date": "2026-07-13",
-          "films": []
-        },
-        {
           "date": "2026-07-14",
           "films": []
         },
@@ -71,6 +67,10 @@
         },
         {
           "date": "2026-07-19",
+          "films": []
+        },
+        {
+          "date": "2026-07-20",
           "films": []
         }
       ]
@@ -83,10 +83,6 @@
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
       "days": [
         {
-          "date": "2026-07-13",
-          "films": []
-        },
-        {
           "date": "2026-07-14",
           "films": []
         },
@@ -108,6 +104,10 @@
         },
         {
           "date": "2026-07-19",
+          "films": []
+        },
+        {
+          "date": "2026-07-20",
           "films": []
         }
       ]
