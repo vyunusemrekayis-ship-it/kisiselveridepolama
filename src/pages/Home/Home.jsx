@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/useStore';
-import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookInfo, bookInfoCache, extractSpineColors, spineColorCache, wxc } from '../../lib/utils';
-import { WxIcon } from '../../lib/WxIcon';
+import { todayStr, TR_M, TR_D, calcChainStreak, swFmt, isGoalActive, getSpecialDays, fetchPoster, posterCache, fetchSeriesPoster, seriesPosterCache, fetchBookInfo, bookInfoCache, extractSpineColors, spineColorCache, wxc, buildWeatherAlerts } from '../../lib/utils';
+import { WxIcon, WindCompass, degToCompass, wxBackground, BgPrecip } from '../../lib/WxIcon';
 
 function useElementSize() {
   const ref = useRef(null);
@@ -19,10 +19,13 @@ function useElementSize() {
   return [ref, el];
 }
 
+const PRIO_CYCLE = { high: 'medium', medium: 'low', low: 'high' };
+const PRIO_LABEL = { high: 'Yüksek', medium: 'Orta', low: 'Düşük' };
+
 const PRIORITY_COLORS = {
-  high:   { dot: '#d97a72' },
-  medium: { dot: '#f59e0b' },
-  low:    { dot: '#a78bfa' },
+  high:   { dot: '#ef4444', bg: 'rgba(239,68,68,0.14)' },
+  medium: { dot: '#f5a524', bg: 'rgba(245,165,36,0.14)' },
+  low:    { dot: '#64748b', bg: 'rgba(100,116,139,0.14)' },
 };
 
 const DEFAULT_SPEC_COLORS = { h:'#c0392b', r:'#7b5ea7', i:'#2874a6', b:'#c0392b', a:'#7b5ea7', custom:'#3a7bd5' };
@@ -331,7 +334,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
             const pc=PRIORITY_COLORS[t.priority||'medium'];
             const isEditing=editingKey?.dk===t.dateKey&&editingKey?.idx===t.idx;
             return (
-              <div key={`${t.dateKey}-${t.idx}`} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 6px',marginBottom:2,borderRadius:5,borderLeft:`3px solid ${pc.dot}`,background:'rgba(255,255,255,0.025)',opacity:t.done?0.5:1}}>
+              <div key={`${t.dateKey}-${t.idx}`} style={{display:'flex',alignItems:'center',gap:6,padding:'3px 6px',marginBottom:2,borderRadius:5,borderLeft:`4px solid ${pc.dot}`,background:t.done?'rgba(255,255,255,0.025)':pc.bg,opacity:t.done?0.5:1}}>
                 <div onClick={e=>toggle(e,t.dateKey,t.idx)} style={{width:12,height:12,borderRadius:3,border:t.done?'none':'1px solid rgba(255,255,255,0.3)',background:t.done?'#3a7bd5':'transparent',flexShrink:0,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
                   {t.done&&<svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.5 6L6.5 2" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </div>
@@ -339,11 +342,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
                   ? <input autoFocus value={editText} onClick={e=>e.stopPropagation()} onChange={e=>setEditText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')saveEdit(e);if(e.key==='Escape'){e.stopPropagation();setEditingKey(null);}}} onBlur={saveEdit} style={{flex:1,background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.2)',color:'#e8edf5',outline:'none',borderRadius:4,padding:'1px 6px',fontSize:11,minWidth:0}}/>
                   : <span onDoubleClick={e=>startEdit(e,t.dateKey,t.idx,t.text)} style={{flex:1,fontSize:11,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:t.done?'rgba(255,255,255,0.25)':'rgba(232,237,245,0.85)',textDecoration:t.done?'line-through':'none',cursor:'default'}}>{t.text}</span>
                 }
-                <select value={t.priority||'medium'} onChange={e=>setPrio(e,t.dateKey,t.idx,e.target.value)} onClick={e=>e.stopPropagation()} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',color:pc.dot,fontSize:9,fontWeight:500,borderRadius:5,padding:'1px 3px',cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}>
-                  <option value="high" style={{color:'#d97a72'}}>Yüksek</option>
-                  <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
-                  <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
-                </select>
+                <button onClick={e=>{e.stopPropagation();setPrio(e,t.dateKey,t.idx,PRIO_CYCLE[t.priority||'medium']);}} style={{background:pc.dot,border:'none',color:'#0a0a0a',fontSize:10,fontWeight:700,borderRadius:7,padding:'4px 6px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',lineHeight:1}}>{PRIO_LABEL[t.priority||'medium']}</button>
                 {tab==='yesterday'&&<span style={{fontSize:9,color:'rgba(255,255,255,0.25)',flexShrink:0}}>{fmtDate(t.dateKey)}</span>}
                 {!isEditing&&<button onClick={e=>startEdit(e,t.dateKey,t.idx,t.text)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.3)',cursor:'pointer',padding:'0 1px',lineHeight:1,flexShrink:0,fontSize:10}}>✎</button>}
                 <button onClick={e=>delTodo(e,t.dateKey,t.idx)} style={{background:'none',border:'none',color:'rgba(255,255,255,0.25)',cursor:'pointer',padding:'0 1px',lineHeight:1,flexShrink:0,fontSize:13}}>×</button>
@@ -353,11 +352,7 @@ function TodoWidget({ onNavigate, getTodos, setTodos }) {
         }
       </div>
       <div onClick={e=>e.stopPropagation()} style={{display:'flex',gap:5,alignItems:'center',marginTop:4}}>
-        <select value={addPriority} onChange={e=>{e.stopPropagation();setAddPriority(e.target.value);}} onClick={e=>e.stopPropagation()} style={{background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:PRIORITY_COLORS[addPriority].dot,fontSize:10,fontWeight:500,borderRadius:7,padding:'4px 4px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',width:62}}>
-          <option value="high" style={{color:'#d97a72'}}>Yüksek</option>
-          <option value="medium" style={{color:'#f59e0b'}}>Orta</option>
-          <option value="low" style={{color:'#a78bfa'}}>Düşük</option>
-        </select>
+        <button onClick={e=>{e.stopPropagation();setAddPriority(PRIO_CYCLE[addPriority]);}} style={{background:PRIORITY_COLORS[addPriority].dot,border:'none',color:'#0a0a0a',fontSize:10,fontWeight:700,borderRadius:7,padding:'4px 4px',cursor:'pointer',flexShrink:0,fontFamily:'inherit',width:62,lineHeight:1}}>{PRIO_LABEL[addPriority]}</button>
         <input value={addInput} onChange={e=>{e.stopPropagation();setAddInput(e.target.value);}} onKeyDown={e=>{e.stopPropagation();if(e.key==='Enter')addTodo(e);}} onClick={e=>e.stopPropagation()} placeholder={tab==='tomorrow'?'Yarın için görev ekle...':'Görev ekle...'} style={{flex:1,background:'rgba(255,255,255,0.07)',border:'1px solid rgba(255,255,255,0.12)',color:'rgba(232,237,245,0.8)',outline:'none',borderRadius:7,padding:'4px 8px',fontSize:11,fontFamily:'inherit',minWidth:0}}/>
         <button onClick={addTodo} style={{background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',color:'rgba(232,237,245,0.5)',width:24,height:24,borderRadius:7,fontSize:14,cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
       </div>
@@ -770,6 +765,12 @@ function SeriesWidget({ series, onNavigate, size }) {
 }
 
 
+// Uyarı şeridinde göstermek için: emoji yok, seviye kelimesi de yok —
+// renk zaten seviyeyi anlatıyor, başına ayrıca renkli bir nokta konuyor (aşağıda).
+function wxShortAlertText(a) {
+  return a.title;
+}
+
 function WeatherWidget({ onNavigate, size }) {
   const { wxCities } = useStore();
   const [data, setData] = useState(null);
@@ -785,7 +786,7 @@ function WeatherWidget({ onNavigate, size }) {
     let cancelled = false;
     let retryTimer = null;
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,relative_humidity_2m,uv_index,visibility,is_day,precipitation&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,wind_speed_10m,wind_gusts_10m,visibility,uv_index,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=2`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,visibility,is_day,precipitation&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,precipitation_probability,precipitation,rain,snowfall,wind_speed_10m,wind_gusts_10m,visibility,uv_index,is_day,shortwave_radiation&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=2`;
     const airUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${city.lat}&longitude=${city.lon}&current=pm2_5,pm10,us_aqi&timezone=auto`;
 
     // Başarısız olursa kullanıcıya buton göstermeden 8sn sonra otomatik olarak yeniden dener.
@@ -829,91 +830,88 @@ function WeatherWidget({ onNavigate, size }) {
   );
 
   const c = data.current || {};
-  const hourly = data.hourly || {};
-  const now = new Date();
-  const nowHour = now.getHours();
-  const todayDateStr = now.toISOString().split('T')[0];
   const maxTemp = data.daily?.temperature_2m_max?.[0];
   const minTemp = data.daily?.temperature_2m_min?.[0];
   const info = wxc(c.weather_code, c.is_day);
+  const feelsDelta = c.apparent_temperature != null ? Math.round(c.apparent_temperature) - Math.round(c.temperature_2m) : 0;
+  const windDeg = c.wind_direction_10m ?? 0;
 
-  const hourlyList = (hourly.time || []).map((t,i) => {
-    const d = new Date(t);
-    return {
-      date: d.toISOString().split('T')[0], hour: d.getHours(),
-      temp: hourly.temperature_2m?.[i], code: hourly.weather_code?.[i], isDay: hourly.is_day?.[i],
-      pop: hourly.precipitation_probability?.[i] ?? 0,
-    };
-  }).filter(h => h.date === todayDateStr && h.hour >= nowHour);
+  // o anki saatin ışık seviyesi (0-1), gerçek güneş ışınımı verisinden
+  let brightness = c.is_day ? 0.7 : 0.05;
+  if (data.hourly?.time && data.hourly?.shortwave_radiation) {
+    const now = new Date();
+    const idx = data.hourly.time.findIndex(t => {
+      const d = new Date(t);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() &&
+             d.getDate() === now.getDate() && d.getHours() === now.getHours();
+    });
+    if (idx >= 0) {
+      const rad = data.hourly.shortwave_radiation[idx] ?? 0;
+      brightness = Math.max(0.04, Math.min(1, rad / 800));
+    }
+  }
+
+  const alerts = buildWeatherAlerts(data).slice(0, 5);
+  const hasAlert = alerts.length > 0;
+  const scrolling = alerts.length >= 3;
+  const alertColors = { danger: '#f87171', warning: '#fb923c', info: '#9ca3af' };
 
   return (
-    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
-      <div style={{padding:'14px 16px',flex:1,display:'flex',gap:14,minHeight:0}}>
-
-        {/* Sol: güncel durum */}
-        <div style={{flex:'0 0 42%',minWidth:170,maxWidth:260,display:'flex',flexDirection:'column',minHeight:0}}>
-          <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/><path d="M8 20l-1 3M13 20v3M18 20l1 3"/></svg>}>{data.city?.name?.split(',')[0]} ›</WidgetTitle>
-
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flex:1,minHeight:0}}>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <WxIcon bg={info.bg} size={40}/>
-              <div style={{fontSize:30,fontWeight:300,lineHeight:1,color:'#fff'}}>{Math.round(c.temperature_2m)}°</div>
+    <div onClick={onNavigate} className="rounded-2xl cursor-pointer transition-colors h-full w-full flex flex-col overflow-hidden relative"
+      style={{ background: wxBackground(info.bg, brightness) }}>
+      <BgPrecip bg={info.bg}/>
+      {hasAlert && (
+        <div style={{position:'relative',background:'rgba(0,0,0,0.22)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'5px 14px',display:'flex',alignItems:'center',gap:7,overflow:'hidden',flexShrink:0}}>
+          {scrolling ? (
+            <div style={{display:'flex',gap:16,whiteSpace:'nowrap',animation:'wxWidgetScroll 16s linear infinite',fontSize:10,fontWeight:500}}>
+              {[...alerts,...alerts].map((a,i)=>(
+                <span key={i} style={{display:'inline-flex',alignItems:'center',gap:5,color:alertColors[a.level]}}>
+                  <span style={{width:5,height:5,borderRadius:'50%',background:alertColors[a.level],flexShrink:0,display:'inline-block'}}/>
+                  {wxShortAlertText(a)}
+                </span>
+              ))}
             </div>
-            <div style={{fontSize:12,color:'rgba(232,237,245,.55)',marginTop:8,textAlign:'center'}}>{info.t}</div>
-          </div>
+          ) : (
+            <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:10,fontWeight:500}}>
+              {alerts.map((a,i)=>(
+                <span key={i} style={{display:'inline-flex',alignItems:'center',gap:5,color:alertColors[a.level]}}>
+                  <span style={{width:5,height:5,borderRadius:'50%',background:alertColors[a.level],flexShrink:0,display:'inline-block'}}/>
+                  {wxShortAlertText(a)}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{position:'relative',padding:'16px 16px 14px',flex:1,display:'flex',flexDirection:'column',minHeight:0,justifyContent:'center'}}>
+        <div className="flex items-center justify-between mb-2">
+          <WidgetTitle accent="#ffffff" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 16a4 4 0 00-4-4h-1A6 6 0 104 16"/><path d="M8 20l-1 3M13 20v3M18 20l1 3"/></svg>}>{data.city?.name?.split(',')[0]} ›</WidgetTitle>
+          {(maxTemp!=null && minTemp!=null) && (
+            <div style={{fontSize:11,color:'rgba(255,255,255,0.7)',marginTop:-8}}>Y:<span style={{color:'#fca5a5'}}>{Math.round(maxTemp)}°</span> D:<span style={{color:'#93c5fd'}}>{Math.round(minTemp)}°</span></div>
+          )}
+        </div>
 
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
-            <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Hissedilen {Math.round(c.apparent_temperature)}°</span>
-            {(maxTemp!=null && minTemp!=null) && (
-              <span style={{fontSize:10}}>
-                <span style={{color:'#f87171'}}>{Math.round(maxTemp)}°</span>
-                <span style={{color:'rgba(232,237,245,.25)'}}> / </span>
-                <span style={{color:'#93c5fd'}}>{Math.round(minTemp)}°</span>
-              </span>
-            )}
-          </div>
-
-          <div style={{marginTop:10,borderTop:'1px solid rgba(255,255,255,.06)',paddingTop:8}}>
-            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
-              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Nem</span>
-              <span style={{fontSize:11,color:'#93c5fd'}}>%{Math.round(c.relative_humidity_2m ?? 0)}</span>
-            </div>
-            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
-              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Rüzgar</span>
-              <span style={{fontSize:11,color:'#93c5fd'}}>{Math.round(c.wind_speed_10m ?? 0)} km/s</span>
-            </div>
-            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
-              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>UV</span>
-              <span style={{fontSize:11,color:'#fbbf24'}}>{Math.round(c.uv_index ?? 0)}</span>
-            </div>
-            <div style={{display:'flex',justifyContent:'space-between',padding:'3px 0'}}>
-              <span style={{fontSize:10,color:'rgba(232,237,245,.4)'}}>Yağış</span>
-              <span style={{fontSize:11,color:'#93c5fd'}}>%{Math.round(hourlyList[0]?.pop ?? 0)}</span>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <WxIcon bg={info.bg} size={76}/>
+          <div>
+            <div style={{fontSize:38,fontWeight:600,color:'#fff',lineHeight:1.05,textShadow:'0 1px 4px rgba(0,0,0,.25)'}}>{Math.round(c.temperature_2m)}°</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.75)'}}>
+              {info.t}{Math.abs(feelsDelta) >= 2 && ` · Hissedilen ${Math.round(c.apparent_temperature)}°`}
             </div>
           </div>
         </div>
 
-        <div style={{width:1,background:'rgba(255,255,255,.06)',flexShrink:0}}/>
-
-        {/* Sağ: saatlik ızgara — dikeyde kaydırılabilir, satır genişliğine göre sütun sayısı otomatik ayarlanır */}
-        <div className="wx-hourly-scroll" style={{flex:1,minWidth:0,overflowY:'auto',display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(52px, 1fr))',gap:4,alignContent:'start'}}>
-          {hourlyList.map((h,i) => {
-            const isNow = i === 0;
-            const hInfo = wxc(h.code, h.isDay);
-            return (
-              <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,padding:'8px 2px',borderRadius:10,background: isNow?'rgba(58,123,213,.12)':'transparent'}}>
-                <span style={{fontSize:9,color: isNow?'#93c5fd':'rgba(232,237,245,.4)',fontWeight: isNow?600:400}}>{isNow?'Şimdi':String(h.hour).padStart(2,'0')}</span>
-                <WxIcon bg={hInfo.bg} size={20}/>
-                <span style={{fontSize:11,color: isNow?'#fff':'rgba(232,237,245,.75)',fontWeight: isNow?600:400}}>{Math.round(h.temp)}°</span>
-              </div>
-            );
-          })}
+        <div style={{display:'flex',gap:16,marginTop:12,paddingTop:10,borderTop:'1px solid rgba(255,255,255,0.18)',alignItems:'center'}}>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>Nem %{Math.round(c.relative_humidity_2m ?? 0)}</div>
+          <div style={{display:'flex',alignItems:'center',gap:5}}>
+            <WindCompass deg={windDeg} size={18}/>
+            <span style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>{Math.round(c.wind_speed_10m ?? 0)} km/s {degToCompass(windDeg)}</span>
+          </div>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.75)'}}>UV {Math.round(c.uv_index ?? 0)}</div>
         </div>
       </div>
       <style>{`
-        .wx-hourly-scroll{scrollbar-width:thin;}
-        .wx-hourly-scroll::-webkit-scrollbar{width:4px;}
-        .wx-hourly-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px;}
+        @keyframes wxWidgetScroll { from{transform:translateX(0);} to{transform:translateX(-50%);} }
       `}</style>
     </div>
   );
