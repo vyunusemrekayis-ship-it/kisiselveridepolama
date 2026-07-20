@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T06:08:36.985Z",
+  "generatedAt": "2026-07-20T06:10:03.799Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
@@ -9,31 +9,31 @@
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
       "days": [
         {
-          "date": "2026-07-13",
+          "date": "2026-07-20",
           "films": []
         },
         {
-          "date": "2026-07-14",
+          "date": "2026-07-21",
           "films": []
         },
         {
-          "date": "2026-07-15",
+          "date": "2026-07-22",
           "films": []
         },
         {
-          "date": "2026-07-16",
+          "date": "2026-07-23",
           "films": []
         },
         {
-          "date": "2026-07-17",
+          "date": "2026-07-24",
           "films": []
         },
         {
-          "date": "2026-07-18",
+          "date": "2026-07-25",
           "films": []
         },
         {
-          "date": "2026-07-19",
+          "date": "2026-07-26",
           "films": []
         }
       ]
@@ -46,31 +46,31 @@
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
       "days": [
         {
-          "date": "2026-07-13",
+          "date": "2026-07-20",
           "films": []
         },
         {
-          "date": "2026-07-14",
+          "date": "2026-07-21",
           "films": []
         },
         {
-          "date": "2026-07-15",
+          "date": "2026-07-22",
           "films": []
         },
         {
-          "date": "2026-07-16",
+          "date": "2026-07-23",
           "films": []
         },
         {
-          "date": "2026-07-17",
+          "date": "2026-07-24",
           "films": []
         },
         {
-          "date": "2026-07-18",
+          "date": "2026-07-25",
           "films": []
         },
         {
-          "date": "2026-07-19",
+          "date": "2026-07-26",
           "films": []
         }
       ]
@@ -83,31 +83,31 @@
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
       "days": [
         {
-          "date": "2026-07-13",
+          "date": "2026-07-20",
           "films": []
         },
         {
-          "date": "2026-07-14",
+          "date": "2026-07-21",
           "films": []
         },
         {
-          "date": "2026-07-15",
+          "date": "2026-07-22",
           "films": []
         },
         {
-          "date": "2026-07-16",
+          "date": "2026-07-23",
           "films": []
         },
         {
-          "date": "2026-07-17",
+          "date": "2026-07-24",
           "films": []
         },
         {
-          "date": "2026-07-18",
+          "date": "2026-07-25",
           "films": []
         },
         {
-          "date": "2026-07-19",
+          "date": "2026-07-26",
           "films": []
         }
       ]
