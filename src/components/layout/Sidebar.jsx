@@ -176,7 +176,7 @@ function loadOrder() {
 }
 
 export default function Sidebar() {
-  const { currentPage, setCurrentPage, sidebarCollapsed, toggleSidebar } = useStore();
+  const { currentPage, setCurrentPage, setHomeWidgetManagerOpen } = useStore();
   const [order, setOrder] = useState(loadOrder);
   const [editMode, setEditMode] = useState(false);
   const [dragging, setDragging] = useState(null);
@@ -202,36 +202,46 @@ export default function Sidebar() {
     dragItem.current = null; dragOverItem.current = null;
   };
 
+  const openWidgetManager = () => {
+    setCurrentPage('home');
+    setHomeWidgetManagerOpen(true);
+  };
+
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 flex flex-col z-50 transition-all duration-300 ${sidebarCollapsed ? 'w-[52px]' : 'w-[195px]'}`}
-      style={{ background: 'rgba(10,12,18,.95)', backdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,255,255,.07)' }}
+      className="fixed left-0 top-0 bottom-0 flex flex-col z-50 w-[195px]"
+      style={{ background: '#1a1a1a', borderRight: '1px solid rgba(255,255,255,.07)' }}
     >
       {/* Brand */}
-      <div className={`flex items-center gap-3 border-b border-border ${sidebarCollapsed ? 'px-0 py-[18px] justify-center' : 'px-4 py-[18px]'}`}>
-        <button onClick={toggleSidebar}
-          className="bg-transparent border-0 text-muted cursor-pointer flex items-center justify-center flex-shrink-0 hover:text-text transition-colors">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-        </button>
-        {!sidebarCollapsed && (
-          <div className="flex items-center justify-between flex-1">
-            <h1 className="font-serif text-[15px] text-accent2 leading-tight">Lonas</h1>
+      <div className="flex items-center gap-3 border-b border-border px-4 py-[18px]">
+        <div className="flex items-center justify-between flex-1">
+          <h1 className="font-serif text-[15px] text-accent2 leading-tight">Lonas</h1>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={openWidgetManager}
+              title="Widget boyut & konum düzenleyici"
+              className="bg-transparent border-0 cursor-pointer text-muted hover:text-text transition-colors flex items-center justify-center"
+              style={{ width: 22, height: 22 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+            </button>
             <button
               onClick={() => setEditMode(e => !e)}
               title="Sıralamayı düzenle"
               className={`bg-transparent border-0 cursor-pointer text-[11px] px-2 py-0.5 rounded-md transition-all ${editMode ? 'text-accent bg-accent/10' : 'text-muted hover:text-text'}`}
             >{editMode ? 'Bitti' : '⠿'}</button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 py-2 px-2 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-        {editMode && !sidebarCollapsed && (
+        {editMode && (
           <div className="text-[10px] text-muted/60 px-2 py-1.5 mb-1 text-center">Sürükleyerek sırala</div>
         )}
 
@@ -253,8 +263,8 @@ export default function Sidebar() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                padding: sidebarCollapsed ? '10px 0' : '9px 10px',
-                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                padding: '9px 10px',
+                justifyContent: 'flex-start',
                 borderRadius: 12,
                 marginBottom: 2,
                 cursor: editMode ? 'grab' : 'pointer',
@@ -263,14 +273,14 @@ export default function Sidebar() {
                 background: active && !editMode
                   ? `rgba(0,194,255,0.08)`
                   : isDragOver ? 'rgba(255,255,255,.04)' : 'transparent',
-                borderLeft: !sidebarCollapsed && active && !editMode
+                borderLeft: active && !editMode
                   ? `2px solid ${COLOR}`
                   : '2px solid transparent',
                 transition: 'all .15s ease',
                 position: 'relative',
               }}
             >
-              {editMode && !sidebarCollapsed && (
+              {editMode && (
                 <span style={{ color: 'rgba(255,255,255,.2)', fontSize: 13, flexShrink: 0, userSelect: 'none' }}>⠿</span>
               )}
 
@@ -290,33 +300,21 @@ export default function Sidebar() {
                 {ICONS[item.id]?.(active && !editMode)}
               </div>
 
-              {!sidebarCollapsed && (
-                <span style={{
-                  flex: 1,
-                  fontSize: 13,
-                  color: active && !editMode ? COLOR : 'rgba(232,237,245,.55)',
-                  fontWeight: active && !editMode ? 500 : 400,
-                  userSelect: 'none',
-                  transition: 'color .15s',
-                }}>{item.label}</span>
-              )}
-
-              {/* Collapsed aktif göstergesi */}
-              {sidebarCollapsed && active && (
-                <div style={{
-                  position: 'absolute', right: 0, top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 3, height: 20, borderRadius: '2px 0 0 2px',
-                  background: COLOR,
-                }} />
-              )}
+              <span style={{
+                flex: 1,
+                fontSize: 13,
+                color: active && !editMode ? COLOR : 'rgba(232,237,245,.55)',
+                fontWeight: active && !editMode ? 500 : 400,
+                userSelect: 'none',
+                transition: 'color .15s',
+              }}>{item.label}</span>
             </div>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className={`border-t border-border flex items-center ${sidebarCollapsed ? 'justify-center p-[10px]' : 'justify-end px-4 py-[10px]'}`}>
+      <div className="border-t border-border flex items-center justify-end px-4 py-[10px]">
         <button
           onClick={() => { if (confirm('Çıkış yapmak istediğinize emin misiniz?')) window._fbSignOut?.(); }}
           title="Çıkış Yap"

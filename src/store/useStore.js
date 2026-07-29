@@ -65,6 +65,7 @@ export const useStore = create((set, get) => ({
   db: loadDb(),
   currentPage: 'home',
   sidebarCollapsed: false,
+  homeWidgetManagerOpen: false,
   userProfile: null,
 
   // Reactive state — onSnapshot gelince bunlar güncellenir, component'ler yeniden render olur
@@ -87,6 +88,7 @@ export const useStore = create((set, get) => ({
   // ── NAV ──
   setCurrentPage: (page) => set({ currentPage: page }),
   toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  setHomeWidgetManagerOpen: (open) => set({ homeWidgetManagerOpen: open }),
   setUserProfile: (profile) => set({ userProfile: profile }),
 
   // ── RELOAD (onSnapshot'tan çağrılır) ──

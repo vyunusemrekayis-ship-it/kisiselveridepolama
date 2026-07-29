@@ -177,7 +177,7 @@ function WidgetTitle({ children, accent = '#3a7bd5', icon }) {
   );
 }
 
-function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, isDragging, isDropTarget, children }) {
+function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, isDragging, isDropTarget, editMode, children }) {
   return (
     <div
       style={{
@@ -198,46 +198,50 @@ function WidgetWrapper({ id, size, position, mode, onResizeStart, onMoveStart, i
         <div style={{flex:1,minWidth:0,minHeight:0,display:'flex',flexDirection:'column'}}>
           {children}
         </div>
-        <div
-          onPointerDown={e=>onMoveStart(e,id)}
-          title="Sürükleyerek taşı"
-          style={{
-            position:'absolute', right:2, top:2,
-            width:16, height:16,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            cursor:'grab', zIndex:20,
-            color:'rgba(255,255,255,0.25)',
-            touchAction:'none',
-            background:'rgba(0,0,0,0.2)',
-            borderRadius:5,
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.color='rgba(255,255,255,0.85)';}}
-          onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.25)';}}
-        >
-          <svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor">
-            <circle cx="3" cy="2.5" r="1.2"/><circle cx="9" cy="2.5" r="1.2"/>
-            <circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/>
-            <circle cx="3" cy="9.5" r="1.2"/><circle cx="9" cy="9.5" r="1.2"/>
-          </svg>
-        </div>
-        <div
-          onPointerDown={e=>onResizeStart(e,id)}
-          title="Sürükleyerek boyutlandır"
-          style={{
-            position:'absolute', right:2, bottom:2,
-            width:18, height:18,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            cursor:'nwse-resize', zIndex:20,
-            color:'rgba(255,255,255,0.35)',
-            touchAction:'none',
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.color='rgba(255,255,255,0.8)';}}
-          onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.35)';}}
-        >
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-            <path d="M9.5 1.5L1.5 9.5M9.5 5.5L5.5 9.5M9.5 9.5L9.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-          </svg>
-        </div>
+        {editMode && (
+          <div
+            onPointerDown={e=>onMoveStart(e,id)}
+            title="Sürükleyerek taşı"
+            style={{
+              position:'absolute', right:2, top:2,
+              width:16, height:16,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              cursor:'grab', zIndex:20,
+              color:'rgba(255,255,255,0.25)',
+              touchAction:'none',
+              background:'rgba(0,0,0,0.2)',
+              borderRadius:5,
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.color='rgba(255,255,255,0.85)';}}
+            onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.25)';}}
+          >
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor">
+              <circle cx="3" cy="2.5" r="1.2"/><circle cx="9" cy="2.5" r="1.2"/>
+              <circle cx="3" cy="6" r="1.2"/><circle cx="9" cy="6" r="1.2"/>
+              <circle cx="3" cy="9.5" r="1.2"/><circle cx="9" cy="9.5" r="1.2"/>
+            </svg>
+          </div>
+        )}
+        {editMode && (
+          <div
+            onPointerDown={e=>onResizeStart(e,id)}
+            title="Sürükleyerek boyutlandır"
+            style={{
+              position:'absolute', right:2, bottom:2,
+              width:18, height:18,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              cursor:'nwse-resize', zIndex:20,
+              color:'rgba(255,255,255,0.35)',
+              touchAction:'none',
+            }}
+            onMouseEnter={e=>{e.currentTarget.style.color='rgba(255,255,255,0.8)';}}
+            onMouseLeave={e=>{e.currentTarget.style.color='rgba(255,255,255,0.35)';}}
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M9.5 1.5L1.5 9.5M9.5 5.5L5.5 9.5M9.5 9.5L9.5 9.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1008,17 +1012,37 @@ function CalendarWidget({ db, getTodos, getNotes, onNavigate, size }) {
 }
 
 // ── WIDGET YÖNETİCİSİ ────────────────────────────────────────────────────
-function WidgetManager({ visible, order, onClose, onToggle, onReorder }) {
+function WidgetManager({ visible, order, onClose, onToggle, onReorder, layoutEditMode, onToggleLayoutEdit }) {
   const [dragOver, setDragOver] = useState(null);
   const dragSrc = useRef(null);
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:100,display:'flex',alignItems:'flex-end',justifyContent:'center',background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)'}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'#141618',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'20px 20px 0 0',padding:24,width:'100%',maxWidth:600,maxHeight:'70vh',overflowY:'auto'}}>
+    <div style={{position:'fixed',inset:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.5)',backdropFilter:'blur(4px)',padding:20}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'#141618',border:'1px solid rgba(255,255,255,0.1)',borderRadius:20,padding:24,width:'100%',maxWidth:440,maxHeight:'80vh',overflowY:'auto'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
           <div style={{fontSize:13,color:'rgba(232,237,245,0.7)',fontWeight:500,textTransform:'uppercase',letterSpacing:'0.08em'}}>Widget'ları Düzenle</div>
           <button onClick={onClose} style={{background:'none',border:'none',color:'rgba(232,237,245,0.4)',fontSize:20,cursor:'pointer',lineHeight:1}}>×</button>
         </div>
+
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderRadius:12,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',marginBottom:20}}>
+          <div>
+            <div style={{fontSize:13,color:'rgba(232,237,245,0.85)'}}>Boyut & Konum Araçları</div>
+            <div style={{fontSize:11,color:'rgba(232,237,245,0.4)',marginTop:2}}>Widget'ların üzerindeki taşıma/boyutlandırma tutamaçlarını göster</div>
+          </div>
+          <button
+            onClick={onToggleLayoutEdit}
+            style={{
+              width:40, height:22, borderRadius:11, flexShrink:0, border:'none', cursor:'pointer', position:'relative',
+              background: layoutEditMode ? '#3a7bd5' : 'rgba(255,255,255,0.15)', transition:'background .2s',
+            }}
+          >
+            <div style={{
+              position:'absolute', top:2, left: layoutEditMode ? 20 : 2,
+              width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .2s',
+            }}/>
+          </button>
+        </div>
+
         <div style={{fontSize:10,color:'rgba(232,237,245,0.3)',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>Sıra & Görünürlük</div>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {order.map((id,i)=>(
@@ -1052,13 +1076,20 @@ function WidgetManager({ visible, order, onClose, onToggle, onReorder }) {
 if (!window._sw) window._sw = { running:false, startTime:null, elapsed:parseInt(localStorage.getItem('gn_sw_elapsed')||'0'), sessionStartLabel:null, sessionStartMs:parseInt(localStorage.getItem('gn_sw_segStart')||'0')||null };
 
 export default function Home() {
-  const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog, widgetSizes, setWidgetSize, widgetPositions, setWidgetPositions } = useStore();
+  const { db, setCurrentPage, getTodos, setTodos, getNotes, getChains, swState, swLog, widgetSizes, setWidgetSize, widgetPositions, setWidgetPositions, homeWidgetManagerOpen, setHomeWidgetManagerOpen } = useStore();
   const [time, setTime] = useState(new Date());
   const [swElapsed, setSwElapsed] = useState(()=>parseInt(localStorage.getItem('gn_sw_elapsed')||'0'));
   const [swRunning, setSwRunning] = useState(()=>localStorage.getItem('gn_sw_running')==='1');
   const [widgetOrder, setWidgetOrder] = useState(loadWidgetOrder);
   const [widgetVisible, setWidgetVisible] = useState(loadWidgetVisible);
-  const [showManager, setShowManager] = useState(false);
+  const showManager = homeWidgetManagerOpen;
+  const setShowManager = setHomeWidgetManagerOpen;
+  const [layoutEditMode, setLayoutEditMode] = useState(()=>localStorage.getItem('gn_layout_edit_mode')==='1');
+  const toggleLayoutEditMode = () => {
+    const next = !layoutEditMode;
+    setLayoutEditMode(next);
+    localStorage.setItem('gn_layout_edit_mode', next ? '1' : '0');
+  };
   const [isMobile, setIsMobile] = useState(()=>typeof window!=='undefined' && window.innerWidth < 640);
   const gridRef = useRef(null);
   const [resizing, setResizing] = useState(null);
@@ -1286,7 +1317,7 @@ export default function Home() {
       isDropTarget = dropTarget.col >= p.col && dropTarget.col < p.col + s.col && dropTarget.row >= p.row && dropTarget.row < p.row + s.row;
     }
     return (
-      <WidgetWrapper key={id} id={id} size={size} position={position} mode={mode} onResizeStart={handleResizeStart} onMoveStart={handleMoveStart} isDragging={isDragging} isDropTarget={isDropTarget}>
+      <WidgetWrapper key={id} id={id} size={size} position={position} mode={mode} onResizeStart={handleResizeStart} onMoveStart={handleMoveStart} isDragging={isDragging} isDropTarget={isDropTarget} editMode={layoutEditMode}>
         {content}
       </WidgetWrapper>
     );
@@ -1294,23 +1325,6 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen -m-5 md:-m-[26px_30px] overflow-hidden bg-bg">
-      {/* Widget ayar butonu — sağ üst köşe */}
-      <div style={{position:'absolute',top:12,right:12,zIndex:20}}>
-        <button
-          onClick={()=>setShowManager(true)}
-          title="Widget'ları Düzenle"
-          style={{width:34,height:34,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.04)',color:'rgba(255,255,255,0.45)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'background .2s,color .2s'}}
-          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.75)';}}
-          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.45)';}}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-            <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-            <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-            <rect x="14" y="14" width="7" height="7" rx="1.5"/>
-          </svg>
-        </button>
-      </div>
-
       <div className="relative z-10 p-3 md:p-5 min-h-screen">
         {/* Widget grid */}
         <div
@@ -1336,6 +1350,8 @@ export default function Home() {
           onClose={()=>setShowManager(false)}
           onToggle={handleWidgetToggle}
           onReorder={handleWidgetReorder}
+          layoutEditMode={layoutEditMode}
+          onToggleLayoutEdit={toggleLayoutEditMode}
         />
       )}
     </div>
