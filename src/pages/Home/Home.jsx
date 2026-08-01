@@ -100,8 +100,8 @@ function getWidgetSize(mode, id, sizes) {
   return { col, row };
 }
 
-function findFreeSlot(occupied, cols, size) {
-  let row = 1;
+function findFreeSlot(occupied, cols, size, startRow = 1) {
+  let row = Math.max(1, startRow);
   while (true) {
     for (let col = 1; col <= cols - size.col + 1; col++) {
       let fits = true;
@@ -130,11 +130,14 @@ function computeLayout(order, visible, mode, sizes, positions) {
   const cols = mode==='mobile' ? MOBILE_COLS : DESKTOP_COLS;
   const occupied = new Set();
   const layout = {};
-  order.filter(id=>visible.includes(id)).forEach(id => {
+  const posMap = positions?.[mode] || {};
+  const ids = order.filter(id => visible.includes(id));
+
+  const place = (id, desired) => {
     const size = getWidgetSize(mode, id, sizes);
-    let pos = positions?.[mode]?.[id];
-    if (pos) {
-      pos = { col: Math.min(Math.max(1,pos.col), cols - size.col + 1), row: Math.max(1,pos.row) };
+    let pos;
+    if (desired) {
+      pos = { col: Math.min(Math.max(1, desired.col), cols - size.col + 1), row: Math.max(1, desired.row) };
       let conflict = false;
       outer:
       for (let r = 0; r < size.row; r++) {
@@ -142,13 +145,26 @@ function computeLayout(order, visible, mode, sizes, positions) {
           if (occupied.has(`${pos.col+c},${pos.row+r}`)) { conflict = true; break outer; }
         }
       }
-      if (conflict) pos = findFreeSlot(occupied, cols, size);
+      // Çakışma varsa, widget'ı KENDİ konumunun yakınından itibaren en yakın boş yere kaydır
+      // (uzak/rastgele bir yere fırlatmak yerine).
+      if (conflict) pos = findFreeSlot(occupied, cols, size, pos.row);
     } else {
       pos = findFreeSlot(occupied, cols, size);
     }
     layout[id] = { position: pos, size };
     markOccupied(occupied, pos, size);
-  });
+  };
+
+  // Kaydedilmiş konumu olan widget'ları önce, satır/sütuna göre sabit ve
+  // tekrarlanabilir bir sırayla yerleştir — böylece hangi widget'ın önce
+  // işlendiği her render'da aynı kalır ve widget'lar rastgele yer değiştirmez.
+  const withPos = ids.filter(id => posMap[id]);
+  const withoutPos = ids.filter(id => !posMap[id]);
+  withPos.sort((a, b) => (posMap[a].row - posMap[b].row) || (posMap[a].col - posMap[b].col));
+
+  withPos.forEach(id => place(id, posMap[id]));
+  withoutPos.forEach(id => place(id, null));
+
   return layout;
 }
 
@@ -1394,25 +1410,19 @@ export default function Home() {
         if (curr) {
           const movingId = moving.id;
           const movingSize = getWidgetSize(mode, movingId, widgetSizes);
-          let targetId = null;
-          for (const wid of Object.keys(layout)) {
-            if (wid === movingId) continue;
-            const p = layout[wid].position, s = layout[wid].size;
-            if (curr.col >= p.col && curr.col < p.col + s.col && curr.row >= p.row && curr.row < p.row + s.row) {
-              targetId = wid; break;
-            }
-          }
+          const clampedCol = Math.min(Math.max(1, curr.col), cols - movingSize.col + 1);
+
+          // Önce mevcut (hesaplanmış) tüm konumları sabitle, böylece ilgisiz
+          // widget'lar bu hareketten etkilenip yer değiştirmez.
           const newPositions = { ...(widgetPositions[mode] || {}) };
           Object.keys(layout).forEach(wid => { if(!newPositions[wid]) newPositions[wid] = layout[wid].position; });
-          if (targetId) {
-            const a = newPositions[movingId] || layout[movingId].position;
-            const b = newPositions[targetId] || layout[targetId].position;
-            newPositions[movingId] = b;
-            newPositions[targetId] = a;
-          } else {
-            const clampedCol = Math.min(curr.col, cols - movingSize.col + 1);
-            newPositions[movingId] = { col: Math.max(1,clampedCol), row: curr.row };
-          }
+
+          // Sürüklenen widget tam olarak bırakıldığı hücreye gider.
+          // Orada başka bir widget varsa, o widget computeLayout içinde
+          // kendi konumunun hemen yakınından boş bir yere kayar — rastgele
+          // uzak bir konuma zıplamaz.
+          newPositions[movingId] = { col: Math.max(1, clampedCol), row: Math.max(1, curr.row) };
+
           setWidgetPositions(mode, newPositions);
         }
         return null;

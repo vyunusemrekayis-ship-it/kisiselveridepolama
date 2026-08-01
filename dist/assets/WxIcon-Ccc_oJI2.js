@@ -1,4 +1,4 @@
-import{G as e}from"./index-C3GL7Mev.js";var t=e();function n({bg:e,size:n=20}){let r=n,i=`
+import{G as e}from"./index-DTt3U6DD.js";var t=e();function n({bg:e,size:n=20}){let r=n,i=`
     @keyframes wxSpin { to { transform:rotate(360deg); } }
     @keyframes wxTwinkle { 0%,100%{opacity:1;} 50%{opacity:.25;} }
     @keyframes wxDrift { 0%,100%{transform:translateX(0);} 50%{transform:translateX(${r*.03}px);} }
