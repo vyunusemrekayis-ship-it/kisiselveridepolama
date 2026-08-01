@@ -209,7 +209,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 bottom-0 flex flex-col z-50 w-[195px]"
+      className="fixed left-0 top-0 bottom-0 flex flex-col z-50 w-[215px]"
       style={{ background: '#1a1a1a', borderRight: '1px solid rgba(255,255,255,.07)' }}
     >
       {/* Brand */}
@@ -271,7 +271,7 @@ export default function Sidebar() {
                 opacity: isDraggingThis ? 0.35 : 1,
                 transform: isDragOver ? 'translateY(2px)' : 'none',
                 background: active && !editMode
-                  ? `rgba(0,194,255,0.08)`
+                  ? `rgba(255,255,255,0.05)`
                   : isDragOver ? 'rgba(255,255,255,.04)' : 'transparent',
                 borderLeft: active && !editMode
                   ? `2px solid ${COLOR}`
@@ -293,8 +293,8 @@ export default function Sidebar() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                background: active && !editMode ? `rgba(0,194,255,0.1)` : 'rgba(255,255,255,.04)',
-                border: `1px solid ${active && !editMode ? 'rgba(0,194,255,0.25)' : 'rgba(255,255,255,.07)'}`,
+                background: active && !editMode ? `rgba(255,255,255,0.06)` : 'rgba(255,255,255,.04)',
+                border: `1px solid ${active && !editMode ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,.07)'}`,
                 transition: 'all .2s ease',
               }}>
                 {ICONS[item.id]?.(active && !editMode)}
@@ -303,8 +303,8 @@ export default function Sidebar() {
               <span style={{
                 flex: 1,
                 fontSize: 13,
-                color: active && !editMode ? COLOR : 'rgba(232,237,245,.55)',
-                fontWeight: active && !editMode ? 500 : 400,
+                color: active && !editMode ? 'rgba(232,237,245,.95)' : 'rgba(232,237,245,.55)',
+                fontWeight: active && !editMode ? 600 : 400,
                 userSelect: 'none',
                 transition: 'color .15s',
               }}>{item.label}</span>

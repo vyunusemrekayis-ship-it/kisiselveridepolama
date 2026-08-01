@@ -64,7 +64,7 @@ const DEFAULT_SIZES = {
     todos:    { col: 1, row: 4 },
     goals:    { col: 1, row: 4 },
     stopwatch:{ col: 2, row: 3 },
-    chains:   { col: 1, row: 4 },
+    chains:   { col: 2, row: 5 },
     books:    { col: 1, row: 4 },
     calendar: { col: 1, row: 4 },
     films:    { col: 1, row: 4 },
@@ -75,7 +75,7 @@ const DEFAULT_SIZES = {
     todos:    { col: 2, row: 5 },
     goals:    { col: 2, row: 5 },
     stopwatch:{ col: 2, row: 4 },
-    chains:   { col: 2, row: 5 },
+    chains:   { col: 2, row: 6 },
     books:    { col: 2, row: 5 },
     calendar: { col: 2, row: 5 },
     films:    { col: 2, row: 5 },
@@ -167,6 +167,47 @@ const WIDGET_ACCENT = {
   series:    '#6c63ff',
   weather:   '#38bdf8',
 };
+
+function hexToHsl(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+  if (!m) return [217, 70, 55];
+  const r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      default: h = (r - g) / d + 4;
+    }
+    h *= 60;
+  }
+  return [h, s * 100, l * 100];
+}
+
+function ChainFlowBg({ hex }) {
+  const [h, s] = hexToHsl(hex);
+  const c1 = `hsl(${h} ${Math.min(90, s + 10)}% 32%)`;
+  const c2 = `hsl(${(h + 55) % 360} ${Math.min(85, s)}% 26%)`;
+  const c3 = `hsl(${(h - 40 + 360) % 360} ${Math.min(85, s)}% 20%)`;
+  return (
+    <>
+      <div style={{
+        position: 'absolute', inset: 0, backgroundSize: '200% 200%',
+        animation: 'gnChainFlow 12s ease-in-out infinite',
+        background: `radial-gradient(circle at 20% 20%, ${c1}, transparent 60%), radial-gradient(circle at 80% 80%, ${c2}, transparent 60%), radial-gradient(circle at 50% 50%, ${c3}, transparent 70%)`,
+      }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(13,15,19,0.35)' }} />
+      <style>{`@keyframes gnChainFlow {
+        0% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+        50% { background-position: 100% 50%, 0% 50%, 80% 20%; }
+        100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+      }`}</style>
+    </>
+  );
+}
 
 function WidgetTitle({ children, accent = '#3a7bd5', icon }) {
   return (
@@ -509,42 +550,115 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 }
 
 // ── ZİNCİR ────────────────────────────────────────────────────────────────
-function ChainWidget({ chains, onNavigate, size }) {
-  const SEGS = 20;
-  const [bodyRef, body] = useElementSize();
-  const baseH = 130;
-  const heightScale = Math.max(0.7, Math.min(3, (body.height || baseH) / baseH));
-  const maxVisible = Math.max(2, Math.round(4 * heightScale));
-  const nameFontSize = Math.max(10, Math.round(12 * heightScale));
-  const streakFontSize = Math.max(10, Math.round(12 * heightScale));
-  const segHeight = Math.max(3, Math.round(3 * heightScale));
+function ChainCalendarMonth({ year, month, startMs, doneSet, label, labelColor, color }) {
+  const first = new Date(year, month, 1);
+  const offset = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, month, day, 12);
+    const dayIdx = Math.floor((d.getTime() - startMs) / 86400000);
+    cells.push(doneSet.has(dayIdx));
+  }
   return (
-    <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
-      <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>}>Zincir Kırma ›</WidgetTitle>
-      {chains.length===0
-        ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)'}}>Alışkanlık yok</div>
-        : <div ref={bodyRef} style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'space-between',minHeight:0}}>
-        {chains.slice(0,maxVisible).map((ch,i)=>{
-          const { streak } = calcChainStreak(ch);
-          const target = ch.target||30;
-          const filled = Math.round((streak/target)*SEGS);
-          return (
-            <div key={i}>
-              <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:6}}>
-                <div style={{width:6,height:6,borderRadius:'50%',background:ch.color||'#3a7bd5',flexShrink:0}}/>
-                <span style={{fontSize:nameFontSize,color:'rgba(232,237,245,0.85)',flex:1,fontWeight:500}}>{ch.name}</span>
-                <span style={{fontSize:streakFontSize,color:streak>0?(ch.color||'#f97316'):'rgba(232,237,245,0.3)',fontFamily:'Lora,serif',fontWeight:streak>0?700:400}}>{streak} gün</span>
-              </div>
-              <div style={{display:'flex',gap:3}}>
-                {Array.from({length:SEGS},(_,j)=>(
-                  <div key={j} style={{flex:1,height:segHeight,borderRadius:2,background:j<filled?(ch.color||'#3a7bd5'):'rgba(255,255,255,0.08)'}}/>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 10.5, textAlign: 'center', marginBottom: 8, color: labelColor }}>{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+        {cells.map((done, i) => (
+          <div key={i} style={{
+            aspectRatio: '1', borderRadius: 4,
+            visibility: done === null ? 'hidden' : 'visible',
+            background: done ? color : 'transparent',
+            border: done ? `1px solid ${color}` : '1px solid rgba(255,255,255,0.25)',
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChainWidget({ chains, onNavigate }) {
+  if (chains.length === 0) {
+    return (
+      <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
+        <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>}>Zincir Kırma ›</WidgetTitle>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>Alışkanlık yok</div>
+      </div>
+    );
+  }
+
+  const primary = chains[0];
+  const rest = chains.slice(1, 4);
+  const color = primary.color || '#3a7bd5';
+  const { streak, doneSet } = calcChainStreak(primary);
+  const startMs = new Date(primary.start + 'T00:00:00').getTime();
+  const endMs = primary.end ? new Date(primary.end + 'T00:00:00').getTime() : startMs + 364 * 86400000;
+  const totalDays = Math.max(1, Math.round((endMs - startMs) / 86400000) + 1);
+  const doneCount = primary.done?.length || 0;
+  const pct = Math.min(100, Math.round((doneCount / totalDays) * 100));
+
+  const R = 60, ARC = Math.PI * R;
+  const dashOffset = ARC * (1 - pct / 100);
+  const [hueH, hueS, hueL] = hexToHsl(color);
+  const lightTone1 = `hsl(${hueH} ${Math.min(90, hueS + 15)}% 88%)`;
+  const lightTone2 = `hsl(${hueH} ${Math.min(85, hueS + 10)}% 78%)`;
+  const calFillColor = `hsl(${hueH} ${hueS}% ${Math.max(35, hueL - 2)}%)`;
+
+  const now = new Date();
+  const months = [-1, 0, 1].map(off => {
+    const d = new Date(now.getFullYear(), now.getMonth() + off, 1);
+    return { year: d.getFullYear(), month: d.getMonth(), isCurrent: off === 0 };
+  });
+
+  return (
+    <div onClick={onNavigate} className="rounded-2xl cursor-pointer h-full w-full flex flex-col overflow-hidden relative p-3 sm:p-4" style={{ background: '#16181d' }}>
+      <ChainFlowBg hex={color} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 9, background: `${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          </div>
+          <div style={{ fontSize: 13.5, color: '#f5f7fa', fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{primary.name}</div>
         </div>
-      }
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+          <svg width="150" height="84" viewBox="0 0 140 80">
+            <path d="M10 70 A60 60 0 0 1 130 70" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="14" />
+            <path d="M10 70 A60 60 0 0 1 130 70" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
+              strokeDasharray={ARC} strokeDashoffset={dashOffset} />
+            <text x="70" y="62" textAnchor="middle" fontSize="19" fill="#f5f7fa" fontFamily="Lora,serif">{pct}%</text>
+          </svg>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 18 }}>
+          <span style={{ fontSize: 15, color: lightTone1, fontVariantNumeric: 'tabular-nums' }}>Seri {streak} gün</span>
+          <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
+          <span style={{ fontSize: 13, color: lightTone2, fontVariantNumeric: 'tabular-nums' }}>{doneCount} / {totalDays}</span>
+        </div>
+
+        <div style={{ display: 'flex', gap: 22, justifyContent: 'space-between' }}>
+          {months.map((m, i) => (
+            <ChainCalendarMonth key={i} year={m.year} month={m.month} startMs={startMs} doneSet={doneSet}
+              label={TR_M[m.month]} labelColor="rgba(255,255,255,0.6)" color={calFillColor} />
+          ))}
+        </div>
+
+        {rest.length > 0 && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {rest.map((ch, i) => {
+              const s = calcChainStreak(ch).streak;
+              const c = ch.color || '#3a7bd5';
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: c, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ch.name}</span>
+                  <span style={{ fontSize: 12, color: s > 0 ? c : 'rgba(255,255,255,0.35)', fontFamily: 'Lora,serif' }}>{s} gün</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
