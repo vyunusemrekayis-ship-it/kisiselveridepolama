@@ -64,7 +64,7 @@ const DEFAULT_SIZES = {
     todos:    { col: 1, row: 4 },
     goals:    { col: 1, row: 4 },
     stopwatch:{ col: 2, row: 3 },
-    chains:   { col: 2, row: 5 },
+    chains:   { col: 2, row: 4 },
     books:    { col: 1, row: 4 },
     calendar: { col: 1, row: 4 },
     films:    { col: 1, row: 4 },
@@ -75,7 +75,7 @@ const DEFAULT_SIZES = {
     todos:    { col: 2, row: 5 },
     goals:    { col: 2, row: 5 },
     stopwatch:{ col: 2, row: 4 },
-    chains:   { col: 2, row: 6 },
+    chains:   { col: 2, row: 5 },
     books:    { col: 2, row: 5 },
     calendar: { col: 2, row: 5 },
     films:    { col: 2, row: 5 },
@@ -550,7 +550,7 @@ function StopwatchWidget({ swElapsed, swRunning, swLog, onToggle, onReset, onNav
 }
 
 // ── ZİNCİR ────────────────────────────────────────────────────────────────
-function ChainCalendarMonth({ year, month, startMs, doneSet, label, labelColor, color }) {
+function ChainCalendarMonth({ year, month, startMs, doneSet, label, labelColor, color, compact }) {
   const first = new Date(year, month, 1);
   const offset = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -563,11 +563,11 @@ function ChainCalendarMonth({ year, month, startMs, doneSet, label, labelColor, 
   }
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 10.5, textAlign: 'center', marginBottom: 8, color: labelColor }}>{label}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+      <div style={{ fontSize: compact ? 9 : 10.5, textAlign: 'center', marginBottom: compact ? 4 : 8, color: labelColor }}>{label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: compact ? 2 : 4 }}>
         {cells.map((done, i) => (
           <div key={i} style={{
-            aspectRatio: '1', borderRadius: 4,
+            aspectRatio: '1', borderRadius: compact ? 2 : 4,
             visibility: done === null ? 'hidden' : 'visible',
             background: done ? color : 'transparent',
             border: done ? `1px solid ${color}` : '1px solid rgba(255,255,255,0.25)',
@@ -579,6 +579,19 @@ function ChainCalendarMonth({ year, month, startMs, doneSet, label, labelColor, 
 }
 
 function ChainWidget({ chains, onNavigate }) {
+  const wrapRef = useRef(null);
+  const [boxH, setBoxH] = useState(400);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect?.height;
+      if (h && h > 0) setBoxH(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   if (chains.length === 0) {
     return (
       <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors h-full w-full flex flex-col overflow-hidden">
@@ -605,17 +618,28 @@ function ChainWidget({ chains, onNavigate }) {
   const lightTone2 = `hsl(${hueH} ${Math.min(85, hueS + 10)}% 78%)`;
   const calFillColor = `hsl(${hueH} ${hueS}% ${Math.max(35, hueL - 2)}%)`;
 
+  // Kutunun ölçülen yüksekliğine göre kademeli sıkıştırma:
+  // az yer varsa önce diğer zincir listesi, sonra ay sayısı azalır, en son her şey küçülür.
+  const tight = boxH < 300;
+  const veryTight = boxH < 220;
+  const showRest = !tight && rest.length > 0;
+  const monthOffsets = veryTight ? [0] : (tight ? [0, 1] : [-1, 0, 1]);
+  const arcW = veryTight ? 96 : tight ? 118 : 150;
+  const arcH = Math.round(arcW * (84 / 150));
+  const headerMB = veryTight ? 8 : tight ? 10 : 16;
+  const streakMB = veryTight ? 6 : tight ? 10 : 18;
+
   const now = new Date();
-  const months = [-1, 0, 1].map(off => {
+  const months = monthOffsets.map(off => {
     const d = new Date(now.getFullYear(), now.getMonth() + off, 1);
     return { year: d.getFullYear(), month: d.getMonth(), isCurrent: off === 0 };
   });
 
   return (
-    <div onClick={onNavigate} className="rounded-2xl cursor-pointer h-full w-full flex flex-col overflow-hidden relative p-3 sm:p-4" style={{ background: '#16181d' }}>
+    <div ref={wrapRef} onClick={onNavigate} className="rounded-2xl cursor-pointer h-full w-full flex flex-col overflow-hidden relative p-3 sm:p-4" style={{ background: '#16181d' }}>
       <ChainFlowBg hex={color} />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: headerMB }}>
           <div style={{ width: 28, height: 28, borderRadius: 9, background: `${color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           </div>
@@ -623,28 +647,28 @@ function ChainWidget({ chains, onNavigate }) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-          <svg width="150" height="84" viewBox="0 0 140 80">
+          <svg width={arcW} height={arcH} viewBox="0 0 140 80">
             <path d="M10 70 A60 60 0 0 1 130 70" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="14" />
             <path d="M10 70 A60 60 0 0 1 130 70" fill="none" stroke={color} strokeWidth="14" strokeLinecap="round"
               strokeDasharray={ARC} strokeDashoffset={dashOffset} />
             <text x="70" y="62" textAnchor="middle" fontSize="19" fill="#f5f7fa" fontFamily="Lora,serif">{pct}%</text>
           </svg>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: streakMB }}>
           <span style={{ fontSize: 15, color: lightTone1, fontVariantNumeric: 'tabular-nums' }}>Seri {streak} gün</span>
           <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
           <span style={{ fontSize: 13, color: lightTone2, fontVariantNumeric: 'tabular-nums' }}>{doneCount} / {totalDays}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: 22, justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: veryTight ? 8 : tight ? 12 : 22, justifyContent: 'space-between' }}>
           {months.map((m, i) => (
             <ChainCalendarMonth key={i} year={m.year} month={m.month} startMs={startMs} doneSet={doneSet}
-              label={TR_M[m.month]} labelColor="rgba(255,255,255,0.6)" color={calFillColor} />
+              label={TR_M[m.month]} labelColor="rgba(255,255,255,0.6)" color={calFillColor} compact={tight} />
           ))}
         </div>
 
-        {rest.length > 0 && (
-          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {showRest && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden' }}>
             {rest.map((ch, i) => {
               const s = calcChainStreak(ch).streak;
               const c = ch.color || '#3a7bd5';
@@ -781,8 +805,8 @@ function FilmPoster({ film, width, height }) {
     fetchPoster(film.name).then(url => { if (url) setPoster(url); });
   }, [film.name]);
   return poster
-    ? <img src={poster} alt={film.name} title={film.name} style={{width,height,objectFit:'cover',borderRadius:4,flexShrink:0,display:'block'}}/>
-    : <div title={film.name} style={{width,height,borderRadius:4,flexShrink:0,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+    ? <img src={poster} alt="" style={{width,height,objectFit:'cover',borderRadius:4,flexShrink:0,display:'block'}}/>
+    : <div style={{width,height,borderRadius:4,flexShrink:0,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center'}}>
         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9l6 3-6 3V9z"/></svg>
       </div>;
 }
@@ -813,7 +837,6 @@ function FilmWidget({ films, onNavigate, size }) {
     <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors overflow-hidden h-full w-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <WidgetTitle accent="#3a7bd5" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#3a7bd5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9l6 3-6 3V9z" fill="#3a7bd5" fillOpacity=".3"/></svg>}>Filmler ›</WidgetTitle>
-        <div style={{fontSize:11,color:'rgba(232,237,245,0.35)',marginTop:-8}}><span style={{fontSize:15,color:'#a06040',fontFamily:'Lora,serif',marginRight:3,fontWeight:700}}>{films.length}</span>izlendi</div>
       </div>
       {films.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Film yok</div>
@@ -834,8 +857,8 @@ function SeriesPoster({ series, width, height }) {
     fetchSeriesPoster(series.name).then(url => { if (url) setPoster(url); });
   }, [series.name]);
   return poster
-    ? <img src={poster} alt={series.name} title={series.name} style={{width,height,objectFit:'cover',borderRadius:4,flexShrink:0,display:'block'}}/>
-    : <div title={series.name} style={{width,height,borderRadius:4,flexShrink:0,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
+    ? <img src={poster} alt="" style={{width,height,objectFit:'cover',borderRadius:4,flexShrink:0,display:'block'}}/>
+    : <div style={{width,height,borderRadius:4,flexShrink:0,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M8 2l4 3 4-3"/></svg>
         <div style={{position:'absolute',left:0,right:0,top:'20%',height:1,background:'rgba(108,99,255,0.35)',animation:'seriesWidgetScan 2.4s ease-in-out infinite'}}/>
       </div>;
@@ -867,7 +890,6 @@ function SeriesWidget({ series, onNavigate, size }) {
     <div onClick={onNavigate} className="bg-surface2 border border-white/[0.08] rounded-2xl p-3 sm:p-4 cursor-pointer hover:bg-surface3 transition-colors overflow-hidden h-full w-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <WidgetTitle accent="#6c63ff" icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6c63ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" fill="#6c63ff" fillOpacity=".3"/><path d="M8 2l4 3 4-3"/></svg>}>Diziler ›</WidgetTitle>
-        <div style={{fontSize:11,color:'rgba(232,237,245,0.35)',marginTop:-8}}><span style={{fontSize:15,color:'#6c63ff',fontFamily:'Lora,serif',marginRight:3,fontWeight:700}}>{series.length}</span>izlendi</div>
       </div>
       {series.length===0
         ? <div style={{fontSize:11,color:'rgba(255,255,255,0.25)',padding:'8px 0'}}>Dizi yok</div>

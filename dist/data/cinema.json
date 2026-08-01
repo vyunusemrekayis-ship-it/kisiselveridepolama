@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-29T05:44:56.841Z",
+  "generatedAt": "2026-08-01T05:48:53.058Z",
   "cinemas": [
     {
       "id": "paribu-cineverse-forum-trabzon",
@@ -8,18 +8,6 @@
       "phone": "0 (850) 220 09 67",
       "bookingUrl": "https://www.paribucineverse.com/sinemalar/forum-trabzon",
       "days": [
-        {
-          "date": "2026-07-29",
-          "films": []
-        },
-        {
-          "date": "2026-07-30",
-          "films": []
-        },
-        {
-          "date": "2026-07-31",
-          "films": []
-        },
         {
           "date": "2026-08-01",
           "films": []
@@ -34,6 +22,18 @@
         },
         {
           "date": "2026-08-04",
+          "films": []
+        },
+        {
+          "date": "2026-08-05",
+          "films": []
+        },
+        {
+          "date": "2026-08-06",
+          "films": []
+        },
+        {
+          "date": "2026-08-07",
           "films": []
         }
       ]
@@ -46,18 +46,6 @@
       "bookingUrl": "https://biletinial.com/tr-tr/mekan/lara-sinemalari",
       "days": [
         {
-          "date": "2026-07-29",
-          "films": []
-        },
-        {
-          "date": "2026-07-30",
-          "films": []
-        },
-        {
-          "date": "2026-07-31",
-          "films": []
-        },
-        {
           "date": "2026-08-01",
           "films": []
         },
@@ -71,6 +59,18 @@
         },
         {
           "date": "2026-08-04",
+          "films": []
+        },
+        {
+          "date": "2026-08-05",
+          "films": []
+        },
+        {
+          "date": "2026-08-06",
+          "films": []
+        },
+        {
+          "date": "2026-08-07",
           "films": []
         }
       ]
@@ -83,18 +83,6 @@
       "bookingUrl": "https://www.cinegalaxysinemalari.com/place/CINE_GALAXY",
       "days": [
         {
-          "date": "2026-07-29",
-          "films": []
-        },
-        {
-          "date": "2026-07-30",
-          "films": []
-        },
-        {
-          "date": "2026-07-31",
-          "films": []
-        },
-        {
           "date": "2026-08-01",
           "films": []
         },
@@ -108,6 +96,18 @@
         },
         {
           "date": "2026-08-04",
+          "films": []
+        },
+        {
+          "date": "2026-08-05",
+          "films": []
+        },
+        {
+          "date": "2026-08-06",
+          "films": []
+        },
+        {
+          "date": "2026-08-07",
           "films": []
         }
       ]
