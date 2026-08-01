@@ -45,13 +45,15 @@ function loadWidgetOrder() {
 }
 function loadWidgetVisible() {
   try {
-    const saved = JSON.parse(localStorage.getItem('gn_widget_visible') || JSON.stringify(ALL_WIDGET_IDS));
-    const missing = ALL_WIDGET_IDS.filter(id => !saved.includes(id));
-    return missing.length ? [...saved, ...missing] : saved;
+    const hidden = JSON.parse(localStorage.getItem('gn_widget_hidden') || '[]');
+    return ALL_WIDGET_IDS.filter(id => !hidden.includes(id));
   } catch { return [...ALL_WIDGET_IDS]; }
 }
 function saveWidgetOrder(order) { localStorage.setItem('gn_widget_order', JSON.stringify(order)); }
-function saveWidgetVisible(visible) { localStorage.setItem('gn_widget_visible', JSON.stringify(visible)); }
+function saveWidgetVisible(visible) {
+  const hidden = ALL_WIDGET_IDS.filter(id => !visible.includes(id));
+  localStorage.setItem('gn_widget_hidden', JSON.stringify(hidden));
+}
 
 const DESKTOP_COLS = 4;
 const MOBILE_COLS = 2;
