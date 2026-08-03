@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
-import { fmtDate, OMDB_KEY, fetchBookInfo, bookInfoCache, isCoverLikelyBlank } from '../../lib/utils';
+import { fmtDate, OMDB_KEY, fetchBookInfo, bookInfoCache, isCoverLikelyBlank, searchBookCovers } from '../../lib/utils';
 
 async function autoFillBookInfo(name) {
   try {
@@ -14,8 +14,67 @@ async function autoFillBookInfo(name) {
   return {};
 }
 
+// Kitap adına göre birden fazla kapak adayı getirir, kullanıcı tıklayarak seçer.
+function CoverPicker({ value, bookName, author, onChange }) {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const name = (bookName || '').trim();
+
+  const search = async () => {
+    if (!name) return;
+    setLoading(true);
+    setOpen(true);
+    const r = await searchBookCovers(name, author);
+    setResults(r);
+    setLoading(false);
+  };
+
+  return (
+    <div className="mb-3">
+      <label className="form-label">Kapak</label>
+      <div className="flex gap-3 items-start">
+        {value
+          ? <img src={value} alt="Seçili kapak" style={{ width: 52, height: 74, objectFit: 'cover', borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)', flexShrink: 0 }} />
+          : <div style={{ width: 52, height: 74, borderRadius: 6, background: 'var(--surface2)', flexShrink: 0 }} />
+        }
+        <div className="flex-1 min-w-0">
+          <div className="flex gap-2">
+            <button type="button" onClick={search} disabled={!name} className="px-3 py-2 rounded-lg border border-border bg-surface2 text-muted text-xs whitespace-nowrap cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+              {loading ? 'Aranıyor...' : name ? `"${name}" için kapak ara` : 'Önce kitap adını yazın'}
+            </button>
+            {value && <button type="button" onClick={() => onChange(null)} className="px-3 py-2 rounded-lg border border-border bg-surface2 text-muted text-xs whitespace-nowrap cursor-pointer">Kaldır</button>}
+          </div>
+          {open && (
+            loading ? (
+              <div className="text-xs text-muted mt-2">Aranıyor...</div>
+            ) : results.length === 0 ? (
+              <div className="text-xs text-muted mt-2">Sonuç bulunamadı</div>
+            ) : (
+              <div className="flex flex-wrap gap-2 mt-2 p-2 rounded-lg" style={{ maxHeight: 230, overflowY: 'auto', background: 'rgba(255,255,255,0.02)' }}>
+                {results.map((r, i) => (
+                  <img
+                    key={i} src={r.url} alt="" title={r.source}
+                    onClick={() => { onChange(r.url); setOpen(false); }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                    style={{
+                      width: 52, height: 74, objectFit: 'cover', borderRadius: 4, cursor: 'pointer',
+                      border: value === r.url ? '2px solid #3a7bd5' : '1px solid rgba(255,255,255,0.15)',
+                      opacity: value && value !== r.url ? 0.6 : 1,
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BookForm({ book, onSave, onCancel }) {
-  const [form, setForm] = useState({ name: '', author: '', pages: '', start: '', end: '', note: '', old: false, ...book });
+  const [form, setForm] = useState({ name: '', author: '', pages: '', start: '', end: '', note: '', old: false, cover: null, ...book });
   const [loading, setLoading] = useState(false);
 
   const autoFill = async () => {
@@ -60,6 +119,8 @@ function BookForm({ book, onSave, onCancel }) {
           </>
         )}
       </div>
+
+      <CoverPicker value={form.cover} bookName={form.name} author={form.author} onChange={cover => setForm(f => ({ ...f, cover }))} />
 
       {/* Eskiden okudum toggle */}
       <div className="mb-3">
@@ -119,21 +180,24 @@ function BookCard({ book, onEdit, onDelete, onMoveTo }) {
   const [coverFailed, setCoverFailed] = useState(false);
 
   useEffect(() => {
+    if (book.cover) return; // manuel kapak seçilmişse otomatik aramaya gerek yok
     if (cached) return;
     fetchBookInfo(book.name, book.author).then(setInfo);
-  }, [book.name, book.author]);
+  }, [book.name, book.author, book.cover]);
 
   useEffect(() => {
+    if (book.cover) return; // manuel seçilen kapak sahtelik kontrolünden muaf
     if (!info.cover || coverFailed) return;
     isCoverLikelyBlank(info.cover).then(blank => { if (blank) setCoverFailed(true); });
-  }, [info.cover]);
+  }, [info.cover, book.cover]);
 
   const pages = book.pages || info.pages;
+  const cover = book.cover || info.cover;
 
   return (
     <div className="card group" style={{ width: 275 }}>
-      {info.cover && !coverFailed
-        ? <img src={info.cover} alt={book.name} className="rounded-t-xl block" style={{ width: 275, height: 388, objectFit: 'cover', objectPosition: 'center top', display: 'block' }} onError={() => setCoverFailed(true)} />
+      {cover && !coverFailed
+        ? <img src={cover} alt={book.name} className="rounded-t-xl block" style={{ width: 275, height: 388, objectFit: 'cover', objectPosition: 'center top', display: 'block' }} onError={() => setCoverFailed(true)} />
         : <BookCoverPlaceholder width={275} height={388} />
       }
       <div className="p-3">
@@ -163,7 +227,7 @@ function BookCard({ book, onEdit, onDelete, onMoveTo }) {
 }
 
 function ReadlistForm({ book, onSave, onCancel }) {
-  const [form, setForm] = useState({ name: '', author: '', ...book });
+  const [form, setForm] = useState({ name: '', author: '', cover: null, ...book });
   const [loading, setLoading] = useState(false);
 
   const autoFill = async () => {
@@ -189,6 +253,9 @@ function ReadlistForm({ book, onSave, onCancel }) {
           </div>
         </div>
       </div>
+
+      <CoverPicker value={form.cover} bookName={form.name} author={form.author} onChange={cover => setForm(f => ({ ...f, cover }))} />
+
       <div className="flex gap-2 justify-end">
         <button className="btn-cancel" onClick={onCancel}>İptal</button>
         <button className="btn-save" onClick={() => { if (!form.name.trim()) { alert('Kitap adı zorunludur'); return; } onSave(form); }}>Kaydet</button>

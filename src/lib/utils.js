@@ -261,6 +261,86 @@ export function fetchBookInfo(name, author) {
   return p;
 }
 
+// ── KİTAP KAPAĞI ARAMA (MANUEL SEÇİM) — Books.jsx'teki kapak seçici bunu kullanır ───
+// Otomatik sistemden (fetchBookInfo) bağımsız: cache'lemez, birden fazla aday döndürür,
+// kullanıcı bunlardan birini seçip kitaba kalıcı olarak (book.cover) atar.
+
+// Google Books ve Open Library, gerçek kapağı olmayan baskılar için düz beyaz/siyah ya da
+// "image not available" yazan sahte bir görsel döndürebiliyor — bunu küçük boyutta indirip
+// neredeyse tek renk mi diye bakarak eliyoruz (isCoverLikelyBlank'e benzer ama siyahı da kapsar).
+function isLikelyPlaceholderImage(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const W = 16, H = 16;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, W, H);
+        const data = ctx.getImageData(0, 0, W, H).data;
+        let light = 0, dark = 0, total = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] < 200) continue;
+          total++;
+          if (data[i] > 205 && data[i + 1] > 205 && data[i + 2] > 205) light++;
+          else if (data[i] < 25 && data[i + 1] < 25 && data[i + 2] < 25) dark++;
+        }
+        resolve(total === 0 || (light / total) > 0.85 || (dark / total) > 0.85);
+      } catch {
+        resolve(false); // emin değilsek göstermeye devam et
+      }
+    };
+    img.onerror = () => resolve(true); // gerçekten yüklenemeyen görseli de listeden çıkar
+    img.src = `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=16&h=16&fit=cover`;
+  });
+}
+
+export async function searchBookCovers(name, author) {
+  const raw = [];
+  const seen = new Set();
+  const add = (url, source) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    raw.push({ url, source });
+  };
+
+  try {
+    const q = author ? `${name} ${author}` : name;
+    const data = await queuedGoogleFetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=16&key=${GOOGLE_BOOKS_KEY}`);
+    (data?.items || []).forEach(it => {
+      const img = it.volumeInfo?.imageLinks;
+      const thumb = img?.thumbnail || img?.smallThumbnail;
+      if (thumb) add(upscaleCover(thumb), 'Google Books');
+    });
+  } catch {}
+
+  try {
+    const res = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(name)}&limit=16`);
+    const data = await res.json();
+    for (const doc of data.docs || []) {
+      const coverId = doc.cover_i;
+      const isbn = doc.isbn?.[0];
+      const url = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : (isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg` : null);
+      if (!url) continue;
+      // Open Library kapağı olmayan kayıtlarda çok küçük bir "yok" görseli döner — content-length'e bakıp eliyoruz
+      const head = await fetch(url, { method: 'HEAD' }).catch(() => null);
+      const len = parseInt(head?.headers?.get('content-length') || '0');
+      if (head?.ok && len > 2000) add(url, 'Open Library');
+    }
+  } catch {}
+
+  // Kalan adayları görsel içerik kontrolünden geçiriyoruz (düz renk/placeholder olanları at)
+  const checked = await Promise.all(raw.map(async (r) => ({ ...r, bad: await isLikelyPlaceholderImage(r.url) })));
+  const filtered = checked.filter(r => !r.bad).map(({ url, source }) => ({ url, source }));
+
+  // Filtre her şeyi eledi ise (uç durum) yine de ham listeyi göster, boş ekran kalmasın
+  const results = filtered.length ? filtered : raw;
+
+  return results.slice(0, 24);
+}
+
 // ── SIRT RENGİ — kapaktan otomatik baskın 2 renk + oranını çıkarır (Home.jsx kullanır) ───
 export const spineColorCache = {};
 const spineColorInFlight = {};
